@@ -1,0 +1,22 @@
+# 公開 DNS・TLS 証明書・HTTP 応答を GitHub のランナーから実測する（読み取りのみ。何も変更しない）。
+# 結果は run の Summary と annotation（::notice）に出る。
+name: site-check
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 対象ドメイン
+        default: reyz.inc
+        required: true
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: check
+        env:
+          DOMAIN: ${{ inputs.domain }}
+        run: bash infra/check/site_check.sh "$DOMAIN"
