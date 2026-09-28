@@ -106,7 +106,12 @@ def diff(existing, desired, prune):
         by_name.setdefault((e['type'].upper(), e['name'].lower()), []).append(e)
     for d in desired:
         cands = by_name.get((d['type'], d['name']), [])
-        if d['type'] in MULTI:
+        single_prefix = singleton_prefix(d)
+        if single_prefix:
+            # SPF / DMARC は同名で 1 件しか許されない（2 件あると無効）→ 同種の既存 1 件を更新対象にする
+            hit = next((e for e in cands if e['id'] not in used
+                        and norm_content('TXT', e['content']).lower().startswith(single_prefix)), None)
+        elif d['type'] in MULTI:
             hit = next((e for e in cands if e['id'] not in used
                         and norm_content(d['type'], e['content']) == norm_content(d['type'], d['content'])), None)
         else:
@@ -127,6 +132,17 @@ def diff(existing, desired, prune):
         if e['id'] not in used:
             ops.append(('delete' if prune else 'extra', None, e))
     return ops
+
+
+SINGLETON_TXT_PREFIXES = ('v=spf1', 'v=dmarc1')
+
+
+def singleton_prefix(rec):
+    """同名で 1 件だけ存在すべき TXT（SPF / DMARC）なら、その識別プレフィックスを返す。"""
+    if rec.get('type', '').upper() != 'TXT':
+        return None
+    c = norm_content('TXT', rec.get('content', '')).lower()
+    return next((p for p in SINGLETON_TXT_PREFIXES if c.startswith(p)), None)
 
 
 def fmt(rec):

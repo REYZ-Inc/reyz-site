@@ -14,6 +14,10 @@ sys.path.insert(0, HERE)
 import cf_dns  # noqa: E402
 
 ZONE_FILE = os.path.join(HERE, 'zones', 'reyz.inc.json')
+with open(ZONE_FILE, encoding='utf-8') as _f:
+    _SPEC = json.load(_f)
+N_REC = len(_SPEC['records'])          # 宣言レコード数
+N_SET = len(_SPEC['settings'])         # 宣言設定数
 
 
 class FakeCF:
@@ -108,7 +112,7 @@ class T(unittest.TestCase):
     def test_plan_on_missing_zone_writes_nothing(self):
         out = run('--mode', 'plan')
         self.assertIn('zone: MISSING', out)
-        self.assertEqual(out.count('+ create'), 8)
+        self.assertEqual(out.count('+ create'), N_REC)
         self.assertEqual(self.writes(), [])
 
     def test_settings_permission_failure_is_reported_not_fatal(self):
@@ -120,28 +124,29 @@ class T(unittest.TestCase):
         self.assertIn('Zone Settings', out)
         self.assertIn('changes: 0 (applied)', out)             # レコードは既に一致、設定は読めず
         self.assertEqual(run.rc, 1)
-        self.assertEqual(len(FakeCF.state['records']), 8)      # レコード側は無傷
+        self.assertEqual(len(FakeCF.state['records']), N_REC)  # レコード側は無傷
 
     def test_apply_creates_zone_and_records_then_idempotent(self):
         out = run('--mode', 'apply')
         self.assertIn('zone: CREATED', out)
         self.assertIn('nameservers: a.ns.cloudflare.com, b.ns.cloudflare.com', out)
-        self.assertEqual(out.count('+ create'), 8)
-        self.assertIn('changes: 12 (applied)', out)          # 8 records + 4 settings
+        self.assertEqual(out.count('+ create'), N_REC)
+        self.assertIn(f'changes: {N_REC + N_SET} (applied)', out)   # records + settings
         self.assertEqual(FakeCF.state['settings'], {'ssl': 'full', 'always_use_https': 'on',
                                                     'automatic_https_rewrites': 'off' if False else 'on',
                                                     'min_tls_version': '1.2'})
         self.assertEqual(FakeCF.state.get('activation_checks'), 1)   # pending ゾーンには確認を依頼
         self.assertEqual(run.rc, 0)
         recs = FakeCF.state['records']
-        self.assertEqual(len(recs), 8)
+        self.assertEqual(len(recs), N_REC)
         self.assertTrue(all(r.get('proxied') is True for r in recs if r['type'] in ('A', 'CNAME')))
         self.assertTrue(all('proxied' not in r for r in recs if r['type'] == 'TXT'))
         self.assertEqual({r['name'] for r in recs},
                          {'reyz.inc', 'www.reyz.inc', '_dmarc.reyz.inc', '_domainkey.reyz.inc'})
+        self.assertEqual([r for r in recs if r['type'] == 'MX'][0]['priority'], 1)
         FakeCF.state['calls'] = []
         out2 = run('--mode', 'apply')
-        self.assertEqual(out2.count('= keep'), 12)             # 8 records + 4 settings
+        self.assertEqual(out2.count('= keep'), N_REC + N_SET)
         self.assertIn('changes: 0', out2)
         self.assertEqual(self.writes(), [])          # TXT の "…" 差でも再作成しない
 
@@ -163,10 +168,10 @@ class T(unittest.TestCase):
                                         'content': '_domainconnect.domains.squarespace.com', 'proxied': False})
         out = run('--mode', 'apply')
         self.assertIn('! extra  CNAME _domainconnect.reyz.inc', out)
-        self.assertEqual(len(FakeCF.state['records']), 9)
+        self.assertEqual(len(FakeCF.state['records']), N_REC + 1)
         out = run('--mode', 'apply', '--prune')
         self.assertIn('- delete CNAME _domainconnect.reyz.inc', out)
-        self.assertEqual(len(FakeCF.state['records']), 8)
+        self.assertEqual(len(FakeCF.state['records']), N_REC)
 
     def test_dnssec_on(self):
         run('--mode', 'apply')
@@ -188,6 +193,22 @@ class T(unittest.TestCase):
         self.assertIn('%0Azone: MISSING', notice[0])          # 改行は %0A にエスケープ
         self.assertNotIn('\n', notice[0])
 
+    def test_spf_and_dmarc_are_updated_in_place_not_duplicated(self):
+        run('--mode', 'apply')
+        spf = next(r for r in FakeCF.state['records'] if r['name'] == 'reyz.inc' and 'v=spf1' in r['content'])
+        dmarc = next(r for r in FakeCF.state['records'] if r['name'] == '_dmarc.reyz.inc')
+        spf['content'] = '"v=spf1 -all"'; dmarc['content'] = '"v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s"'
+        out = run('--mode', 'plan')
+        self.assertIn('~ update TXT reyz.inc v=spf1 -all', out)
+        self.assertIn('~ update TXT _dmarc.reyz.inc', out)
+        self.assertNotIn('+ create TXT reyz.inc v=spf1', out)   # 2 件目の SPF を作らない
+        out = run('--mode', 'apply')
+        self.assertIn('changes: 2 (applied)', out)
+        spfs = [r for r in FakeCF.state['records'] if r['name'] == 'reyz.inc' and 'v=spf1' in r['content']]
+        self.assertEqual(len(spfs), 1)
+        self.assertEqual(cf_dns.norm_content('TXT', spfs[0]['content']), 'v=spf1 include:_spf.google.com ~all')
+        self.assertEqual(len([r for r in FakeCF.state['records'] if r['name'] == '_dmarc.reyz.inc']), 1)
+
     def test_helpers(self):
         self.assertEqual(cf_dns.fqdn('@', 'reyz.inc'), 'reyz.inc')
         self.assertEqual(cf_dns.fqdn('www', 'reyz.inc'), 'www.reyz.inc')
@@ -196,7 +217,7 @@ class T(unittest.TestCase):
         self.assertEqual(cf_dns.norm_content('CNAME', 'Reyz-Inc.github.io.'), 'reyz-inc.github.io')
         with open(ZONE_FILE, encoding='utf-8') as f:
             spec = json.load(f)
-        self.assertEqual(spec['zone'], 'reyz.inc'); self.assertEqual(len(spec['records']), 8)
+        self.assertEqual(spec['zone'], 'reyz.inc'); self.assertEqual(len(spec['records']), N_REC)
         self.assertEqual(spec['settings']['ssl'], 'full')
         self.assertTrue(all(r['proxied'] for r in spec['records'] if r['type'] in ('A', 'CNAME')))
 
