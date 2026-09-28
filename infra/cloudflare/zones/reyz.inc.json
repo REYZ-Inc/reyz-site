@@ -1,14 +1,20 @@
 {
   "zone": "reyz.inc",
-  "_note": "Squarespace DNS（2026-09-28 時点）と同一内容。GitHub Pages 向け。A/CNAME は必ず proxied=false（GitHub 側の証明書更新経路を変えないため）。",
+  "_note": "出口は Cloudflare（proxied=true）。訪問者への証明書と HTTPS 転送は Cloudflare が担い、GitHub Pages は配信元。Cloudflare→GitHub 間は settings.ssl=full（GitHub 側の証明書名が一致しなくても暗号化して接続）。GitHub 側に reyz.inc の証明書が発行されたら strict に上げてよい。",
   "records": [
-    { "type": "A", "name": "@", "content": "185.199.108.153", "proxied": false },
-    { "type": "A", "name": "@", "content": "185.199.109.153", "proxied": false },
-    { "type": "A", "name": "@", "content": "185.199.110.153", "proxied": false },
-    { "type": "A", "name": "@", "content": "185.199.111.153", "proxied": false },
-    { "type": "CNAME", "name": "www", "content": "reyz-inc.github.io", "proxied": false },
+    { "type": "A", "name": "@", "content": "185.199.108.153", "proxied": true },
+    { "type": "A", "name": "@", "content": "185.199.109.153", "proxied": true },
+    { "type": "A", "name": "@", "content": "185.199.110.153", "proxied": true },
+    { "type": "A", "name": "@", "content": "185.199.111.153", "proxied": true },
+    { "type": "CNAME", "name": "www", "content": "reyz-inc.github.io", "proxied": true },
     { "type": "TXT", "name": "@", "content": "v=spf1 -all" },
     { "type": "TXT", "name": "_dmarc", "content": "v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s" },
     { "type": "TXT", "name": "_domainkey", "content": "v=DKIM1; p=" }
-  ]
+  ],
+  "settings": {
+    "ssl": "full",
+    "always_use_https": "on",
+    "automatic_https_rewrites": "on",
+    "min_tls_version": "1.2"
+  }
 }

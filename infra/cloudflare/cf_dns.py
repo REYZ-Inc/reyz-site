@@ -32,7 +32,7 @@ class CF:
     def __init__(self, token):
         self.token = token
 
-    def call(self, method, path, body=None, params=None):
+    def call(self, method, path, body=None, params=None, raise_on_error=True):
         url = API + path + ('?' + urllib.parse.urlencode(params) if params else '')
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(url, data=data, method=method, headers={
@@ -45,9 +45,8 @@ class CF:
                 payload = json.loads(e.read().decode())
             except Exception:
                 payload = {'success': False, 'errors': [{'code': e.code, 'message': str(e)}]}
-        if not payload.get('success'):
-            raise SystemExit(f'Cloudflare API error: {method} {path}: '
-                             + json.dumps(payload.get('errors'), ensure_ascii=False))
+        if not payload.get('success') and raise_on_error:
+            raise SystemExit(f'Cloudflare API error: {method} {path}: ' + errs(payload))
         return payload
 
     def get_all(self, path, params=None):
@@ -61,6 +60,10 @@ class CF:
             if page >= (info.get('total_pages') or 1):
                 return out
             page += 1
+
+
+def errs(payload):
+    return json.dumps(payload.get('errors'), ensure_ascii=False)
 
 
 def fqdn(name, zone):
@@ -145,7 +148,8 @@ def main():
     account = os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')
     if not token:
         raise SystemExit('CLOUDFLARE_API_TOKEN が未設定です（GitHub Actions Secrets に置く）')
-    spec = json.load(open(a.zone_file, encoding='utf-8'))
+    with open(a.zone_file, encoding='utf-8') as f:
+        spec = json.load(f)
     zone, desired = desired_records(spec)
     cf = CF(token)
     lines = [f'# cloudflare-dns: {zone} ({a.mode})']
@@ -195,7 +199,40 @@ def main():
                 cf.call('DELETE', f'/zones/{zid}/dns_records/{e["id"]}')
         else:
             lines.append('  ! extra  ' + fmt(e) + '  （宣言にない。削除は --prune）')
+    # ゾーン設定（宣言ファイルの "settings"）。proxied 運用に必要な SSL モード等をここで固定する。
+    failed = []
+    settings = spec.get('settings') or {}
+    if settings:
+        lines.append('settings:')
+        for k, want in settings.items():
+            cur = cf.call('GET', f'/zones/{zid}/settings/{k}', raise_on_error=False)
+            if not cur.get('success'):
+                lines.append(f'  ! FAIL   {k}: 読取不可 ' + errs(cur))
+                failed.append(k)
+                continue
+            val = (cur.get('result') or {}).get('value')
+            if val == want:
+                lines.append(f'  = keep   {k}={val}')
+                continue
+            n_change += 1
+            if a.mode == 'apply':
+                r = cf.call('PATCH', f'/zones/{zid}/settings/{k}', body={'value': want}, raise_on_error=False)
+                if r.get('success'):
+                    lines.append(f'  ~ set    {k}: {val} → {want}')
+                else:
+                    lines.append(f'  ! FAIL   {k}: {val} → {want} ' + errs(r))
+                    failed.append(k)
+            else:
+                lines.append(f'  ~ set    {k}: {val} → {want}')
+        if failed:
+            lines.append('settings: 失敗あり → トークンに「Zone › Zone Settings › Edit」を追加するか、'
+                         'Cloudflare の画面（SSL/TLS）で同じ値に設定する')
     lines.append(f'changes: {n_change}' + (' (applied)' if a.mode == 'apply' else ' (plan only)'))
+
+    # ネームサーバー切替後、Cloudflare に「今すぐ確認」を頼む（pending → active を早める）
+    if a.mode == 'apply' and z.get('status') == 'pending':
+        r = cf.call('PUT', f'/zones/{zid}/activation_check', raise_on_error=False)
+        lines.append('activation check: ' + ('requested' if r.get('success') else 'not now ' + errs(r)))
 
     ds = cf.call('GET', f'/zones/{zid}/dnssec')['result']
     st = ds.get('status')
@@ -212,7 +249,8 @@ def main():
         lines.append('dnssec DS（レジストラに登録する値）: ' + ds['ds'])
         lines.append(f"  key_tag={ds.get('key_tag')} algorithm={ds.get('algorithm')} "
                      f"digest_type={ds.get('digest_type')} digest={ds.get('digest')}")
-    return report(lines, a, n_change)
+    report(lines, a, n_change)
+    return 1 if failed else 0
 
 
 def report(lines, a, n_change=0):
