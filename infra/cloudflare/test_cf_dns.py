@@ -145,6 +145,17 @@ class T(unittest.TestCase):
         self.assertIn('dnssec: status=pending', out)
         self.assertEqual([c for c in FakeCF.state['calls'] if c == ('PATCH', '/zones/z1/dnssec')], [])
 
+    def test_notice_annotation_under_actions(self):
+        os.environ['GITHUB_ACTIONS'] = 'true'
+        try:
+            out = run('--mode', 'plan')
+        finally:
+            os.environ.pop('GITHUB_ACTIONS', None)
+        notice = [ln for ln in out.splitlines() if ln.startswith('::notice title=cloudflare-dns plan::')]
+        self.assertEqual(len(notice), 1)
+        self.assertIn('%0Azone: MISSING', notice[0])          # 改行は %0A にエスケープ
+        self.assertNotIn('\n', notice[0])
+
     def test_helpers(self):
         self.assertEqual(cf_dns.fqdn('@', 'reyz.inc'), 'reyz.inc')
         self.assertEqual(cf_dns.fqdn('www', 'reyz.inc'), 'www.reyz.inc')

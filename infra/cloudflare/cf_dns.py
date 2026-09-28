@@ -218,6 +218,11 @@ def main():
 def report(lines, a, n_change=0):
     text = '\n'.join(lines)
     print(text)
+    if os.environ.get('GITHUB_ACTIONS'):
+        # 結果を annotation（::notice）にも出す。Actions のログ本文が読めない環境でも、
+        # check-run annotations API から同じ内容を機械的に読めるようにするため。
+        esc = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+        print(f'::notice title=cloudflare-dns {a.mode}::{esc}')
     summ = os.environ.get('GITHUB_STEP_SUMMARY')
     if summ:
         with open(summ, 'a', encoding='utf-8') as f:
