@@ -16,6 +16,7 @@
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -75,8 +76,11 @@ def fqdn(name, zone):
 
 def norm_content(rtype, content):
     c = (content or '').strip()
-    if rtype == 'TXT' and len(c) >= 2 and c[0] == '"' and c[-1] == '"':
-        c = c[1:-1]                      # Cloudflare は TXT を "…" 付きで返す
+    if rtype == 'TXT' and c.startswith('"'):
+        # Cloudflare は TXT を "…" 付きで返し、255 文字超は "…" "…" に分割して返す → 連結して比較する
+        parts = re.findall(r'"((?:[^"\\]|\\.)*)"', c)
+        if parts:
+            c = ''.join(parts).replace('\\"', '"')
     if rtype in ('CNAME', 'NS', 'MX'):
         c = c.rstrip('.').lower()
     return c

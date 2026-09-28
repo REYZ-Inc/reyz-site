@@ -57,6 +57,11 @@
       "type": "TXT",
       "name": "@",
       "content": "google-site-verification=3uDqTgfdJHfHJdof0Oju3yVAC39NDaXX-Asw4jWO8eM"
+    },
+    {
+      "type": "TXT",
+      "name": "google._domainkey",
+      "content": "v=DKIM1;k=rsa;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0z7pW3/ZlzZuLs+QKLbhHEOltJ+02wmc3Uqre/FrD0rhpPsLj30k9cyZI4oDQvvIinhOyCiO9rpH58YS0sEBodVc8H0487EtGYDmwHR9KR44VL7BEI28PWrHJr3/a7coGFWN5Sx8nCKVTabEoKuTCRsUGPhfxCkvM51OzxfnJfBSAbn9Q489SdxUWwVuQuOXIG7HlSvh05xyrUxvAk90uCsIpw0K1vczq5gk7SKhpVqhnyGDaxzC4/3KkkwsiUlkmzUb/AwdXMupGGB6Gtstcsd7oYo9fiQRuxLmQQAyQv53BvhB62FmCTnDUal4B8bb2JM0DDLv29MQ2Jyxf7vq4wIDAQAB"
     }
   ],
   "settings": {
