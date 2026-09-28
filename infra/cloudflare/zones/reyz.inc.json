@@ -2,19 +2,68 @@
   "zone": "reyz.inc",
   "_note": "出口は Cloudflare（proxied=true）。訪問者への証明書と HTTPS 転送は Cloudflare が担い、GitHub Pages は配信元。Cloudflare→GitHub 間は settings.ssl=full（GitHub 側の証明書名が一致しなくても暗号化して接続）。GitHub 側に reyz.inc の証明書が発行されたら strict に上げてよい。",
   "records": [
-    { "type": "A", "name": "@", "content": "185.199.108.153", "proxied": true },
-    { "type": "A", "name": "@", "content": "185.199.109.153", "proxied": true },
-    { "type": "A", "name": "@", "content": "185.199.110.153", "proxied": true },
-    { "type": "A", "name": "@", "content": "185.199.111.153", "proxied": true },
-    { "type": "CNAME", "name": "www", "content": "reyz-inc.github.io", "proxied": true },
-    { "type": "TXT", "name": "@", "content": "v=spf1 -all" },
-    { "type": "TXT", "name": "_dmarc", "content": "v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s" },
-    { "type": "TXT", "name": "_domainkey", "content": "v=DKIM1; p=" }
+    {
+      "type": "A",
+      "name": "@",
+      "content": "185.199.108.153",
+      "proxied": true
+    },
+    {
+      "type": "A",
+      "name": "@",
+      "content": "185.199.109.153",
+      "proxied": true
+    },
+    {
+      "type": "A",
+      "name": "@",
+      "content": "185.199.110.153",
+      "proxied": true
+    },
+    {
+      "type": "A",
+      "name": "@",
+      "content": "185.199.111.153",
+      "proxied": true
+    },
+    {
+      "type": "CNAME",
+      "name": "www",
+      "content": "reyz-inc.github.io",
+      "proxied": true
+    },
+    {
+      "type": "MX",
+      "name": "@",
+      "content": "smtp.google.com",
+      "priority": 1
+    },
+    {
+      "type": "TXT",
+      "name": "@",
+      "content": "v=spf1 include:_spf.google.com ~all"
+    },
+    {
+      "type": "TXT",
+      "name": "_dmarc",
+      "content": "v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:dmarc@reyz.inc"
+    },
+    {
+      "type": "TXT",
+      "name": "_domainkey",
+      "content": "v=DKIM1; p="
+    },
+    {
+      "type": "TXT",
+      "name": "@",
+      "content": "google-site-verification=3uDqTgfdJHfHJdof0Oju3yVAC39NDaXX-Asw4jWO8eM"
+    }
   ],
   "settings": {
     "ssl": "full",
     "always_use_https": "on",
     "automatic_https_rewrites": "on",
     "min_tls_version": "1.2"
-  }
+  },
+  "_note_mail": "メールは Google Workspace（MX smtp.google.com）。SPF は Google のみ許可、DMARC は p=reject を維持し集計を dmarc@reyz.inc へ。DKIM（google._domainkey）は管理コンソールで生成後に追加する。"
 }
