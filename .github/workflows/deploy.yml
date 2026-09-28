@@ -1,10 +1,10 @@
 # main への push = 検証 → GitHub Pages へ自動配備（reyz.inc）。Pull Request は検証のみ。
-# infra/（DNS 等）だけの変更ではサイトを再配備しない。
+# infra/（DNS 等）や workers/（API）だけの変更ではサイトを再配備しない。
 name: verify-and-deploy
 on:
   push:
     branches: [main]
-    paths-ignore: ['infra/**', '.github/workflows/cloudflare-dns.yml']
+    paths-ignore: ['infra/**', 'workers/**', '.github/workflows/cloudflare-dns.yml', '.github/workflows/contact-worker.yml']
   pull_request:
   workflow_dispatch:
 permissions:

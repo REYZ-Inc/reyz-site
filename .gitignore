@@ -6,3 +6,6 @@ site/__viewer_sim.html
 .DS_Store
 *.zip
 __pycache__/
+.dev.vars
+.wrangler/
+workers/**/dist/

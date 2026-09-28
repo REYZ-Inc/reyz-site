@@ -20,7 +20,8 @@
 
   /* ===== 公開前に設定する項目（空欄の項目は表示されません） ===== */
   const CONFIG = {
-    formEndpoint: '',                 // 例: 'https://formspree.io/f/xxxx' 等のフォーム送信先（POST, JSON）→「送信」で直接送信
+    formEndpoint: '',                 // 例: '/api/contact'（同一ドメインの受付 Worker。workers/contact）→「送信」で直接送信（POST, JSON）
+    turnstileSiteKey: '',             // Cloudflare Turnstile のサイトキー（公開値）。設定すると確認ページにボット対策の確認を表示し、送信時にトークンを添える
     contactEmail: '',                 // 例: 'info@example.com' → 送信先未設定時は「送信」でメールアプリを開く／フッターに連絡先表示
     lineUrl: ''                       // 例: 'https://lin.ee/xxxx' → 予備の連絡手段として案内文に表示
   };
@@ -277,7 +278,8 @@
   }
 
   /* ================================================================
-     CONTACT — 入力 → 確認ページ → 送信（送信先は CONFIG.formEndpoint / contactEmail で有効化。未設定時は文面をコピーして案内）
+     CONTACT — 入力 → 確認ページ → 送信（送信先は CONFIG.formEndpoint / contactEmail で有効化。未設定時は文面をコピーして案内。
+     formEndpoint が受付 Worker のとき: honeypot（#cWebsite）と Turnstile トークンを添えて JSON で POST）
      ================================================================ */
   const form = document.getElementById('contactForm');
   if (form) {
@@ -302,11 +304,28 @@
     };
     const fields = () => ({ name: $('cName').value.trim(), person: $('cPerson').value.trim(), email: email(), type: $('cType').value, msg: $('cMsg').value.trim() });
     const text = f => '[REYZ お問い合わせ]\nご用件: ' + f.type + '\nお名前: ' + f.name + (f.person ? '\nご担当者様: ' + f.person : '') + '\nメール: ' + f.email + '\n内容:\n' + f.msg;
+    // Turnstile（ボット対策）: サイトキーがある時だけスクリプトを読み、確認ページで描画する。トークンは1回限りなので送信失敗時はリセットする
+    const tsBox = $('turnstile'); let tsToken = '', tsWidget = null, tsLoading = null;
+    const tsReady = () => {
+      if (!CONFIG.turnstileSiteKey || !tsBox) return Promise.resolve(false);
+      if (window.turnstile) return Promise.resolve(true);
+      if (!tsLoading) tsLoading = new Promise(resolve => { const s = document.createElement('script'); s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; s.async = true; s.defer = true; s.onload = () => resolve(!!window.turnstile); s.onerror = () => resolve(false); document.head.append(s); });
+      return tsLoading;
+    };
+    const tsReset = () => { tsToken = ''; if (tsWidget !== null) { try { window.turnstile.reset(tsWidget); } catch (err) {} } };
+    const tsRender = async () => {
+      if (!(await tsReady())) return;
+      tsBox.hidden = false;
+      if (tsWidget !== null) { tsReset(); return; }
+      tsToken = '';
+      tsWidget = window.turnstile.render(tsBox, { sitekey: CONFIG.turnstileSiteKey, theme: 'dark', language: 'ja', callback: t => { tsToken = t; }, 'expired-callback': () => { tsToken = ''; }, 'error-callback': () => { tsToken = ''; } });
+    };
     const show = (step) => {
       for (const el of [stepForm, stepConfirm, stepDone]) el.hidden = el !== step;
       const sec = form.closest('.section') || form; const top = sec.getBoundingClientRect().top + window.scrollY + 8;   // 見出し「お問い合わせ」から見える位置へ
       window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'instant' : 'smooth' });
       const h = step.querySelector('h3, label'); if (h && h.tagName === 'H3') h.focus({ preventScroll: true });
+      if (step === stepConfirm) tsRender();
     };
     // 入力 → 確認（履歴に1段積む: 戻るボタンで入力へ）
     form.addEventListener('submit', e => {
@@ -325,13 +344,21 @@
     sendBtn.addEventListener('click', async () => {
       const f = fields(); const body = text(f); sendBtn.disabled = true;
       if (CONFIG.formEndpoint) {
+        if (tsWidget !== null && !tsToken) { sendStatus.textContent = 'ボット対策の確認がまだ完了していません。数秒待ってからもう一度「送信」を押してください。'; sendBtn.disabled = false; return; }
         sendStatus.textContent = '送信中…';
+        const website = $('cWebsite'); const payload = { name: f.name, person: f.person, email: f.email, type: f.type, message: f.msg, website: website ? website.value : '', turnstile: tsToken, _subject: 'REYZ お問い合わせ', _replyto: f.email };
         try {
-          const res = await fetch(CONFIG.formEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ name: f.name, person: f.person, email: f.email, type: f.type, message: f.msg, _subject: 'REYZ お問い合わせ', _replyto: f.email }) });
-          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const res = await fetch(CONFIG.formEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) });
+          if (!res.ok) { let code = ''; try { code = (await res.json()).error || ''; } catch (err) {} throw new Error(code || ('HTTP ' + res.status)); }
           try { history.replaceState({ step: 'done' }, '', '#sent'); } catch (err) {}
           form.reset(); show(stepDone); return;
-        } catch (err) { sendStatus.textContent = '送信できませんでした。時間をおいて再度お試しください。'; sendBtn.disabled = false; return; }
+        } catch (err) {
+          const code = String(err && err.message || '');
+          sendStatus.textContent = code === 'turnstile' ? 'ボット対策の確認ができませんでした。ページを再読み込みしてから、もう一度お試しください。'
+            : code === 'validation' ? '入力内容に確認が必要な項目があります。「修正する」から見直してください。'
+            : '送信できませんでした。時間をおいて再度お試しください。';
+          tsReset(); sendBtn.disabled = false; return;
+        }
       }
       if (CONFIG.contactEmail) {
         location.href = 'mailto:' + CONFIG.contactEmail + '?subject=' + encodeURIComponent('REYZ お問い合わせ') + '&body=' + encodeURIComponent(body);
