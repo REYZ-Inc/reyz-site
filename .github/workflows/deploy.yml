@@ -32,8 +32,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with: { name: qa-report, path: qa/out, retention-days: 14 }
-      - name: enable GitHub Pages (Actions source) if not yet enabled
+      - name: enable GitHub Pages (Actions source) if not yet enabled  # 権限が無い場合は失敗扱いにしない（設定画面で有効化）
         if: github.event_name != 'pull_request'
+        continue-on-error: true
         uses: actions/configure-pages@v5
         with: { enablement: true }
       - name: pages artifact
