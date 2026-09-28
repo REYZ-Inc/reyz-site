@@ -24,7 +24,7 @@ class FakeCF:
         assert token == 'test-token'
         self.s = FakeCF.state
 
-    def call(self, method, path, body=None, params=None):
+    def call(self, method, path, body=None, params=None, raise_on_error=True):
         s = self.s
         s['calls'].append((method, path))
         if path == '/user/tokens/verify':
@@ -52,6 +52,19 @@ class FakeCF:
             if method == 'DELETE':
                 s['records'] = [r for r in s['records'] if r['id'] != rid]
                 return {'success': True, 'result': {'id': rid}}
+        m = re.fullmatch(r'/zones/z1/settings/(\w+)', path)
+        if m:
+            k = m.group(1)
+            if s.get('settings_denied'):
+                return {'success': False, 'errors': [{'code': 10000, 'message': 'Authentication error'}]}
+            if method == 'GET':
+                return {'success': True, 'result': {'id': k, 'value': s['settings'].get(k)}}
+            if method == 'PATCH':
+                s['settings'][k] = body['value']
+                return {'success': True, 'result': {'id': k, 'value': body['value']}}
+        if path == '/zones/z1/activation_check' and method == 'PUT':
+            s['activation_checks'] = s.get('activation_checks', 0) + 1
+            return {'success': True, 'result': {'id': 'z1'}}
         if path == '/zones/z1/dnssec':
             if method == 'PATCH':
                 assert body == {'status': 'active'}
@@ -77,13 +90,16 @@ def run(*argv, actions=False):
     sys.argv = ['cf_dns.py', '--zone-file', ZONE_FILE] + list(argv)
     buf = io.StringIO()
     with redirect_stdout(buf):
-        cf_dns.main()
+        rc = cf_dns.main()
+    run.rc = rc
     return buf.getvalue()
 
 
 class T(unittest.TestCase):
     def setUp(self):
-        FakeCF.state = {'zone': None, 'records': [], 'dnssec': {'status': 'disabled'}, 'calls': []}
+        FakeCF.state = {'zone': None, 'records': [], 'dnssec': {'status': 'disabled'}, 'calls': [],
+                        'settings': {'ssl': 'flexible', 'always_use_https': 'off',
+                                     'automatic_https_rewrites': 'off', 'min_tls_version': '1.0'}}
         cf_dns.CF = FakeCF
 
     def writes(self):
@@ -95,35 +111,51 @@ class T(unittest.TestCase):
         self.assertEqual(out.count('+ create'), 8)
         self.assertEqual(self.writes(), [])
 
+    def test_settings_permission_failure_is_reported_not_fatal(self):
+        run('--mode', 'apply')
+        FakeCF.state['settings']['ssl'] = 'flexible'
+        FakeCF.state['settings_denied'] = True
+        out = run('--mode', 'apply')
+        self.assertIn('! FAIL   ssl', out)
+        self.assertIn('Zone Settings', out)
+        self.assertIn('changes: 0 (applied)', out)             # レコードは既に一致、設定は読めず
+        self.assertEqual(run.rc, 1)
+        self.assertEqual(len(FakeCF.state['records']), 8)      # レコード側は無傷
+
     def test_apply_creates_zone_and_records_then_idempotent(self):
         out = run('--mode', 'apply')
         self.assertIn('zone: CREATED', out)
         self.assertIn('nameservers: a.ns.cloudflare.com, b.ns.cloudflare.com', out)
         self.assertEqual(out.count('+ create'), 8)
-        self.assertIn('changes: 8 (applied)', out)
+        self.assertIn('changes: 12 (applied)', out)          # 8 records + 4 settings
+        self.assertEqual(FakeCF.state['settings'], {'ssl': 'full', 'always_use_https': 'on',
+                                                    'automatic_https_rewrites': 'off' if False else 'on',
+                                                    'min_tls_version': '1.2'})
+        self.assertEqual(FakeCF.state.get('activation_checks'), 1)   # pending ゾーンには確認を依頼
+        self.assertEqual(run.rc, 0)
         recs = FakeCF.state['records']
         self.assertEqual(len(recs), 8)
-        self.assertTrue(all(r.get('proxied') is False for r in recs if r['type'] in ('A', 'CNAME')))
+        self.assertTrue(all(r.get('proxied') is True for r in recs if r['type'] in ('A', 'CNAME')))
         self.assertTrue(all('proxied' not in r for r in recs if r['type'] == 'TXT'))
         self.assertEqual({r['name'] for r in recs},
                          {'reyz.inc', 'www.reyz.inc', '_dmarc.reyz.inc', '_domainkey.reyz.inc'})
         FakeCF.state['calls'] = []
         out2 = run('--mode', 'apply')
-        self.assertEqual(out2.count('= keep'), 8)
+        self.assertEqual(out2.count('= keep'), 12)             # 8 records + 4 settings
         self.assertIn('changes: 0', out2)
         self.assertEqual(self.writes(), [])          # TXT の "…" 差でも再作成しない
 
     def test_cname_drift_is_updated_and_proxied_drift_fixed(self):
         run('--mode', 'apply')
         www = next(r for r in FakeCF.state['records'] if r['type'] == 'CNAME')
-        www['content'] = 'old.example.'; www['proxied'] = True
+        www['content'] = 'old.example.'; www['proxied'] = False
         FakeCF.state['calls'] = []
         out = run('--mode', 'plan')
-        self.assertIn('~ update CNAME www.reyz.inc old.example (proxied)', out)
+        self.assertIn('~ update CNAME www.reyz.inc old.example (DNS only)', out)
         self.assertEqual(self.writes(), [])
         out = run('--mode', 'apply')
         self.assertIn('changes: 1 (applied)', out)
-        self.assertEqual(www['content'], 'reyz-inc.github.io'); self.assertFalse(www['proxied'])
+        self.assertEqual(www['content'], 'reyz-inc.github.io'); self.assertTrue(www['proxied'])
 
     def test_extra_record_is_reported_not_deleted_unless_prune(self):
         run('--mode', 'apply')
@@ -162,8 +194,11 @@ class T(unittest.TestCase):
         self.assertEqual(cf_dns.fqdn('www.reyz.inc', 'reyz.inc'), 'www.reyz.inc')
         self.assertEqual(cf_dns.norm_content('TXT', '"v=spf1 -all"'), 'v=spf1 -all')
         self.assertEqual(cf_dns.norm_content('CNAME', 'Reyz-Inc.github.io.'), 'reyz-inc.github.io')
-        spec = json.load(open(ZONE_FILE, encoding='utf-8'))
+        with open(ZONE_FILE, encoding='utf-8') as f:
+            spec = json.load(f)
         self.assertEqual(spec['zone'], 'reyz.inc'); self.assertEqual(len(spec['records']), 8)
+        self.assertEqual(spec['settings']['ssl'], 'full')
+        self.assertTrue(all(r['proxied'] for r in spec['records'] if r['type'] in ('A', 'CNAME')))
 
 
 if __name__ == '__main__':
