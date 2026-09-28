@@ -56,9 +56,13 @@ jobs:
           GMAIL_SENDER_USER: ${{ secrets.GMAIL_SENDER_USER }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           WRANGLER_SEND_METRICS: "false"
-      - name: 配備後の疎通（GET は 405 = Worker が reyz.inc/api/contact で応答している）
+      - name: 配備後の疎通（GET は 405 = Worker が reyz.inc/api/contact で応答している。ルート反映まで最大 2 分待つ）
         run: |
-          code=$(curl -sS -o /dev/null -w '%{http_code}' https://reyz.inc/api/contact)
-          echo "GET https://reyz.inc/api/contact -> $code"
-          echo "::notice title=contact-worker deploy::GET https://reyz.inc/api/contact -> HTTP $code (expected 405)"
+          for i in $(seq 1 12); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' https://reyz.inc/api/contact || echo 000)
+            echo "try $i: GET https://reyz.inc/api/contact -> $code"
+            [ "$code" = "405" ] && break
+            sleep 10
+          done
+          echo "::notice title=contact-worker deploy::GET https://reyz.inc/api/contact -> HTTP $code after $i tries (expected 405)"
           test "$code" = "405"

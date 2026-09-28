@@ -20,8 +20,8 @@
 
   /* ===== 公開前に設定する項目（空欄の項目は表示されません） ===== */
   const CONFIG = {
-    formEndpoint: '',                 // 例: '/api/contact'（同一ドメインの受付 Worker。workers/contact）→「送信」で直接送信（POST, JSON）
-    turnstileSiteKey: '',             // Cloudflare Turnstile のサイトキー（公開値）。設定すると確認ページにボット対策の確認を表示し、送信時にトークンを添える
+    formEndpoint: '/api/contact',     // 同一ドメインの受付 Worker（workers/contact）→「送信」で直接送信（POST, JSON）。空にすると「文面をコピー」の暫定挙動に戻る
+    turnstileSiteKey: '0x4AAAAAAFIPs9iKoP2Ouj0x',   // Cloudflare Turnstile のサイトキー（公開値。ウィジェット reyz-site-contact）。確認ページにボット対策の確認を表示し、送信時にトークンを添える
     contactEmail: '',                 // 例: 'info@example.com' → 送信先未設定時は「送信」でメールアプリを開く／フッターに連絡先表示
     lineUrl: ''                       // 例: 'https://lin.ee/xxxx' → 予備の連絡手段として案内文に表示
   };
@@ -349,11 +349,12 @@
         const website = $('cWebsite'); const payload = { name: f.name, person: f.person, email: f.email, type: f.type, message: f.msg, website: website ? website.value : '', turnstile: tsToken, _subject: 'REYZ お問い合わせ', _replyto: f.email };
         try {
           const res = await fetch(CONFIG.formEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) });
-          if (!res.ok) { let code = ''; try { code = (await res.json()).error || ''; } catch (err) {} throw new Error(code || ('HTTP ' + res.status)); }
+          if (!res.ok) { let j = null; try { j = await res.json(); } catch (err) {} const e = new Error((j && j.error) || ('HTTP ' + res.status)); e.detail = j && (j.stage || '') + ' ' + (j.detail || ''); throw e; }
           try { history.replaceState({ step: 'done' }, '', '#sent'); } catch (err) {}
           form.reset(); show(stepDone); return;
         } catch (err) {
           const code = String(err && err.message || '');
+          try { console.warn('contact form: ' + code + ' ' + (err.detail || '')); } catch (e2) {}   // 原因調査用（本文・個人情報は含まない）
           sendStatus.textContent = code === 'turnstile' ? 'ボット対策の確認ができませんでした。ページを再読み込みしてから、もう一度お試しください。'
             : code === 'validation' ? '入力内容に確認が必要な項目があります。「修正する」から見直してください。'
             : '送信できませんでした。時間をおいて再度お試しください。';
