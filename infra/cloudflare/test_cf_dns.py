@@ -65,11 +65,15 @@ class FakeCF:
         return list(self.s['records'])
 
 
-def run(*argv):
+def run(*argv, actions=False):
     FakeCF.state.setdefault('calls', [])
     os.environ['CLOUDFLARE_API_TOKEN'] = 'test-token'
     os.environ['CLOUDFLARE_ACCOUNT_ID'] = 'acct-1'
-    os.environ.pop('GITHUB_STEP_SUMMARY', None); os.environ.pop('GITHUB_OUTPUT', None)
+    # GitHub Actions 上で走るときも、テストは Actions 固有の出力（summary/output/annotation）を使わない
+    for k in ('GITHUB_STEP_SUMMARY', 'GITHUB_OUTPUT', 'GITHUB_ACTIONS'):
+        os.environ.pop(k, None)
+    if actions:
+        os.environ['GITHUB_ACTIONS'] = 'true'
     sys.argv = ['cf_dns.py', '--zone-file', ZONE_FILE] + list(argv)
     buf = io.StringIO()
     with redirect_stdout(buf):
@@ -146,11 +150,7 @@ class T(unittest.TestCase):
         self.assertEqual([c for c in FakeCF.state['calls'] if c == ('PATCH', '/zones/z1/dnssec')], [])
 
     def test_notice_annotation_under_actions(self):
-        os.environ['GITHUB_ACTIONS'] = 'true'
-        try:
-            out = run('--mode', 'plan')
-        finally:
-            os.environ.pop('GITHUB_ACTIONS', None)
+        out = run('--mode', 'plan', actions=True)
         notice = [ln for ln in out.splitlines() if ln.startswith('::notice title=cloudflare-dns plan::')]
         self.assertEqual(len(notice), 1)
         self.assertIn('%0Azone: MISSING', notice[0])          # 改行は %0A にエスケープ
