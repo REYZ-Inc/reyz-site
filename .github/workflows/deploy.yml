@@ -1,0 +1,48 @@
+# main への push = 検証 → GitHub Pages へ自動配備（reyz.inc）。Pull Request は検証のみ。
+name: verify-and-deploy
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: verify (build reproducibility, validators, browser checks)
+        run: bash qa/run_all.sh
+      - name: keep screenshots and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: qa-report, path: qa/out, retention-days: 14 }
+      - name: pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

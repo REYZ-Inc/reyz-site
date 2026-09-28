@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>REYZ Inc. — 無限の可能性を かたちに</title>
+  <meta name="description" content="株式会社レイズ（REYZ Inc.）— Creator Economy × AI。クリエイターと企業の活動を、AIとともに設計する会社です。">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="REYZ Inc. — 無限の可能性を かたちに">
+  <meta property="og:description" content="株式会社レイズ（REYZ Inc.）— Creator Economy × AI。クリエイターと企業の活動を、AIとともに設計する会社です。">
+  <meta property="og:site_name" content="REYZ Inc.">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:url" content="https://reyz.inc/">
+  <meta property="og:image" content="https://reyz.inc/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://reyz.inc/">
+  <meta name="theme-color" content="#060609">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23060609'/%3E%3Cpath%20d='M18%2032c0-6%204-9%208-9s6%203%208%209%204%209%208%209%208-3%208-9-4-9-8-9-6%203-8%209-4%209-8%209-8-3-8-9z'%20fill='none'%20stroke='%23F715AC'%20stroke-width='2.4'%20stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">本文へ移動</a>
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header" id="siteHeader">
+    <a class="brand" href="index.html" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+    <nav class="nav" aria-label="Main">
+      <a href="creator.html">Creator</a>
+      <a href="creative.html">Creative</a>
+      <a href="ai.html">AI</a>
+      <a href="index.html#reyz">Company</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="sheet" aria-label="メニューを開く"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+  </header>
+  <nav class="sheet" id="sheet" aria-label="Main (mobile)" hidden>
+    <a href="creator.html">Creator</a>
+    <a href="creative.html">Creative</a>
+    <a href="ai.html">AI</a>
+    <a href="index.html#reyz">Company</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <main id="main">
+    <section class="chapter" id="infinity">
+      <div class="wrap chapter-stack">
+        <div class="slot" data-word="infinity" aria-hidden="true"><div class="halo"></div></div>
+        <div class="head copy">
+          <h1><span>無限の可能性を</span><span>かたちに</span></h1>
+          <p class="hero-sub">From Japan, <em>beyond.</em></p>
+        </div>
+      </div>
+    </section>
+    <section class="chapter" id="origin">
+      <div class="wrap chapter-stack">
+        <div class="slot" data-word="seed" aria-hidden="true"></div>
+        <div class="head copy">
+          <h2>ひとつの意志から。</h2>
+          <p class="lead">REYZは、クリエイターエコノミーとAIを接続し、<br>クリエイター及び、企業の活動を支援します。</p>
+        </div>
+      </div>
+    </section>
+    <section class="chapter" id="creator">
+      <div class="wrap chapter-stack">
+        <div class="slot" data-word="Creator" aria-hidden="true"></div>
+        <a class="gate copy" href="creator.html">
+          <p class="eyebrow">For Creators</p>
+          <h2>「生き方」を職業に。</h2>
+          <span class="go">Creator</span>
+        </a>
+      </div>
+    </section>
+    <section class="chapter" id="creative">
+      <div class="wrap chapter-stack">
+        <div class="slot" data-word="Creative" aria-hidden="true"></div>
+        <a class="gate copy" href="creative.html">
+          <p class="eyebrow">For Enterprise</p>
+          <h2>「伝わる」を設計する。</h2>
+          <span class="go">Creative</span>
+        </a>
+      </div>
+    </section>
+    <section class="chapter" id="ai">
+      <div class="wrap chapter-stack">
+        <div class="slot" data-word="AI" aria-hidden="true"></div>
+        <a class="gate copy" href="ai.html">
+          <p class="eyebrow">Z · AI Infrastructure</p>
+          <h2>AIが支える。</h2>
+          <p class="lead">考える人、つくる人、動かす人を。</p>
+          <span class="go">AI</span>
+        </a>
+      </div>
+    </section>
+    <section class="chapter" id="reyz">
+      <div class="wrap chapter-stack">
+        <div class="slot" data-word="REYZ" aria-hidden="true"></div>
+        <div class="copy">
+          <div class="head">
+            <p class="eyebrow">Company</p>
+            <h2 class="sr-only">会社情報</h2>
+          </div>
+          <dl class="profile">
+            <div class="row"><dt>社名</dt><dd>株式会社レイズ <span class="en">REYZ Inc.</span></dd></div>
+            <div class="row"><dt>代表取締役</dt><dd>堀内智一</dd></div>
+            <div class="row"><dt>創業</dt><dd>2022年1月</dd></div>
+            <div class="row"><dt>資本金</dt><dd>1,000万円</dd></div>
+            <div class="row wide"><dt>所在地</dt><dd><address>〒150-0013<br>東京都渋谷区恵比寿1丁目19-19<br>恵比寿ビジネスタワー10階</address><a class="maplink" href="https://www.google.com/maps/search/?api=1&amp;query=%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%B8%8B%E8%B0%B7%E5%8C%BA%E6%81%B5%E6%AF%94%E5%AF%BF1%E4%B8%81%E7%9B%AE19-19%20%E6%81%B5%E6%AF%94%E5%AF%BF%E3%83%93%E3%82%B8%E3%83%8D%E3%82%B9%E3%82%BF%E3%83%AF%E3%83%BC" target="_blank" rel="noopener">地図で開く</a></dd></div>
+            <div class="row wide"><dt>事業内容</dt><dd><p class="biz-lead"><span class="ph">クリエイターエコノミーとAIの交点に、</span><br><span class="ph">人とAIが共に価値を生む</span><span class="ph">事業基盤を築く。</span><br><span class="ph">国内から世界へ、</span><span class="ph">次の10年の標準をつくる。</span></p>
+            <ul class="biz">
+              <li><span class="k">クリエイターエコノミー事業</span><span class="v"><span class="ph">個人の創造性と影響力を、</span><span class="ph">持続する経済価値へ。</span><br><span class="ph">発掘から育成、</span><span class="ph">収益化までを</span><span class="ph">一体で設計・運営する。</span></span></li>
+              <li><span class="k">エンタープライズ事業</span><span class="v"><span class="ph">戦略・ブランド・マーケティングを、</span><span class="ph"><span class="ph">AIとデータで</span><span class="ph">企業の成長設計へ統合する。</span></span><br><span class="ph">表現と広告の適法性検証まで、</span><span class="ph">一貫して担う。</span></span></li>
+              <li><span class="k">AIプラットフォーム事業</span><span class="v"><span class="ph">複数のAIエージェントを</span><span class="ph"><span class="ph">クリエイターエコノミーと</span><span class="ph">統合運用する</span></span><br><span class="ph">自社AI基盤「Z」の開発・提供。</span><br><span class="ph">業務の設計から実装、</span><span class="ph">検証・運用までを、</span><span class="ph">AIと共に。</span><br><span class="ph">複数のAIによる</span><span class="ph">相互検証と記録を標準とし、</span><br><span class="ph">監査可能なAI運用を</span><span class="ph">設計段階から組み込む。</span></span></li>
+            </ul></dd></div>
+            <div class="row wide"><dt>許認可</dt><dd><span class="lic"><span>宅地建物取引業免許</span>東京都知事（1）第110185</span><span class="lic"><span>古物商許可</span>東京都公安委員会 第303312620413</span></dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="foot-top">
+        <a class="brand" href="index.html" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+        <nav class="foot-nav" aria-label="Footer">
+          <a href="contact.html">Contact</a>
+          <a href="legal.html">Privacy &amp; Legal</a>
+        </nav>
+      </div>
+      <div class="foot-slot" data-word="loop" aria-hidden="true"></div>
+      <p class="foot-contact" id="contactLine" hidden></p>
+    </div>
+  </footer>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>

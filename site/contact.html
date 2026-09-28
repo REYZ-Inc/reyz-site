@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Contact — REYZ Inc.</title>
+  <meta name="description" content="REYZ Inc. へのお問い合わせ。">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Contact — REYZ Inc.">
+  <meta property="og:description" content="REYZ Inc. へのお問い合わせ。">
+  <meta property="og:site_name" content="REYZ Inc.">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:url" content="https://reyz.inc/contact.html">
+  <meta property="og:image" content="https://reyz.inc/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://reyz.inc/contact.html">
+  <meta name="theme-color" content="#060609">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23060609'/%3E%3Cpath%20d='M18%2032c0-6%204-9%208-9s6%203%208%209%204%209%208%209%208-3%208-9-4-9-8-9-6%203-8%209-4%209-8%209-8-3-8-9z'%20fill='none'%20stroke='%23F715AC'%20stroke-width='2.4'%20stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">本文へ移動</a>
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header" id="siteHeader">
+    <a class="brand" href="index.html" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+    <nav class="nav" aria-label="Main">
+      <a href="creator.html">Creator</a>
+      <a href="creative.html">Creative</a>
+      <a href="ai.html">AI</a>
+      <a href="index.html#reyz">Company</a>
+      <a href="contact.html" aria-current="page">Contact</a>
+    </nav>
+    <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="sheet" aria-label="メニューを開く"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+  </header>
+  <nav class="sheet" id="sheet" aria-label="Main (mobile)" hidden>
+    <a href="creator.html">Creator</a>
+    <a href="creative.html">Creative</a>
+    <a href="ai.html">AI</a>
+    <a href="index.html#reyz">Company</a>
+    <a href="contact.html" aria-current="page">Contact</a>
+  </nav>
+
+  <main id="main">
+    <section class="chapter page-head" id="top">
+      <div class="wrap chapter-stack">
+        <div class="slot" data-word="ripple" aria-hidden="true"><div class="halo"></div></div>
+        <div class="head copy"><p class="eyebrow">Contact</p><h1 class="page-title">その先を、<br>一緒に。</h1></div>
+      </div>
+    </section>
+    <section class="section" id="form">
+      <div class="wrap"><div class="section-text">
+          <div class="head reveal"><p class="eyebrow">Message</p><h2>お問い合わせ</h2><p class="lead">内容をお送りください。担当者より直接ご返信します。</p></div>
+          <form class="panel reveal" id="contactForm" novalidate>
+            <div class="step" id="stepForm">
+              <label>お名前（個人名または会社名）<input id="cName" name="name" type="text" autocomplete="name" required></label>
+              <label>ご担当者様<input id="cPerson" name="person" type="text" autocomplete="off" placeholder="法人の場合"></label>
+              <div class="field" role="group" aria-labelledby="emailLabel">
+                <span class="field-label" id="emailLabel">メールアドレス</span>
+                <div class="email-row">
+                  <input id="cLocal" name="email_local" type="text" autocapitalize="off" spellcheck="false" autocomplete="off" aria-label="メールアドレス（@より前）" required>
+                  <span class="at" aria-hidden="true">@</span>
+                  <select id="cDomain" name="email_domain" aria-label="メールアドレスのドメイン" required>
+                    <option value="">選択</option>
+                    <option>gmail.com</option>
+                    <option>icloud.com</option>
+                    <option>yahoo.co.jp</option>
+                    <option>outlook.jp</option>
+                    <option>outlook.com</option>
+                    <option>hotmail.com</option>
+                    <option>docomo.ne.jp</option>
+                    <option>au.com</option>
+                    <option>ezweb.ne.jp</option>
+                    <option>softbank.ne.jp</option>
+                    <option>i.softbank.jp</option>
+                    <option value="__other">その他（入力）</option>
+                  </select>
+                </div>
+                <input id="cDomainOther" name="email_domain_other" type="text" autocapitalize="off" spellcheck="false" autocomplete="off" aria-label="ドメインを入力" placeholder="example.co.jp" hidden>
+                <input id="cEmail" name="email" type="email" hidden tabindex="-1" aria-hidden="true">
+              </div>
+              <label>ご用件
+                <select id="cType" name="type" required>
+                  <option value="">選択してください</option>
+                  <optgroup label="クリエイターの方">
+                    <option>活動・収益化の相談</option>
+                    <option>映像制作の依頼</option>
+                  </optgroup>
+                  <optgroup label="企業の方">
+                    <option>成長設計・マーケティング</option>
+                    <option>ブランディング・制作</option>
+                    <option>クリエイターとの販売設計</option>
+                    <option>表現・広告の適法性検証</option>
+                    <option>AI基盤「Z」・SaaS導入</option>
+                  </optgroup>
+                  <optgroup label="その他">
+                    <option>取材・提携</option>
+                    <option>その他</option>
+                  </optgroup>
+                </select>
+              </label>
+              <label>内容（ご要望・質問・相談等）<textarea id="cMsg" name="message" required></textarea></label>
+              <div class="ctas tight">
+                <button class="btn primary" type="submit" id="confirmBtn">確認する</button>
+              </div>
+              <div class="status" id="status" role="status" aria-live="polite"></div>
+              <noscript><p class="lead">JavaScriptが無効の環境では送信できません。フッター記載の連絡先へお問い合わせください。</p></noscript>
+            </div>
+            <div class="step" id="stepConfirm" hidden>
+              <div class="head"><p class="eyebrow">Confirm</p><h3 id="confirmTitle" tabindex="-1">入力内容の確認</h3></div>
+              <dl class="confirm" id="confirmList"></dl>
+              <div class="ctas tight">
+                <button class="btn" type="button" id="backBtn">修正する</button>
+                <button class="btn primary" type="button" id="sendBtn">送信</button>
+              </div>
+              <div class="status" id="sendStatus" role="status" aria-live="polite"></div>
+              <label id="copyLabel" hidden>送信用の文面<textarea id="copyArea" readonly></textarea></label>
+            </div>
+            <div class="step" id="stepDone" hidden>
+              <div class="head"><p class="eyebrow">Sent</p><h3 id="doneTitle" tabindex="-1">送信しました。</h3></div>
+              <p class="lead">担当者より直接ご返信します。</p>
+            </div>
+          </form>
+      </div></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="foot-top">
+        <a class="brand" href="index.html" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+        <nav class="foot-nav" aria-label="Footer">
+          <a href="contact.html">Contact</a>
+          <a href="legal.html">Privacy &amp; Legal</a>
+        </nav>
+      </div>
+      <div class="foot-slot" data-word="loop" aria-hidden="true"></div>
+      <p class="foot-contact" id="contactLine" hidden></p>
+    </div>
+  </footer>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>

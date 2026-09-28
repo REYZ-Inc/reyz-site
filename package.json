@@ -1,0 +1,14 @@
+{
+  "name": "reyz-site",
+  "private": true,
+  "description": "REYZ Inc. corporate site (reyz.inc) — static build + verification",
+  "scripts": {
+    "build": "python3 build/build.py",
+    "check": "bash qa/run_all.sh"
+  },
+  "devDependencies": {
+    "html-validate": "^9.7.1",
+    "playwright": "1.56.0",
+    "vnu-jar": "^24.10.17"
+  }
+}
