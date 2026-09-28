@@ -5,3 +5,4 @@ artifact.html
 site/__viewer_sim.html
 .DS_Store
 *.zip
+__pycache__/
