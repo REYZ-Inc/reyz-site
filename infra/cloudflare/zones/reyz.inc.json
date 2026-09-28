@@ -1,0 +1,14 @@
+{
+  "zone": "reyz.inc",
+  "_note": "Squarespace DNS（2026-09-28 時点）と同一内容。GitHub Pages 向け。A/CNAME は必ず proxied=false（GitHub 側の証明書更新経路を変えないため）。",
+  "records": [
+    { "type": "A", "name": "@", "content": "185.199.108.153", "proxied": false },
+    { "type": "A", "name": "@", "content": "185.199.109.153", "proxied": false },
+    { "type": "A", "name": "@", "content": "185.199.110.153", "proxied": false },
+    { "type": "A", "name": "@", "content": "185.199.111.153", "proxied": false },
+    { "type": "CNAME", "name": "www", "content": "reyz-inc.github.io", "proxied": false },
+    { "type": "TXT", "name": "@", "content": "v=spf1 -all" },
+    { "type": "TXT", "name": "_dmarc", "content": "v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s" },
+    { "type": "TXT", "name": "_domainkey", "content": "v=DKIM1; p=" }
+  ]
+}

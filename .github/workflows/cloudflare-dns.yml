@@ -1,0 +1,66 @@
+# Cloudflare の DNS を宣言ファイル（infra/cloudflare/zones/<zone>.json）に合わせる。手動起動のみ。
+# plan = 差分表示だけ（常に先に走る） / apply = 反映（environment "cloudflare" の保護ルールで人の承認を挟める）
+# secret: CLOUDFLARE_API_TOKEN（Actions Secrets）/ 変数: CLOUDFLARE_ACCOUNT_ID（Actions Variables）。値は本リポジトリに置かない。
+name: cloudflare-dns
+on:
+  workflow_dispatch:
+    inputs:
+      zone:
+        description: 対象ゾーン（infra/cloudflare/zones/<zone>.json）
+        default: reyz.inc
+        required: true
+      mode:
+        description: plan（差分表示のみ）/ apply（反映）
+        type: choice
+        options: [plan, apply]
+        default: plan
+      dnssec:
+        description: keep（現状維持）/ on（DNSSEC を有効化し DS を表示）
+        type: choice
+        options: [keep, "on"]
+        default: keep
+      prune:
+        description: 宣言にないレコードを削除する（apply 時のみ）
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: cloudflare-dns-${{ inputs.zone }}
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: self-test (offline)
+        run: python3 infra/cloudflare/test_cf_dns.py
+      - name: plan
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"; fi
+          python3 infra/cloudflare/cf_dns.py --zone-file "infra/cloudflare/zones/${{ inputs.zone }}.json" \
+            --mode plan --dnssec "${{ inputs.dnssec }}" ${{ inputs.prune && '--prune' || '' }}
+  apply:
+    if: inputs.mode == 'apply'
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: cloudflare
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: apply
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"; fi
+          python3 infra/cloudflare/cf_dns.py --zone-file "infra/cloudflare/zones/${{ inputs.zone }}.json" \
+            --mode apply --dnssec "${{ inputs.dnssec }}" ${{ inputs.prune && '--prune' || '' }}
