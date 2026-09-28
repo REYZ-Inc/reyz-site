@@ -13,6 +13,8 @@
 | `.github/workflows/deploy.yml` | main への push → 検証 → GitHub Pages 配備。PR は検証のみ（`infra/` だけの変更では配備しない） |
 | `infra/cloudflare/` | DNS の正本（`zones/reyz.inc.json`）と反映スクリプト。手順は [infra/cloudflare/README.md](infra/cloudflare/README.md) |
 | `.github/workflows/cloudflare-dns.yml` | 手動起動：DNS 宣言 → Cloudflare へ plan / apply |
+| `workers/contact/` | 問い合わせフォームの受付 Worker（`reyz.inc/api/contact`。Turnstile → Gmail API で控え＋確認メール）。手順は [workers/contact/README.md](workers/contact/README.md) |
+| `.github/workflows/contact-worker.yml` | PR は Worker のテスト + dry-run。main へのマージで Cloudflare Workers へ配備（environment `cloudflare`） |
 
 ## 更新の流れ
 1. `build/build.py`（または `site/assets/*`）を編集 → `python3 build/build.py` で `site/` を再生成
@@ -20,6 +22,6 @@
 3. Pull Request → 検証が通れば main へマージ → 約1分で https://reyz.inc に反映
 
 ## 未設定（別途）
-- 問い合わせフォームの送信先（`site/assets/site.js` の `CONFIG.formEndpoint` / `contactEmail`）。未設定の間は「文面をコピー」の暫定挙動
+- 問い合わせフォームの送信先（`site/assets/site.js` の `CONFIG.formEndpoint` → `/api/contact`、`turnstileSiteKey`）。Worker 配備と secret 登録のあとに設定する（[workers/contact/README.md](workers/contact/README.md)）。未設定の間は「文面をコピー」の暫定挙動
 - 作品例の動画（`build/build.py` の `WORKS`。YouTube URL を1行追加）
-- secret は本リポジトリに置かない（送信先のトークン等はサーバ側の環境変数）
+- secret は本リポジトリに置かない（鍵・トークンは GitHub Secrets → workflow → Worker の secret）

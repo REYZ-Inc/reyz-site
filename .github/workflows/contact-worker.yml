@@ -1,0 +1,64 @@
+# 問い合わせフォーム受付 Worker（workers/contact → Cloudflare Workers、reyz.inc/api/contact）。
+# PR: 自己テスト + 設定検証（dry-run、トークン不要）。main へのマージ: 同じ検証のあと配備（environment `cloudflare` の承認ルールで止められる）。
+# 秘密は GitHub Secrets → Worker の secret として投入する（リポジトリには置かない）。
+name: contact-worker
+on:
+  pull_request:
+    paths: ['workers/contact/**', '.github/workflows/contact-worker.yml']
+  push:
+    branches: [main]
+    paths: ['workers/contact/**', '.github/workflows/contact-worker.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: contact-worker
+  cancel-in-progress: false
+env:
+  WRANGLER_VERSION: "4.142.0"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults: { run: { working-directory: workers/contact } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: self-test（ネットワーク不要）
+        run: node --test
+      - name: wrangler config / bundle check（dry-run、認証不要）
+        run: npx --yes wrangler@${WRANGLER_VERSION} deploy --dry-run --outdir /tmp/wr-out
+        env: { WRANGLER_SEND_METRICS: "false" }
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: cloudflare
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: deploy（secrets → Worker secret、続けて deploy）
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_WORKERS_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/contact
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          secrets: |
+            GMAIL_SA_KEY
+            GMAIL_SENDER_USER
+            TURNSTILE_SECRET_KEY
+        env:
+          GMAIL_SA_KEY: ${{ secrets.GMAIL_SA_KEY }}
+          GMAIL_SENDER_USER: ${{ secrets.GMAIL_SENDER_USER }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          WRANGLER_SEND_METRICS: "false"
+      - name: 配備後の疎通（GET は 405 = Worker が reyz.inc/api/contact で応答している）
+        run: |
+          code=$(curl -sS -o /dev/null -w '%{http_code}' https://reyz.inc/api/contact)
+          echo "GET https://reyz.inc/api/contact -> $code"
+          echo "::notice title=contact-worker deploy::GET https://reyz.inc/api/contact -> HTTP $code (expected 405)"
+          test "$code" = "405"

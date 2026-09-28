@@ -1,0 +1,9 @@
+{
+  "name": "reyz-contact-worker",
+  "private": true,
+  "type": "module",
+  "description": "reyz.inc/api/contact — 問い合わせフォーム受付 Worker（依存なし）",
+  "scripts": {
+    "test": "node --test"
+  }
+}

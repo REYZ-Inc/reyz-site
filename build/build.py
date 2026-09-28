@@ -351,6 +351,7 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
                 </select>
               </label>
               <label>内容（ご要望・質問・相談等）<textarea id="cMsg" name="message" required></textarea></label>
+              <input id="cWebsite" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" hidden>
               <div class="ctas tight">
                 <button class="btn primary" type="submit" id="confirmBtn">確認する</button>
               </div>
@@ -360,6 +361,7 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
             <div class="step" id="stepConfirm" hidden>
               <div class="head"><p class="eyebrow">Confirm</p><h3 id="confirmTitle" tabindex="-1">入力内容の確認</h3></div>
               <dl class="confirm" id="confirmList"></dl>
+              <div class="turnstile" id="turnstile" hidden></div>
               <div class="ctas tight">
                 <button class="btn" type="button" id="backBtn">修正する</button>
                 <button class="btn primary" type="button" id="sendBtn">送信</button>

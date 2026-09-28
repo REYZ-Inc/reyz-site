@@ -1,0 +1,20 @@
+# 問い合わせフォーム受付 Worker（reyz.inc/api/contact）。配備は .github/workflows/contact-worker.yml（main へのマージで自動）。
+# 秘密（GMAIL_SA_KEY / GMAIL_SENDER_USER / TURNSTILE_SECRET_KEY）はここに書かず、workflow が GitHub Secrets から Worker の secret として投入する。
+name = "reyz-contact"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = false      # *.workers.dev では公開しない（reyz.inc/api/* のみ）
+preview_urls = false
+
+routes = [
+  { pattern = "reyz.inc/api/*", zone_name = "reyz.inc" },
+  { pattern = "www.reyz.inc/api/*", zone_name = "reyz.inc" },
+]
+
+[observability]
+enabled = true           # Workers Logs（本文・メールアドレスは記録しない。結果・種別・国・Ray のみ）
+
+[vars]
+ALLOWED_ORIGINS = "https://reyz.inc,https://www.reyz.inc"   # フォームを置くページの origin（他からの POST は 403）
+MAIL_TO = "contact@reyz.inc"                                  # 控えの宛先（送信者への確認メールの返信先にもなる）
+MAIL_FROM = "REYZ Inc. <no-reply@reyz.inc>"                   # 差出人（GMAIL_SENDER_USER の送信エイリアスであること）
