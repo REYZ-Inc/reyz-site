@@ -47,7 +47,8 @@ class FakeCF:
             if method == 'POST':
                 rec = dict(body); rec['id'] = f'r{len(s["records"]) + 1}'
                 if rec['type'] == 'TXT':
-                    rec['content'] = '"' + rec['content'] + '"'
+                    v = rec['content']   # 本物同様: 255 文字ごとに "…" に分割して返す
+                    rec['content'] = ' '.join('"' + v[i:i + 255] + '"' for i in range(0, len(v), 255))
                 s['records'].append(rec)
                 return {'success': True, 'result': rec}
             if method == 'PATCH':
@@ -142,7 +143,7 @@ class T(unittest.TestCase):
         self.assertTrue(all(r.get('proxied') is True for r in recs if r['type'] in ('A', 'CNAME')))
         self.assertTrue(all('proxied' not in r for r in recs if r['type'] == 'TXT'))
         self.assertEqual({r['name'] for r in recs},
-                         {'reyz.inc', 'www.reyz.inc', '_dmarc.reyz.inc', '_domainkey.reyz.inc'})
+                         {cf_dns.fqdn(r.get('name'), 'reyz.inc') for r in _SPEC['records']})
         self.assertEqual([r for r in recs if r['type'] == 'MX'][0]['priority'], 1)
         FakeCF.state['calls'] = []
         out2 = run('--mode', 'apply')
@@ -208,6 +209,16 @@ class T(unittest.TestCase):
         self.assertEqual(len(spfs), 1)
         self.assertEqual(cf_dns.norm_content('TXT', spfs[0]['content']), 'v=spf1 include:_spf.google.com ~all')
         self.assertEqual(len([r for r in FakeCF.state['records'] if r['name'] == '_dmarc.reyz.inc']), 1)
+
+    def test_long_txt_dkim_is_idempotent_when_api_splits_strings(self):
+        run('--mode', 'apply')
+        dk = next(r for r in FakeCF.state['records'] if r['name'] == 'google._domainkey.reyz.inc')
+        self.assertGreater(dk['content'].count('"'), 2)        # 分割されて返る
+        FakeCF.state['calls'] = []
+        out = run('--mode', 'apply')
+        self.assertIn('changes: 0', out)
+        self.assertEqual(self.writes(), [])
+        self.assertEqual(len([r for r in FakeCF.state['records'] if r['name'] == 'google._domainkey.reyz.inc']), 1)
 
     def test_helpers(self):
         self.assertEqual(cf_dns.fqdn('@', 'reyz.inc'), 'reyz.inc')
