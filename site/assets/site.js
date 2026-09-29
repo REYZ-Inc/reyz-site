@@ -348,7 +348,7 @@
           if (ts.state === 'pending') ts.state = (ts.widget !== undefined && ts.widget !== null) ? 'rendered' : 'render-error';
         } catch (err) { ts.state = 'render-error'; ts.error = String(err && err.message || err).slice(0, 80); }
       };
-      if (typeof api.ready === 'function') api.ready(render); else render();
+      render();   // api.js は async/defer で読み込むため turnstile.ready() は使えない（呼ぶと例外）。onload 後なので直接描画する
     };
     const tsState = () => (ts.token ? 'ok' : ts.state + (ts.error ? ':' + ts.error : ''));
     const tsWait = async ms => {   // トークンを最大 ms 待つ（読み込み中／照合中のみ。表示された対話式チェックはユーザー操作待ちなので待たない）
