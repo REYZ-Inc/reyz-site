@@ -6,8 +6,7 @@
 # main : deploy（GitHub Secrets → Worker secret → deploy → 疎通。environment `cloudflare`）→ 本番 e2e は contact-e2e.yml が引き継ぐ
 name: contact-worker
 on:
-  pull_request:
-    paths: ['workers/contact/**', 'site/assets/site.js', 'build/build.py', 'qa/e2e_contact.js', '.github/workflows/contact-worker.yml']
+  pull_request:   # すべての PR で実行（ブランチ保護の必須チェック `worker-tests` / `stack-e2e` が「未報告」で止まらないよう、パス絞り込みはしない）
   push:
     branches: [main]
     paths: ['workers/contact/**', '.github/workflows/contact-worker.yml']
