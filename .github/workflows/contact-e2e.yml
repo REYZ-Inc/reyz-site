@@ -1,0 +1,38 @@
+# 公開サイトの問い合わせフォームを、拡張機能のない Chromium から通しで確認する（メールは送らない: Worker の dry_run）。
+# 手動起動のほか、Worker またはサイトの配備が終わるたびに自動で走る。結果は run の annotation と Summary。
+name: contact-e2e
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 対象サイト
+        default: https://reyz.inc
+        required: true
+  workflow_run:
+    workflows: [contact-worker, verify-and-deploy]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  e2e:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: e2e（dry_run）
+        env:
+          TARGET_URL: ${{ inputs.url || 'https://reyz.inc' }}
+        run: |
+          sleep 20   # 配備直後のキャッシュ・ルート反映を待つ
+          mkdir -p qa/out
+          node qa/e2e_contact.js "$TARGET_URL"
+      - name: keep screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: contact-e2e, path: qa/out/e2e_contact.png, retention-days: 7, if-no-files-found: ignore }

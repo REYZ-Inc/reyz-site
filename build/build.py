@@ -361,17 +361,19 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
             <div class="step" id="stepConfirm" hidden>
               <div class="head"><p class="eyebrow">Confirm</p><h3 id="confirmTitle" tabindex="-1">入力内容の確認</h3></div>
               <dl class="confirm" id="confirmList"></dl>
-              <div class="turnstile" id="turnstile" hidden></div>
+              <div class="turnstile" id="turnstileBox" hidden></div>
               <div class="ctas tight">
                 <button class="btn" type="button" id="backBtn">修正する</button>
                 <button class="btn primary" type="button" id="sendBtn">送信</button>
               </div>
               <div class="status" id="sendStatus" role="status" aria-live="polite"></div>
               <label id="copyLabel" hidden>送信用の文面<textarea id="copyArea" readonly></textarea></label>
+              <div class="ctas tight"><a class="btn" id="mailBtn" href="#" hidden>メールアプリで送る</a></div>
             </div>
             <div class="step" id="stepDone" hidden>
               <div class="head"><p class="eyebrow">Sent</p><h3 id="doneTitle" tabindex="-1">送信しました。</h3></div>
               <p class="lead">担当者より直接ご返信します。</p>
+              <p class="lead" id="doneNote" hidden>確認メールの自動送信は行われませんでしたが、内容は届いています。</p>
             </div>
           </form>'''
 contact = title_chapter('ripple', 'Contact', 'その先を、<br>一緒に。', '') + \

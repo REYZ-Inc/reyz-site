@@ -14,7 +14,13 @@ routes = [
 [observability]
 enabled = true           # Workers Logs（本文・メールアドレスは記録しない。結果・種別・国・Ray のみ）
 
+[[ratelimits]]                       # 同一 IP からの送信を 60 秒に 5 回まで（全経路）。Workers Rate Limiting binding
+name = "CONTACT_RL"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }
+
 [vars]
 ALLOWED_ORIGINS = "https://reyz.inc,https://www.reyz.inc"   # フォームを置くページの origin（他からの POST は 403）
 MAIL_TO = "contact@reyz.inc"                                  # 控えの宛先（送信者への確認メールの返信先にもなる）
 MAIL_FROM = "REYZ Inc. <no-reply@reyz.inc>"                   # 差出人（GMAIL_SENDER_USER の送信エイリアスであること）
+UNVERIFIED_POLICY = "accept-flagged"                          # Turnstile 未検証の送信: accept-flagged = [未検証] を付けて受付（確認メールなし） / reject = 拒否
