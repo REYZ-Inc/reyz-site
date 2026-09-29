@@ -1,5 +1,7 @@
 # 問い合わせフォーム受付 Worker（reyz.inc/api/contact）
 
+設計の正本は [docs/contact-pipeline.md](../../docs/contact-pipeline.md)（要件・関門・方針・秘密・運用）。ここは実装と手順。
+
 フォーム（`site/contact.html`）の「送信」を受け、① `contact@reyz.inc` へ控え、② 送信者へ受付確認メールを送る。Cloudflare Workers 上で動き、同じドメイン（`reyz.inc/api/*`）で応答するので CORS 不要。メールは Google Workspace（Gmail API）から `no-reply@reyz.inc` として送るため、SPF / DKIM / DMARC は既存の設定のまま整合する。
 
 ## 流れ
@@ -52,9 +54,13 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 | `src/index.js` | Worker 本体（依存ライブラリなし。WebCrypto + fetch） |
 | `test/contact.test.js` | 自己テスト（`node --test`。Google / Turnstile は fetch 差し替え、鍵はテスト内で生成） |
 | `wrangler.toml` | 名前 `reyz-contact`、ルート `reyz.inc/api/*` `www.reyz.inc/api/*`、`workers_dev=false`、レート制限 binding、公開値の vars（`UNVERIFIED_POLICY` 含む） |
-| `../../qa/e2e_contact.js` + `../../.github/workflows/contact-e2e.yml` | 公開サイトの通し確認（Turnstile の状態 → Worker の dry_run）。配備後に自動実行 |
+| `ci/make_ci_config.py` | CI 用 wrangler 設定を本番 `wrangler.toml` から生成（差分 5 点のみ。生成物はコミットしない） |
+| `../../qa/e2e_contact.js` | 通し確認。`--mode ci`（CI 内フルスタック、公式テストキー、4 ケース）／`--mode prod`（公開サイト） |
+| `../../.github/workflows/contact-worker.yml` | PR: `worker-tests` ＋ `stack-e2e`。main: 配備 |
+| `../../.github/workflows/contact-e2e.yml` | 配備後の本番通し確認。失敗は noc@ へ通知 |
+| `../../.github/workflows/contact-watch.yml` | 毎日の集計。異常と鍵の期限だけ noc@ へ通知 |
+| `../../infra/check/notify_noc.mjs` | 通知メール送信（Worker と同じ送信経路・同じコード） |
 | `../../infra/check/contact_logs.py` + `../../.github/workflows/contact-logs.yml` | Worker の記録（結果・検証状態・Gmail 受理 ID）を Workers Logs API から一覧にする。手動起動、読み取りのみ |
-| `../../.github/workflows/contact-worker.yml` | PR: テスト + dry-run。main へのマージ: secret 投入 → deploy → 疎通（GET が 405）。environment `cloudflare` |
 | `../../site/assets/site.js` | `CONFIG.formEndpoint='/api/contact'`、`CONFIG.turnstileSiteKey` で有効化（確認ページに Turnstile を描画） |
 
 ## 前提（1 回だけ。値はリポジトリに書かない）
@@ -66,6 +72,8 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 | GitHub → Secrets | `TURNSTILE_SECRET_KEY` | Turnstile ウィジェットの Secret Key | Cloudflare → Turnstile → ウィジェット（hostname: reyz.inc, www.reyz.inc） |
 | GitHub → Secrets | `CLOUDFLARE_WORKERS_TOKEN` | Workers 配備用トークン（テンプレート「Cloudflare Workers を編集する」、Zone を reyz.inc に限定） | Cloudflare → プロフィール → API トークン |
 | GitHub → Variables | `CLOUDFLARE_ACCOUNT_ID` | （DNS と共通。設定済み） | — |
+| GitHub → Variables | `NOC_EMAIL` | 異常通知の宛先（`noc@reyz.inc`。RFC 2142 の役割アドレス） | 管理コンソールでエイリアス作成 |
+| GitHub → Variables | `GMAIL_SA_KEY_CREATED` | サービスアカウント鍵の作成日 `YYYY-MM-DD`（90 日ローテーションの起点） | 鍵を作った日 |
 | `site/assets/site.js` | `turnstileSiteKey` | Turnstile の Site Key（公開値） | 同上ウィジェット |
 
 Google 側（管理コンソール）:

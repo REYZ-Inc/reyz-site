@@ -9,3 +9,4 @@ __pycache__/
 .dev.vars
 .wrangler/
 workers/**/dist/
+wrangler.ci.jsonc

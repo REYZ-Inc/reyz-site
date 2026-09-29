@@ -1,5 +1,5 @@
-# 公開サイトの問い合わせフォームを、拡張機能のない Chromium から通しで確認する（メールは送らない: Worker の dry_run）。
-# 手動起動のほか、Worker またはサイトの配備が終わるたびに自動で走る。結果は run の annotation と Summary。
+# 本番（公開サイト）の問い合わせフォームを、拡張機能のない Chromium から通しで確認する（メールは送らない: Worker の dry_run）。
+# Worker またはサイトの配備が終わるたびに自動で走る。手動起動も可。失敗したら noc@ へメール通知。設計: docs/contact-pipeline.md
 name: contact-e2e
 on:
   workflow_dispatch:
@@ -26,15 +26,24 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: sudo apt-get install -y -q xvfb
-      - name: e2e（dry_run。xvfb 上の「見えるブラウザ」で実行）
+      - name: e2e（prod、xvfb 上の見えるブラウザ）
         env:
           TARGET_URL: ${{ inputs.url || 'https://reyz.inc' }}
           E2E_HEADED: "1"
         run: |
           sleep 20   # 配備直後のキャッシュ・ルート反映を待つ
-          mkdir -p qa/out
-          xvfb-run -a node qa/e2e_contact.js "$TARGET_URL"
+          xvfb-run -a node qa/e2e_contact.js --mode prod --base "$TARGET_URL"
+      - name: 失敗を noc@ へ通知
+        if: failure()
+        env:
+          GMAIL_SA_KEY: ${{ secrets.GMAIL_SA_KEY }}
+          GMAIL_SENDER_USER: ${{ secrets.GMAIL_SENDER_USER }}
+          NOC_EMAIL: ${{ vars.NOC_EMAIL }}
+          TARGET_URL: ${{ inputs.url || 'https://reyz.inc' }}
+        run: |
+          printf '本番の問い合わせフォーム通し確認（contact-e2e）が失敗しました。\n対象: %s\n\nrun の annotation / Summary に詳細があります。\n' "$TARGET_URL" > /tmp/body.txt
+          node infra/check/notify_noc.mjs --subject "[REYZ noc] contact-e2e FAIL" --body-file /tmp/body.txt
       - name: keep screenshot
         if: always()
         uses: actions/upload-artifact@v4
-        with: { name: contact-e2e, path: qa/out/e2e_contact.png, retention-days: 7, if-no-files-found: ignore }
+        with: { name: contact-e2e, path: qa/out/e2e_contact_prod_*.png, retention-days: 7, if-no-files-found: ignore }

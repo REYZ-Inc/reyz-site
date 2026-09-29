@@ -6,7 +6,7 @@
    - Turnstile が読めない環境（拡張機能・企業ネットワーク等）や照合失敗でも、UNVERIFIED_POLICY=accept-flagged なら
      「未検証」として受け付ける（控えの件名に [未検証]、送信者への確認メールは送らない＝なりすまし宛先への自動返信を避ける）。
    - 全経路にレート制限（CONTACT_RL binding、同一 IP）、honeypot、内容の簡易ヒューリスティック。
-   - dry_run=true は検証だけ行い送信しない（通し確認用）。
+   - dry_run=true は照合まで、dry_run="token" は Google のトークン取得までを行い、どちらも送信しない（通し確認用）。
    依存ライブラリなし（WebCrypto + fetch）。秘密は Worker の secret（GMAIL_SA_KEY / GMAIL_SENDER_USER / TURNSTILE_SECRET_KEY）。 */
 
 const PATH = '/api/contact';
@@ -67,11 +67,16 @@ export async function handle(request, env, deps) {
     const reason = unverifiedReject(fields, env.UNVERIFIED_POLICY);
     if (reason) { log({ event: 'contact', ok: false, error: reason, codes, client: meta.client, ray: meta.ray }); return json({ ok: false, error: reason, codes }, 403); }
   }
-  if (fields.dry_run) return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok' });
+  if (fields.dry_run === 'verify') return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok' });
 
   let token;
   try { token = await accessToken(deps, env); }
-  catch (err) { log({ event: 'contact', ok: false, error: 'token', detail: String(err).slice(0, 300), ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'token', detail: shortCode(String(err)) }, 502); }
+  catch (err) {
+    log({ event: 'contact', ok: false, error: 'token', detail: String(err).slice(0, 300), dry_run: fields.dry_run || undefined, ray: meta.ray });
+    if (fields.dry_run === 'token') return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok', google_token: false, detail: shortCode(String(err)) });
+    return json({ ok: false, error: 'send', stage: 'token', detail: shortCode(String(err)) }, 502);
+  }
+  if (fields.dry_run === 'token') return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok', google_token: true });
 
   const copy = await gmailSend(deps, token, buildMime(copyMessage(env, fields, meta, verified, codes, honeypot)));
   if (!copy.ok) { log({ event: 'contact', ok: false, error: 'send', status: copy.status, detail: copy.detail, ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'copy', detail: shortCode(copy.detail) }, 502); }
@@ -110,7 +115,7 @@ export function validate(data) {
   // 診断情報（フォーム側の Turnstile 状態）と dry_run は任意。型が違っても拒否せず無視する
   const c = data.client && typeof data.client === 'object' && typeof data.client.turnstile === 'string' ? data.client.turnstile : '';
   fields.client = c.replace(/[^\x20-\x7e]/g, '').slice(0, LIMITS.client);
-  fields.dry_run = data.dry_run === true;
+  fields.dry_run = data.dry_run === true ? 'verify' : (data.dry_run === 'token' ? 'token' : '');   // verify = 照合まで / token = Google のトークン取得まで（送信しない）
   return { fields, errors };
 }
 
@@ -287,7 +292,8 @@ export const b64url = bytes => b64(bytes).replace(/\+/g, '-').replace(/\//g, '_'
 export function shortCode(s) {
   const t = String(s || '');
   const m = /"error"\s*:\s*"([A-Za-z_]+)"/.exec(t) || /"status"\s*:\s*"([A-Z_]+)"/.exec(t) || /"message"\s*:\s*"([^"]{1,80})"/.exec(t);
-  return m ? m[1].slice(0, 80) : '';
+  if (m) return m[1].slice(0, 80);
+  return t.replace(/[{}"\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);   // JSON でない失敗（鍵の形式不備など）は先頭だけ
 }
 
 function baseHeaders(extra = {}) {
