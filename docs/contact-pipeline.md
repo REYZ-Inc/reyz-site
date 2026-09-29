@@ -98,6 +98,9 @@ AI は秘密の値を持たない。読むのは配備結果・記録・e2e の�
 | Turnstile 秘密キーをローテーション | Cloudflare → Turnstile → ウィジェット → ローテーション → Secret 更新 → `contact-worker` を Run workflow |
 | 型を別サイトへ複製 | `workers/contact/` と `qa/e2e_contact.js`、workflow 3 本をコピーし、vars（origin・宛先）と secrets を差し替える |
 
-## 10. 変更履歴
+## 10. 関連する決定記録
+ADR-0001（Cloudflare 出口）、0003（プロビジョニング層）、0004（役割アドレス）、0005（fail-open）、0006（CI 内フルスタック関門）、0007（送信主体の分離と OAuth。提案中）。
+
+## 11. 変更履歴
 
 - 2026-09-29 v1: 初版。障害（`#turnstile` id 衝突、`turnstile.ready()`）を機に、PR 関門を CI 内フルスタック化。
