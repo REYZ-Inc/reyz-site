@@ -59,7 +59,9 @@ export async function handle(request, env, deps) {
 
   // Turnstile: トークンがあれば照合。無い／不合格なら方針に従う（accept-flagged = 未検証で受付、reject = 拒否）
   let verified = false, codes = ['missing-input-response'];
-  if (fields.turnstile) { const ts = await verifyTurnstile(deps, env.TURNSTILE_SECRET_KEY, fields.turnstile, ip, origins.map(o => new URL(o).hostname)); verified = ts.ok; codes = ts.ok ? [] : ts.codes; }
+  // siteverify が返す hostname（ウィジェットが解かれたサイト）は、既定では許可 origin のホスト名と一致を要求。CI（公式テストキーは example.com を返す）は TURNSTILE_HOSTNAMES で上書き
+  const hosts = String(env.TURNSTILE_HOSTNAMES || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (fields.turnstile) { const ts = await verifyTurnstile(deps, env.TURNSTILE_SECRET_KEY, fields.turnstile, ip, hosts.length ? hosts : origins.map(o => new URL(o).hostname)); verified = ts.ok; codes = ts.ok ? [] : ts.codes; }
   // honeypot（隠しフィールド）に値がある: 人（Turnstile 検証済み）ならブラウザの自動入力とみなして受け付け（控えに注記）、ボット（未検証）は成功を装って捨てる
   const honeypot = !!fields.website;
   if (honeypot && !verified) { log({ event: 'contact', ok: true, honeypot: true, dropped: true, codes, client: meta.client, ray: meta.ray }); return json({ ok: true }); }

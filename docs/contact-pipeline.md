@@ -40,7 +40,7 @@ Cloudflare Worker reyz-contact
 
 Turnstile テストキーの事実（Cloudflare 公式）: 常に合格 `1x00000000000000000000AA`、常に不合格 `2x00000000000000000000AB`、必ず対話式 `3x00000000000000000000FF`（サイトキー）、常に合格 / 常に不合格（秘密キー）。localhost を含むどのドメインでも使え、本番の秘密キーはテスト用トークンを拒否する（混在事故が起きない）。
 
-CI 用設定の差分（`workers/contact/ci/make_ci_config.py` が生成。手で複製しない）: name / routes 削除 / assets（`html_handling=none`） / ALLOWED_ORIGINS / レート制限上限 100。
+CI 用設定の差分（`workers/contact/ci/make_ci_config.py` が生成。手で複製しない）: name / routes 削除 / assets（`html_handling=none`） / ALLOWED_ORIGINS / TURNSTILE_HOSTNAMES（テストキーの siteverify は `example.com` を返す＝初回 CI で実測） / レート制限上限 100。
 
 ## 4. 未検証（fail-open）方針
 

@@ -187,6 +187,8 @@ test('handle: 未検証（トークン無し／不合格／hostname 不一致）
   assert.ok(decodeBody(decodeRaw(f2.calls.find(c => c.url === GMAIL_URL).init)).includes('siteverify: invalid-input-secret'));
   const f3 = fakeFetch({ [TURNSTILE_URL]: () => Response.json({ success: true, hostname: 'evil.example' }) });
   assert.equal((await (await handle(post(good()), env(), deps(f3))).json()).verified, false);
+  const f3b = fakeFetch({ [TURNSTILE_URL]: () => Response.json({ success: true, hostname: 'example.com' }) });   // CI: 公式テストキーの応答は example.com → 上書きで許可
+  assert.equal((await (await handle(post(good()), env({ TURNSTILE_HOSTNAMES: 'example.com, localhost' }), deps(f3b))).json()).verified, true);
   const f4 = fakeFetch({ [TURNSTILE_URL]: () => { throw new Error('down'); } });
   assert.equal((await (await handle(post(good()), env(), deps(f4))).json()).verified, false);
 });

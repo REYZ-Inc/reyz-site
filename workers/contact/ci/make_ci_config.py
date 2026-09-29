@@ -2,12 +2,13 @@
 """CI 内でフルスタック（サイト生成物 ＋ Worker）を起動するための wrangler 設定を、本番の wrangler.toml から生成する。
 
 手で複製した設定は必ずズレるので、正本（wrangler.toml）を読み、CI に必要な差分だけを上書きして wrangler.ci.json を書く。
-差分（この 5 点のみ）:
+差分（この 6 点のみ）:
   1. name        → reyz-contact-citest（本番 Worker と衝突させない）
   2. routes      → 削除（ローカル起動のみ。配備には使わない）
   3. assets      → サイト生成物のコピーを同じ origin から配信（html_handling=none: GitHub Pages と同じく /x.html をそのまま返す）
   4. vars        → ALLOWED_ORIGINS をローカルの origin に
-  5. ratelimits  → 上限を 100 に（複数ケースを連続実行するため。429 自体は単体テストで担保）
+  5. vars        → TURNSTILE_HOSTNAMES = example.com,127.0.0.1,localhost（公式テストキーの siteverify は hostname=example.com を返す）
+  6. ratelimits  → 上限を 100 に（複数ケースを連続実行するため。429 自体は単体テストで担保）
 使い方: python3 ci/make_ci_config.py --site <サイト生成物のコピー> --origin http://127.0.0.1:8787 --out wrangler.ci.jsonc
 """
 import argparse, json, os, sys, tomllib
@@ -28,6 +29,7 @@ cfg.pop('routes', None)
 cfg['workers_dev'] = False
 cfg['assets'] = {'directory': os.path.abspath(a.site), 'html_handling': 'none'}
 cfg.setdefault('vars', {})['ALLOWED_ORIGINS'] = a.origin
+cfg['vars']['TURNSTILE_HOSTNAMES'] = 'example.com,127.0.0.1,localhost'
 for rl in cfg.get('ratelimits', []):
     rl['simple']['limit'] = 100
 with open(a.out, 'w', encoding='utf-8') as f:
