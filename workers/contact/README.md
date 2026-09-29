@@ -35,7 +35,15 @@
 | 502 `send` | Google 側で失敗（委任未設定・鍵不正・API 無効など。Workers Logs に詳細） |
 | 503 `not_configured` | secret / vars が足りない（配備直後の未設定など） |
 
-honeypot（`website`）に値があるものは成功を装って捨てる。記録（Workers Logs）は結果・種別・国・Ray のみで、本文とメールアドレスは残さない。
+honeypot（`website`）に値があるものは、Turnstile 検証済み（＝人。ブラウザの自動入力が埋めた可能性）なら注記付きで受け付け、未検証なら成功を装って捨てる。記録（Workers Logs）は結果・検証状態・Gmail の受理 ID・種別・国・Ray のみで、本文とメールアドレスは残さない。
+
+### 運用（人手を最小にする）
+
+| 知りたいこと | 手段 | 誰が |
+|---|---|---|
+| フォームが壊れていないか | `contact-e2e`（配備のたびに自動。手動起動も可） | 自動 → AI が結果を読む |
+| 送信が Worker に届き、Gmail が受理したか | `contact-logs`（Actions → Run workflow → 直近 N 時間）。`gmail_copy` / `gmail_confirmation` に ID が出れば Gmail は受理済み（＝送信者アカウントの「送信済み」にある） | AI が起動・判読 |
+| 受信箱に実際に入ったか（迷惑メール判定など） | 受信側のメールボックス（自動化しない: 読み取り権限を広げない方針） | ロウ（必要時のみ） |
 
 ## 配置
 
@@ -45,6 +53,7 @@ honeypot（`website`）に値があるものは成功を装って捨てる。記
 | `test/contact.test.js` | 自己テスト（`node --test`。Google / Turnstile は fetch 差し替え、鍵はテスト内で生成） |
 | `wrangler.toml` | 名前 `reyz-contact`、ルート `reyz.inc/api/*` `www.reyz.inc/api/*`、`workers_dev=false`、レート制限 binding、公開値の vars（`UNVERIFIED_POLICY` 含む） |
 | `../../qa/e2e_contact.js` + `../../.github/workflows/contact-e2e.yml` | 公開サイトの通し確認（Turnstile の状態 → Worker の dry_run）。配備後に自動実行 |
+| `../../infra/check/contact_logs.py` + `../../.github/workflows/contact-logs.yml` | Worker の記録（結果・検証状態・Gmail 受理 ID）を Workers Logs API から一覧にする。手動起動、読み取りのみ |
 | `../../.github/workflows/contact-worker.yml` | PR: テスト + dry-run。main へのマージ: secret 投入 → deploy → 疎通（GET が 405）。environment `cloudflare` |
 | `../../site/assets/site.js` | `CONFIG.formEndpoint='/api/contact'`、`CONFIG.turnstileSiteKey` で有効化（確認ページに Turnstile を描画） |
 

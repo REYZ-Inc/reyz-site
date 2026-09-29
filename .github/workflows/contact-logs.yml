@@ -1,0 +1,26 @@
+# 問い合わせ Worker（reyz-contact）の記録を Cloudflare Workers Logs API から取り出して一覧にする（読み取りのみ。何も変更しない）。
+# 結果は run の annotation と Summary（本文・メールアドレス・氏名は Worker が記録していないので出ない）。
+name: contact-logs
+on:
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: 直近 N 時間
+        default: "24"
+        required: true
+permissions:
+  contents: read
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: 記録を取得
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          HOURS: ${{ inputs.hours }}
+        run: python3 infra/check/contact_logs.py --hours "$HOURS"

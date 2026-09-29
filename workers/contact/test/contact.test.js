@@ -155,14 +155,19 @@ test('handle: 入口の拒否（path / method / origin / content-type / size / j
   assert.deepEqual(f.calls, []);   // 拒否では外部に何も送らない
 });
 
-test('handle: 設定不足は 503、honeypot は成功を装って何も送らない', async () => {
+test('handle: 設定不足は 503。honeypot は未検証なら成功を装って捨て、検証済み（自動入力の人）なら注記付きで受け付ける', async () => {
   const f = fakeFetch();
   const e = env(); delete e.GMAIL_SA_KEY;
   const r = await handle(post(good()), e, deps(f));
   assert.equal(r.status, 503); assert.deepEqual(await r.json(), { ok: false, error: 'not_configured' });
-  const h = await handle(post({ ...good(), website: 'http://spam.example' }), env(), deps(f));
+  const h = await handle(post({ ...good(), website: 'http://spam.example', turnstile: '' }), env(), deps(f));
   assert.equal(h.status, 200); assert.deepEqual(await h.json(), { ok: true });
   assert.deepEqual(f.calls, []);
+  resetTokenCache();
+  const f2 = fakeFetch();
+  const ok = await handle(post({ ...good(), website: 'https://example.co.jp' }), env(), deps(f2));
+  assert.deepEqual(await ok.json(), { ok: true, verified: true, confirmation: true });
+  assert.ok(decodeBody(decodeRaw(f2.calls.find(c => c.url === GMAIL_URL).init)).includes('隠しフィールドに値が入っていました'));
 });
 
 test('handle: 未検証（トークン無し／不合格／hostname 不一致）は accept-flagged なら受け付け、控えだけ [未検証] で送り、確認メールは送らない', async () => {

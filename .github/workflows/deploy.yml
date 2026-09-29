@@ -4,7 +4,7 @@ name: verify-and-deploy
 on:
   push:
     branches: [main]
-    paths-ignore: ['infra/**', 'workers/**', '.github/workflows/cloudflare-dns.yml', '.github/workflows/contact-worker.yml']
+    paths-ignore: ['infra/**', 'workers/**', '.github/workflows/cloudflare-dns.yml', '.github/workflows/contact-worker.yml', '.github/workflows/contact-logs.yml', '.github/workflows/contact-e2e.yml']
   pull_request:
   workflow_dispatch:
 permissions:

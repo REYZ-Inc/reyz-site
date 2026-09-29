@@ -16,6 +16,7 @@
 | `workers/contact/` | 問い合わせフォームの受付 Worker（`reyz.inc/api/contact`。Turnstile → Gmail API で控え＋確認メール）。手順は [workers/contact/README.md](workers/contact/README.md) |
 | `.github/workflows/contact-worker.yml` | PR は Worker のテスト + dry-run。main へのマージで Cloudflare Workers へ配備（environment `cloudflare`） |
 | `qa/e2e_contact.js` / `.github/workflows/contact-e2e.yml` | 公開サイトの問い合わせフォームを拡張機能なしの Chromium で通し確認（メールは送らない dry_run）。配備後に自動実行、手動起動も可 |
+| `infra/check/contact_logs.py` / `.github/workflows/contact-logs.yml` | 手動起動：問い合わせ Worker の記録（結果・Gmail 受理 ID）を一覧表示（読み取りのみ） |
 
 ## 更新の流れ
 1. `build/build.py`（または `site/assets/*`）を編集 → `python3 build/build.py` で `site/` を再生成

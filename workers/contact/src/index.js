@@ -51,7 +51,6 @@ export async function handle(request, env, deps) {
 
   const { fields, errors } = validate(data);
   if (errors.length) return json({ ok: false, error: 'validation', fields: errors }, 400);
-  if (fields.website) { log({ event: 'contact', ok: true, honeypot: true }); return json({ ok: true }); }   // ボット: 成功を装って捨てる
 
   const ip = request.headers.get('CF-Connecting-IP') || '';
   const meta = { at: formatJst(deps.now()), country: request.headers.get('CF-IPCountry') || '', ray: request.headers.get('CF-Ray') || '', client: fields.client };
@@ -61,6 +60,9 @@ export async function handle(request, env, deps) {
   // Turnstile: トークンがあれば照合。無い／不合格なら方針に従う（accept-flagged = 未検証で受付、reject = 拒否）
   let verified = false, codes = ['missing-input-response'];
   if (fields.turnstile) { const ts = await verifyTurnstile(deps, env.TURNSTILE_SECRET_KEY, fields.turnstile, ip, origins.map(o => new URL(o).hostname)); verified = ts.ok; codes = ts.ok ? [] : ts.codes; }
+  // honeypot（隠しフィールド）に値がある: 人（Turnstile 検証済み）ならブラウザの自動入力とみなして受け付け（控えに注記）、ボット（未検証）は成功を装って捨てる
+  const honeypot = !!fields.website;
+  if (honeypot && !verified) { log({ event: 'contact', ok: true, honeypot: true, dropped: true, codes, client: meta.client, ray: meta.ray }); return json({ ok: true }); }
   if (!verified) {
     const reason = unverifiedReject(fields, env.UNVERIFIED_POLICY);
     if (reason) { log({ event: 'contact', ok: false, error: reason, codes, client: meta.client, ray: meta.ray }); return json({ ok: false, error: reason, codes }, 403); }
@@ -71,14 +73,15 @@ export async function handle(request, env, deps) {
   try { token = await accessToken(deps, env); }
   catch (err) { log({ event: 'contact', ok: false, error: 'token', detail: String(err).slice(0, 300), ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'token', detail: shortCode(String(err)) }, 502); }
 
-  const copy = await gmailSend(deps, token, buildMime(copyMessage(env, fields, meta, verified, codes)));
+  const copy = await gmailSend(deps, token, buildMime(copyMessage(env, fields, meta, verified, codes, honeypot)));
   if (!copy.ok) { log({ event: 'contact', ok: false, error: 'send', status: copy.status, detail: copy.detail, ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'copy', detail: shortCode(copy.detail) }, 502); }
-  let confirmation = { ok: false };
+  let confirmation = { ok: false, id: '' };
   if (verified) {   // 送信者への確認メールは、送信者が実在の人であることが確認できたときだけ（未確認の宛先へ自動返信しない）
     confirmation = await gmailSend(deps, token, buildMime(confirmationMessage(env, fields, meta)));
     if (!confirmation.ok) log({ event: 'contact', ok: true, confirmation: false, status: confirmation.status, detail: confirmation.detail, ray: meta.ray });
   }
-  log({ event: 'contact', ok: true, verified, codes, client: meta.client, confirmation: confirmation.ok, type: fields.type, country: meta.country, ray: meta.ray, ms: deps.now() - started });
+  // gmail_copy / gmail_confirmation = Gmail が受理して「送信済み」に保存したメッセージ ID（送達の一次証拠）
+  log({ event: 'contact', ok: true, verified, codes, client: meta.client, honeypot, confirmation: confirmation.ok, gmail_copy: copy.id, gmail_confirmation: confirmation.id || '', type: fields.type, country: meta.country, ray: meta.ray, ms: deps.now() - started });
   return json({ ok: true, verified, confirmation: confirmation.ok });
 }
 
@@ -194,9 +197,10 @@ async function gmailSend(deps, token, mime) {
 
 /* ---------- メール本文 ---------- */
 
-function copyMessage(env, f, meta, verified, codes) {
+function copyMessage(env, f, meta, verified, codes, honeypot) {
   const text = [
     verified ? '[REYZ お問い合わせ]' : '[REYZ お問い合わせ]（未検証: ボット対策の照合なし。差出人アドレスは未確認のため、返信前に内容を確認してください）',
+    honeypot ? '（注: 隠しフィールドに値が入っていました。ブラウザの自動入力の可能性が高いですが、内容を確認してください）' : null,
     `受付: ${meta.at}`,
     `ご用件: ${f.type}`,
     `お名前: ${f.name}`,
