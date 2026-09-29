@@ -34,7 +34,7 @@ Cloudflare Worker reyz-contact
 
 | 段階 | 起動するもの | 自動で通す関門 | 人 |
 |---|---|---|---|
-| PR | CI 内: サイト生成物のコピー ＋ Worker（本番と同じコード。設定は `wrangler.toml` から生成、差分 5 点のみ）を同一 origin で起動。本物の Turnstile を**公式テストキー**で。Google は委任トークン取得まで。メールは送らない | `worker-tests`（単体 11 件 ＋ dry-run）、`stack-e2e`（4 ケース: pass / fail-widget / interactive / fail-secret）、`site-verify`（サイト全検証） | マージ承認 |
+| PR | CI 内: サイト生成物のコピー ＋ Worker（本番と同じコード。設定は `wrangler.toml` から生成、差分 5 点のみ）を同一 origin で起動。本物の Turnstile を**公式テストキー**で。Google は委任トークン取得まで。メールは送らない | `worker-tests`（単体 11 件 ＋ dry-run）、`stack-e2e`（4 ケース: pass / fail-widget / interactive / fail-secret。初回実測 2026-09-29: pass=検証済み＋Google トークン取得、fail-widget=error-callback → fail-open、interactive=送信が待つ、fail-secret=照合不合格を未検証受付として記録）、`site-verify`（サイト全検証） | マージ承認 |
 | 本番 | main へのマージで配備（Worker: `contact-worker` deploy、サイト: `verify-and-deploy`） | 配備後の疎通（405）→ `contact-e2e`（本物キー。トークンの有無は情報、エラーは失敗）| なし |
 | 運用 | `contact-watch`（毎日 09:37 JST）、`contact-logs`（手動） | 異常（エラー応答・未検証の急増・鍵の期限）だけ `noc@reyz.inc` へメール。平常時は無通知 | 通知を受けて判断 |
 

@@ -1,7 +1,7 @@
 // 問い合わせフォームの通し確認（メールは送らない）。2 つのモード:
 //   ci   : CI 内で起動したフルスタック（サイト生成物 ＋ Worker、同一 origin）に対し、本物の Turnstile（公式テストキー）でフォーム UI を最後まで操作する。
 //          ケース: pass（合格→受付・Google トークン取得）/ fail-widget（ウィジェット失敗→fail-open で受付）/ interactive（対話式→送信ボタンが待つ）/
-//                  fail-secret（照合不合格→取り直し→未検証で受付。Worker を「常に不合格」の秘密キーで起動して実行）
+//                  fail-secret（照合不合格→未検証で受付・codes に理由。Worker を「常に不合格」の秘密キーで起動して実行）
 //   prod : 公開サイトに対し、確認ページまで操作して Turnstile の状態を観測し、dry_run で Worker の照合まで確認する（自動操作ではトークンが出ないことがある）。
 // 使い方: node qa/e2e_contact.js --mode ci --base http://127.0.0.1:8787 --case pass
 //         node qa/e2e_contact.js --mode prod --base https://reyz.inc
@@ -67,10 +67,10 @@ const OUT = process.env.QA_OUT || 'qa/out';
         if (!(last && last.body && last.body.verified === false)) fails.push('fail-widget: 未検証として受付されていない: ' + JSON.stringify(last && last.body));
         if (!out.done.note) fails.push('fail-widget: 「確認メールなし」の注記が出ない');
       }
-      if (CASE === 'fail-secret') {
-        const rejected = out.posts.filter(x => x.status === 403 && x.body && x.body.error === 'turnstile').length;
-        if (rejected < 1) fails.push('fail-secret: 照合不合格（403）が観測されない: ' + JSON.stringify(out.posts.map(x => x.status)));
-        if (!(last && last.body && last.body.verified === false && last.token === false)) fails.push('fail-secret: 取り直し後に未検証で受付されていない: ' + JSON.stringify(last));
+      if (CASE === 'fail-secret') {   // accept-flagged 方針では、照合不合格のトークンは 403 にせずその場で未検証受付（codes に不合格理由が残る）
+        if (!(last && last.token)) fails.push('fail-secret: フォームがトークンを添えていない: ' + JSON.stringify(last));
+        if (!(last && last.body && last.body.verified === false && (last.body.codes || []).length)) fails.push('fail-secret: 照合不合格が未検証受付として記録されていない: ' + JSON.stringify(last && last.body));
+        if (!out.done.note) fails.push('fail-secret: 「確認メールなし」の注記が出ない');
       }
     }
   } else {

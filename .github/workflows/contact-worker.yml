@@ -78,7 +78,7 @@ jobs:
           cd /tmp/ci-stack && sed -i 's/^TURNSTILE_SECRET_KEY=.*/TURNSTILE_SECRET_KEY=2x0000000000000000000000000000000AA/' .dev.vars
           nohup npx --yes wrangler@${WRANGLER_VERSION} dev --config wrangler.ci.jsonc --port 8787 --ip 127.0.0.1 --log-level warn > /tmp/wrangler-dev2.log 2>&1 &
           for i in $(seq 1 60); do sleep 1; curl -s -o /dev/null http://127.0.0.1:8787/api/contact && break; done
-      - name: e2e — fail-secret（照合不合格 → 取り直し → 未検証で受付）
+      - name: e2e — fail-secret（照合不合格 → 未検証で受付、codes に理由）
         run: node qa/e2e_contact.js --mode ci --base http://127.0.0.1:8787 --case fail-secret
       - name: 後始末（秘密の一時ファイルを削除）
         if: always()
