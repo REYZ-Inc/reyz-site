@@ -1,0 +1,25 @@
+# PR 本文が REYZ の型（.github/PULL_REQUEST_TEMPLATE.md）の必須見出しを満たすかを検査する。ブランチ保護の必須チェックに含める。
+name: docs-gate
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  docs-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: 必須見出しの検査
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          missing=""
+          for h in "## 目的" "## 参照基準" "## 一致と差分" "## 検証（FACT）" "## 未確認" "## 影響"; do
+            printf '%s' "$PR_BODY" | grep -qF -- "$h" || missing="$missing $h"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=docs-gate::PR 本文に必須見出しがありません:$missing（.github/PULL_REQUEST_TEMPLATE.md）"
+            exit 1
+          fi
+          echo "::notice title=docs-gate::必須見出し 6 件あり"
