@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
 const BASE = (process.argv[2] || 'https://reyz.inc').replace(/\/$/, '');
 (async () => {
   const out = { base: BASE, console: [], errors: [], failed: [] };
-  const b = await chromium.launch({ headless: true });
+  const b = await chromium.launch({ headless: process.env.E2E_HEADED !== '1' });   // E2E_HEADED=1 + xvfb で「見えるブラウザ」として実行（Turnstile がトークンを出しやすい）
   const ctx = await b.newContext({ locale: 'ja-JP', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p = await ctx.newPage();
   p.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') out.console.push(m.type() + ': ' + m.text().slice(0, 300)); });
@@ -35,7 +35,8 @@ const BASE = (process.argv[2] || 'https://reyz.inc').replace(/\/$/, '');
   if (!ts) fails.push('turnstile: 状態が読めない（site.js が古い／__reyzContact なし）');
   else if (['blocked', 'error', 'render-error', 'unsupported'].includes(ts.state)) fails.push('turnstile: ' + ts.state + ' ' + (ts.error || ''));
   else if (ts.token && out.dry_run && out.dry_run.body && out.dry_run.body.verified === false) fails.push('turnstile: トークンはあるが siteverify 不合格 ' + JSON.stringify(out.dry_run.body.codes) + '（Worker の TURNSTILE_SECRET_KEY を確認）');
-  const summary = `turnstile=${ts ? ts.state + (ts.token ? '(token)' : '(no token)') : 'n/a'} dry_run=${out.dry_run ? out.dry_run.status + ' ' + JSON.stringify(out.dry_run.body) : 'n/a'} errors=${out.errors.length} failedRequests=${out.failed.length} console=${out.console.length}`;
+  const summary = `turnstile=${ts ? ts.state + (ts.token ? '(token)' : '(no token)') : 'n/a'} dry_run=${out.dry_run ? out.dry_run.status + ' ' + JSON.stringify(out.dry_run.body) : 'n/a'} errors=${out.errors.length} failedRequests=${out.failed.length} console=${out.console.length}`
+    + (out.failed.length ? ' | failed: ' + out.failed.slice(0, 3).join(' ; ') : '') + (out.console.length ? ' | console: ' + out.console.slice(0, 3).join(' ; ').slice(0, 400) : '');
   console.log(JSON.stringify({ fails, summary, out }, null, 1));
   if (process.env.GITHUB_ACTIONS) {
     console.log(`::${fails.length ? 'error' : 'notice'} title=contact-e2e ${BASE}::${summary}${fails.length ? ' | FAIL: ' + fails.join(' / ') : ''}`);

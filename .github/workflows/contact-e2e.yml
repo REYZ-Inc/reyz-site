@@ -25,13 +25,15 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: e2e（dry_run）
+      - run: sudo apt-get install -y -q xvfb
+      - name: e2e（dry_run。xvfb 上の「見えるブラウザ」で実行）
         env:
           TARGET_URL: ${{ inputs.url || 'https://reyz.inc' }}
+          E2E_HEADED: "1"
         run: |
           sleep 20   # 配備直後のキャッシュ・ルート反映を待つ
           mkdir -p qa/out
-          node qa/e2e_contact.js "$TARGET_URL"
+          xvfb-run -a node qa/e2e_contact.js "$TARGET_URL"
       - name: keep screenshot
         if: always()
         uses: actions/upload-artifact@v4
