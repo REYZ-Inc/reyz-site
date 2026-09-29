@@ -53,10 +53,10 @@ export async function handle(request, env, deps) {
 
   let token;
   try { token = await accessToken(deps, env); }
-  catch (err) { log({ event: 'contact', ok: false, error: 'token', detail: String(err).slice(0, 300), ray: meta.ray }); return json({ ok: false, error: 'send' }, 502); }
+  catch (err) { log({ event: 'contact', ok: false, error: 'token', detail: String(err).slice(0, 300), ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'token', detail: shortCode(String(err)) }, 502); }
 
   const copy = await gmailSend(deps, token, buildMime(copyMessage(env, fields, meta)));
-  if (!copy.ok) { log({ event: 'contact', ok: false, error: 'send', status: copy.status, detail: copy.detail, ray: meta.ray }); return json({ ok: false, error: 'send' }, 502); }
+  if (!copy.ok) { log({ event: 'contact', ok: false, error: 'send', status: copy.status, detail: copy.detail, ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'copy', detail: shortCode(copy.detail) }, 502); }
   const confirmation = await gmailSend(deps, token, buildMime(confirmationMessage(env, fields, meta)));
   if (!confirmation.ok) log({ event: 'contact', ok: true, confirmation: false, status: confirmation.status, detail: confirmation.detail, ray: meta.ray });
   log({ event: 'contact', ok: true, confirmation: confirmation.ok, type: fields.type, country: meta.country, ray: meta.ray, ms: deps.now() - started });
@@ -238,6 +238,13 @@ export function formatJst(ms) {
 const utf8 = s => new TextEncoder().encode(s);
 export function b64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
 export const b64url = bytes => b64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+// Google 側エラーの種別だけを短く返す（例: unauthorized_client = 委任未設定 / PERMISSION_DENIED = API 無効や権限）。本文・秘密は含めない
+export function shortCode(s) {
+  const t = String(s || '');
+  const m = /"error"\s*:\s*"([A-Za-z_]+)"/.exec(t) || /"status"\s*:\s*"([A-Z_]+)"/.exec(t) || /"message"\s*:\s*"([^"]{1,80})"/.exec(t);
+  return m ? m[1].slice(0, 80) : '';
+}
 
 function baseHeaders(extra = {}) {
   return { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...extra };

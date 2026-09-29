@@ -1,7 +1,7 @@
 // ネットワーク不要の自己テスト（node --test）。Google / Turnstile は fetch の差し替えで再現する。
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { handle, validate, buildMime, encodeHeader, makeJwt, pemToDer, addressOf, formatJst, b64url, resetTokenCache } from '../src/index.js';
+import { handle, validate, buildMime, encodeHeader, makeJwt, pemToDer, addressOf, formatJst, b64url, resetTokenCache, shortCode } from '../src/index.js';
 
 const ORIGIN = 'https://reyz.inc';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -173,12 +173,13 @@ test('handle: Google 側の失敗 — token 取得失敗と控えの送信失敗
   resetTokenCache();
   const bad = fakeFetch({ [TOKEN_URL]: () => Response.json({ error: 'unauthorized_client', error_description: 'Client is unauthorized to retrieve access tokens using this method' }, { status: 401 }) });
   const r1 = await handle(post(good()), env(), deps(bad));
-  assert.equal(r1.status, 502); assert.deepEqual(await r1.json(), { ok: false, error: 'send' });
+  assert.equal(r1.status, 502); assert.deepEqual(await r1.json(), { ok: false, error: 'send', stage: 'token', detail: 'unauthorized_client' });
   assert.ok(!bad.calls.some(c => c.url === GMAIL_URL));
   resetTokenCache();
   const copyFail = fakeFetch({ [GMAIL_URL]: () => new Response('{"error":{"code":403,"message":"Precondition check failed."}}', { status: 403 }) });
   const r2 = await handle(post(good()), env(), deps(copyFail));
-  assert.equal(r2.status, 502); assert.equal(copyFail.calls.filter(c => c.url === GMAIL_URL).length, 1);   // 控えが失敗したら確認メールは送らない
+  assert.equal(r2.status, 502); assert.deepEqual(await r2.json(), { ok: false, error: 'send', stage: 'copy', detail: 'Precondition check failed.' });
+  assert.equal(copyFail.calls.filter(c => c.url === GMAIL_URL).length, 1);   // 控えが失敗したら確認メールは送らない
   resetTokenCache();
   let n = 0;
   const confFail = fakeFetch({ [GMAIL_URL]: () => (++n === 1 ? Response.json({ id: 'ok' }) : new Response('{"error":"x"}', { status: 400 })) });
@@ -186,5 +187,9 @@ test('handle: Google 側の失敗 — token 取得失敗と控えの送信失敗
   assert.equal(r3.status, 200); assert.deepEqual(await r3.json(), { ok: true, confirmation: false });
   resetTokenCache();
   const broken = fakeFetch(); const e = env(); e.GMAIL_SA_KEY = '{"type":"service_account"}';
-  assert.equal((await handle(post(good()), e, deps(broken))).status, 502);
+  const r4 = await handle(post(good()), e, deps(broken));
+  assert.equal(r4.status, 502); assert.equal((await r4.json()).stage, 'token');
+  assert.equal(shortCode('{"error":{"code":403,"message":"Gmail API has not been used","status":"PERMISSION_DENIED"}}'), 'PERMISSION_DENIED');
+  assert.equal(shortCode('Error: token endpoint 400: {"error":"invalid_grant","error_description":"Invalid JWT Signature."}'), 'invalid_grant');
+  assert.equal(shortCode('plain text'), '');
 });
