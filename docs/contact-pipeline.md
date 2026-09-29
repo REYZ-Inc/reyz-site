@@ -1,7 +1,7 @@
-# 問い合わせ受付の標準型 v1（設計書・正本）
+# 問い合わせ受付の標準型 v2（設計書・正本）
 
 対象: reyz.inc の問い合わせフォーム（受付・ボット対策・メール送信・検証・運用）。今後の顧客サイトにそのまま複製する「型」。
-更新日: 2026-09-29。変更はこの文書を PR で更新してから実装する。
+更新日: 2026-09-29（v2: 送信主体の分離と OAuth 化、ADR-0007）。変更はこの文書を PR で更新してから実装する。
 
 ## 1. 目的と要件
 
@@ -23,8 +23,8 @@
    ▼ POST /api/contact（同一 origin。JSON: 入力値 ＋ honeypot ＋ Turnstile トークン ＋ client.turnstile=フォーム側の状態）
 Cloudflare Worker reyz-contact
    Origin 検査 → 入力検証 → レート制限（同一 IP 60 秒 5 回）→ Turnstile 照合 → honeypot 判定 → 未検証方針
-   → Google 委任トークン（サービスアカウント JWT、ドメイン全体の委任 gmail.send）
-   → Gmail API: ① contact@ へ控え ② 検証済みの送信者へ確認メール（差出人 no-reply@reyz.inc）
+   → Google アクセストークン（送信専用ユーザー no-reply@ の OAuth、scope gmail.send。移行期間のみサービスアカウント＋委任）
+   → Gmail API: ① contact@ へ控え ② 検証済みの送信者へ確認メール（差出人 no-reply@reyz.inc ＝ 送信専用ユーザー本人）
    → 構造化ログ（結果・検証状態・Gmail 受理 ID・種別・国・Ray。本文・氏名・メールアドレスは記録しない）
 ```
 
@@ -57,8 +57,9 @@ CI 用設定の差分（`workers/contact/ci/make_ci_config.py` が生成。手�
 
 | 秘密 | 置き場 | 権限 | 寿命 |
 |---|---|---|---|
-| Google サービスアカウント鍵 `GMAIL_SA_KEY` | GitHub Secrets → Worker secret / CI の一時ファイル | 委任スコープ `gmail.send` のみ | 90 日でローテーション（`contact-watch` が 80 日で警告。作成日は変数 `GMAIL_SA_KEY_CREATED`） |
-| なりすまし先 `GMAIL_SENDER_USER` | 同上 | — | — |
+| OAuth クライアント `GMAIL_OAUTH_CLIENT_ID` / `GMAIL_OAUTH_CLIENT_SECRET` | GitHub Secrets → Worker secret / CI の一時ファイル | 内部アプリ（reyz.inc のユーザーのみ同意可） | 漏えい時に再発行 |
+| リフレッシュトークン `GMAIL_OAUTH_REFRESH_TOKEN`（no-reply@ 本人の同意） | 同上 | scope `gmail.send` のみ。影響範囲は no-reply@ の送信だけ | 失効条件: 取り消し／no-reply のパスワード変更／6 か月未使用。失効は送信失敗として `contact-watch` と `stack-e2e` が検知 |
+| （移行期間のみ）サービスアカウント鍵 `GMAIL_SA_KEY` ＋ `GMAIL_SENDER_USER` | 同上 | 委任スコープ `gmail.send`（全ユーザーに及ぶ＝過大） | OAuth 移行完了後に削除（委任・鍵・GitHub Secret・変数 `GMAIL_SA_KEY_CREATED`） |
 | Turnstile 秘密キー | 同上 | — | 漏えい時はローテーション（2026-09-29 実施済み） |
 | Cloudflare トークン `CLOUDFLARE_WORKERS_TOKEN` | GitHub Secrets | Workers スクリプト編集・ルート編集（reyz.inc 限定）・可観測性 | 必要時に再発行 |
 
@@ -94,7 +95,8 @@ AI は秘密の値を持たない。読むのは配備結果・記録・e2e の�
 |---|---|
 | 状態を知る | Actions → `contact-logs` → Run workflow（直近 N 時間）。AI が起動して読む |
 | 異常通知が来た | 本文の記録を見る → `contact-logs` で詳細 → 必要なら `UNVERIFIED_POLICY` 変更や鍵の再発行（PR） |
-| 鍵をローテーション | GCP → サービスアカウント → キー → 新しい鍵（JSON）→ GitHub Secret `GMAIL_SA_KEY` を更新 → 変数 `GMAIL_SA_KEY_CREATED` を更新 → 古い鍵を削除 → `contact-worker` を Run workflow（再配備で Worker secret 更新） |
+| 送信の認証情報を更新 | OAuth: Playground で no-reply@ として再同意 → Secret `GMAIL_OAUTH_REFRESH_TOKEN` を更新 → `contact-worker` を Run workflow（宣言的同期: GitHub Secrets が Worker secret の正本。空にした Secret は Worker から削除される） |
+| OAuth への移行（1 回） | `workers/contact/README.md` の「移行手順」 |
 | Turnstile 秘密キーをローテーション | Cloudflare → Turnstile → ウィジェット → ローテーション → Secret 更新 → `contact-worker` を Run workflow |
 | 型を別サイトへ複製 | `workers/contact/` と `qa/e2e_contact.js`、workflow 3 本をコピーし、vars（origin・宛先）と secrets を差し替える |
 
@@ -104,3 +106,4 @@ ADR-0001（Cloudflare 出口）、0003（プロビジョニング層）、0004�
 ## 11. 変更履歴
 
 - 2026-09-29 v1: 初版。障害（`#turnstile` id 衝突、`turnstile.ready()`）を機に、PR 関門を CI 内フルスタック化。
+- 2026-09-29 v2: 送信主体を `no-reply@` 実ユーザーに分離し、ドメイン全体の委任を OAuth 同意に置き換え（ADR-0007）。Worker の secret を GitHub Secrets から宣言的に同期。段階 2（MTA-STS / TLS-RPT / Postmaster Tools / security.txt）と段階 3（証跡の日次保管、AI 専用 GitHub App）は次版。

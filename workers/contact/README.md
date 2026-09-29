@@ -67,8 +67,9 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 
 | 場所 | 名前 | 中身 | 出所 |
 |---|---|---|---|
-| GitHub → Secrets | `GMAIL_SA_KEY` | サービスアカウントの JSON 鍵の全文 | GCP プロジェクト `reyz-site` → IAM → サービス アカウント `contact-mailer` → キー |
-| GitHub → Secrets | `GMAIL_SENDER_USER` | なりすまし先の Workspace ユーザー（`no-reply@reyz.inc` を送信エイリアスに持つ実ユーザーのアドレス） | Google Workspace 管理コンソール |
+| GitHub → Secrets | `GMAIL_OAUTH_CLIENT_ID` / `GMAIL_OAUTH_CLIENT_SECRET` | OAuth クライアント（内部アプリ、Web アプリケーション、リダイレクト URI = OAuth Playground） | GCP（reyz.inc 組織配下のプロジェクト）→ API とサービス → 認証情報 |
+| GitHub → Secrets | `GMAIL_OAUTH_REFRESH_TOKEN` | 送信専用ユーザー `no-reply@reyz.inc` 本人が同意して得たリフレッシュトークン（scope gmail.send） | OAuth Playground（下の「移行手順」） |
+| （移行期間のみ）GitHub → Secrets | `GMAIL_SA_KEY` / `GMAIL_SENDER_USER` | サービスアカウント鍵と、なりすまし先ユーザー。OAuth の 3 件がそろえば adapter は OAuth を使い、これらは削除できる | — |
 | GitHub → Secrets | `TURNSTILE_SECRET_KEY` | Turnstile ウィジェットの Secret Key | Cloudflare → Turnstile → ウィジェット（hostname: reyz.inc, www.reyz.inc） |
 | GitHub → Secrets | `CLOUDFLARE_WORKERS_TOKEN` | Workers 配備用トークン（テンプレート「Cloudflare Workers を編集する」、Zone を reyz.inc に限定） | Cloudflare → プロフィール → API トークン |
 | GitHub → Variables | `CLOUDFLARE_ACCOUNT_ID` | （DNS と共通。設定済み） | — |
@@ -76,11 +77,27 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 | GitHub → Variables | `GMAIL_SA_KEY_CREATED` | サービスアカウント鍵の作成日 `YYYY-MM-DD`（90 日ローテーションの起点） | 鍵を作った日 |
 | `site/assets/site.js` | `turnstileSiteKey` | Turnstile の Site Key（公開値） | 同上ウィジェット |
 
-Google 側（管理コンソール）:
+## 移行手順（サービスアカウント＋委任 → 送信専用ユーザーの OAuth。ADR-0007。1 回だけ、ロウ）
 
-1. Gmail API を有効化（プロジェクト `reyz-site`。済）
-2. 管理コンソール → セキュリティ → アクセスとデータ管理 → API の制御 → **ドメイン全体の委任** → 新しく追加 → クライアント ID = サービスアカウントの「一意の ID」、スコープ `https://www.googleapis.com/auth/gmail.send`
-3. `GMAIL_SENDER_USER` のユーザーにエイリアス `no-reply@reyz.inc` を追加し、そのユーザーの Gmail → 設定 → アカウント → 「他のメールアドレスを追加」で `REYZ Inc. <no-reply@reyz.inc>` を送信元に登録（同一ドメインのエイリアスは確認なしで追加できる）。未登録だと From はそのユーザーの本アドレスに書き換えられる（送信自体は成功する）
+秘密の値が表示される画面（クライアント シークレット、リフレッシュトークン）は **スクリーンショットを送らない**。
+
+| # | 場所 | 操作 |
+|---|---|---|
+| 1 | 管理コンソール → ユーザー → horiuchi@ → 予備のメールアドレス | エイリアス `no-reply` を削除（同じアドレスを実ユーザーにするため） |
+| 2 | 管理コンソール → ユーザー → 新しいユーザーを追加 | 名 `REYZ` / 姓 `Inc.`（表示名 REYZ Inc.）/ メール `no-reply` → パスワードを控える（初回ログインで 2 段階認証の設定を求められる） |
+| 3 | https://console.cloud.google.com に **horiuchi@reyz.inc** でログイン | 利用規約に同意すると組織 `reyz.inc` が自動作成される → 「プロジェクトを作成」: 名前 `reyz-mail`、場所 = 組織 `reyz.inc`（請求先は不要） |
+| 4 | 同プロジェクト → API とサービス → ライブラリ | **Gmail API** を有効化 |
+| 5 | 同プロジェクト → API とサービス → OAuth 同意画面（Google Auth Platform） | 対象 **内部**、アプリ名 `REYZ Mail Sender`、サポートメール `noc@reyz.inc`、スコープに `https://www.googleapis.com/auth/gmail.send` を追加 → 保存 |
+| 6 | 同 → 認証情報 → 認証情報を作成 → OAuth クライアント ID | 種類 **ウェブ アプリケーション**、名前 `reyz-mail-sender`、承認済みのリダイレクト URI `https://developers.google.com/oauthplayground` → 作成 → クライアント ID を GitHub Secret `GMAIL_OAUTH_CLIENT_ID`、クライアント シークレットを `GMAIL_OAUTH_CLIENT_SECRET` に登録 |
+| 7 | https://developers.google.com/oauthplayground | 右上の歯車 → ✅ Use your own OAuth credentials → 6 の ID とシークレットを入力 → 左の Step 1 の入力欄に `https://www.googleapis.com/auth/gmail.send` → Authorize APIs → **no-reply@reyz.inc** でログインして許可 → Step 2 「Exchange authorization code for tokens」→ 表示された **Refresh token** を GitHub Secret `GMAIL_OAUTH_REFRESH_TOKEN` に登録 |
+| 8 | GitHub → Actions → contact-worker → Run workflow | 再配備（Worker secret が同期される）。以後の送信は no-reply@ 本人の OAuth |
+| 9 | 動作確認後の後始末 | GitHub Secrets `GMAIL_SA_KEY` `GMAIL_SENDER_USER` と変数 `GMAIL_SA_KEY_CREATED` を削除 → contact-worker を再実行（Worker からも削除される）→ 管理コンソール → API の制御 → ドメイン全体の委任 の行を削除 → 旧プロジェクト `reyz-site` のサービスアカウント `contact-mailer` を削除 → horiuchi@ の Gmail「他のメールアドレス」から no-reply を削除 |
+
+Google 側（参考。旧方式＝移行期間のみ）:
+
+1. Gmail API を有効化
+2. 管理コンソール → セキュリティ → API の制御 → ドメイン全体の委任 → サービスアカウントの「一意の ID」とスコープ `https://www.googleapis.com/auth/gmail.send`
+3. `GMAIL_SENDER_USER` のユーザーにエイリアス `no-reply@reyz.inc` と Gmail の送信元登録
 
 ## 切替手順
 

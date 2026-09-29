@@ -1,7 +1,7 @@
 // ネットワーク不要の自己テスト（node --test）。Google / Turnstile は fetch の差し替えで再現する。
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { handle, validate, buildMime, encodeHeader, makeJwt, pemToDer, addressOf, formatJst, b64url, resetTokenCache, shortCode, unverifiedReject } from '../src/index.js';
+import { handle, validate, buildMime, encodeHeader, makeJwt, pemToDer, addressOf, formatJst, b64url, resetTokenCache, shortCode, unverifiedReject, authMode, accessToken } from '../src/index.js';
 
 const ORIGIN = 'https://reyz.inc';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -256,4 +256,27 @@ test('handle: Google 側の失敗 — token 取得失敗と控えの送信失敗
   assert.equal(shortCode('Error: token endpoint 400: {"error":"invalid_grant","error_description":"Invalid JWT Signature."}'), 'invalid_grant');
   assert.equal(shortCode('plain text'), 'plain text');
   assert.equal(shortCode('Error: GMAIL_SA_KEY: client_email / private_key がない'), 'Error: GMAIL_SA_KEY: client_email / private_key がない');
+});
+
+test('auth adapter: OAuth（送信専用ユーザーのリフレッシュトークン）を優先し、無ければサービスアカウント、両方無ければ 503', async () => {
+  const oauth = { GMAIL_OAUTH_CLIENT_ID: 'cid', GMAIL_OAUTH_CLIENT_SECRET: 'csec', GMAIL_OAUTH_REFRESH_TOKEN: 'rt' };
+  assert.equal(authMode(env(oauth)), 'oauth'); assert.equal(authMode(env()), 'service-account');
+  const none = env(); delete none.GMAIL_SA_KEY; assert.equal(authMode(none), null);
+  resetTokenCache();
+  const f = fakeFetch();
+  const r = await handle(post(good()), env(oauth), deps(f));
+  assert.equal(r.status, 200); assert.deepEqual(await r.json(), { ok: true, verified: true, confirmation: true });
+  const tok = new URLSearchParams(f.calls[1].init.body);
+  assert.equal(tok.get('grant_type'), 'refresh_token'); assert.equal(tok.get('client_id'), 'cid'); assert.equal(tok.get('client_secret'), 'csec'); assert.equal(tok.get('refresh_token'), 'rt'); assert.equal(tok.get('assertion'), null);
+  // 2 回目は cache（token endpoint を呼ばない）
+  await handle(post(good()), env(oauth), deps(f));
+  assert.deepEqual(f.calls.slice(4).map(c => c.url), [TURNSTILE_URL, GMAIL_URL, GMAIL_URL]);
+  // 認証情報が無ければ 503（外部呼び出しなし）
+  const f2 = fakeFetch();
+  const r2 = await handle(post(good()), none, deps(f2));
+  assert.equal(r2.status, 503); assert.deepEqual(f2.calls, []);
+  // accessToken 単体: OAuth の失効（invalid_grant）はそのまま例外に
+  resetTokenCache();
+  const bad = fakeFetch({ [TOKEN_URL]: () => Response.json({ error: 'invalid_grant', error_description: 'Token has been expired or revoked.' }, { status: 400 }) });
+  await assert.rejects(() => accessToken(deps(bad), env(oauth)), /invalid_grant/);
 });

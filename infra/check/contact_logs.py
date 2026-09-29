@@ -115,18 +115,20 @@ def check(a, rows, events, lines):
             key_age = (datetime.now(timezone.utc).date() - datetime.strptime(created, '%Y-%m-%d').date()).days
         except ValueError:
             key_age = None
+    auth_mode = os.environ.get('AUTH_MODE', 'service-account')
     reasons = []
     if errors:
         reasons.append(f'エラー応答 {len(errors)} 件（' + ', '.join(sorted({str(d.get("error")) for d in errors})) + '）')
     if len(unverified) >= unverified_alert:
         reasons.append(f'未検証受付 {len(unverified)} 件（閾値 {unverified_alert}）')
-    if key_age is None:
-        reasons.append('鍵の作成日（変数 GMAIL_SA_KEY_CREATED, YYYY-MM-DD）が未設定')
-    elif key_age >= key_max - 10:
-        reasons.append(f'サービスアカウント鍵が {key_age} 日経過（上限 {key_max} 日。ローテーション手順: workers/contact/README.md）')
-    result = {'alert': bool(reasons), 'reasons': reasons, 'total': len(parsed), 'errors': len(errors), 'unverified': len(unverified), 'honeypot_dropped': len(honeypot), 'key_age_days': key_age, 'hours': a.hours}
+    if auth_mode == 'service-account':   # OAuth（送信専用ユーザーの同意）では鍵の期限はない。失効は送信失敗（エラー応答）として検知される
+        if key_age is None:
+            reasons.append('鍵の作成日（変数 GMAIL_SA_KEY_CREATED, YYYY-MM-DD）が未設定')
+        elif key_age >= key_max - 10:
+            reasons.append(f'サービスアカウント鍵が {key_age} 日経過（上限 {key_max} 日。ローテーション手順: workers/contact/README.md）')
+    result = {'alert': bool(reasons), 'reasons': reasons, 'total': len(parsed), 'errors': len(errors), 'unverified': len(unverified), 'honeypot_dropped': len(honeypot), 'key_age_days': key_age, 'auth_mode': auth_mode, 'hours': a.hours}
     title = '; '.join(reasons) if reasons else '異常なし'
-    report = [f'問い合わせ Worker（{a.service}）直近 {a.hours} 時間の集計', '', f'受付 {len(parsed)} 件 / エラー {len(errors)} 件 / 未検証受付 {len(unverified)} 件 / honeypot 破棄 {len(honeypot)} 件 / 鍵の経過日数 {key_age if key_age is not None else "不明"}', '',
+    report = [f'問い合わせ Worker（{a.service}）直近 {a.hours} 時間の集計', '', f'受付 {len(parsed)} 件 / エラー {len(errors)} 件 / 未検証受付 {len(unverified)} 件 / honeypot 破棄 {len(honeypot)} 件 / 認証 {auth_mode}' + (f' / 鍵の経過日数 {key_age if key_age is not None else "不明"}' if auth_mode == 'service-account' else ''), '',
               '判定: ' + title, '', '記録（新しい順、最大 40 件）:'] + [l for l in reversed(lines[-40:])]
     print('check:', json.dumps(result, ensure_ascii=False))
     if a.check:

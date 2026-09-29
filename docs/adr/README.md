@@ -10,4 +10,4 @@
 | [0004](0004-role-addresses-rfc2142.md) | 役割メールアドレスは RFC 2142 に合わせる | 採用 |
 | [0005](0005-contact-form-fail-open-turnstile.md) | 問い合わせフォームのボット対策は fail-open（未検証受付・確認メールなし）とする | 採用 |
 | [0006](0006-ci-full-stack-gate-no-staging.md) | 配備前検証は CI 内フルスタック（公式テストキー）で行い、staging を常設しない | 採用 |
-| [0007](0007-system-sender-identity-oauth.md) | システムメールの送信主体を `no-reply@` 実ユーザーにし、ドメイン全体の委任を OAuth 同意に置き換える | 提案（課金承認待ち） |
+| [0007](0007-system-sender-identity-oauth.md) | システムメールの送信主体を `no-reply@` 実ユーザーにし、ドメイン全体の委任を OAuth 同意に置き換える | 採用 |
