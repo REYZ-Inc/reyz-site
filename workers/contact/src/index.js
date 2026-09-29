@@ -1,6 +1,12 @@
 /* REYZ Inc. — 問い合わせフォーム受付 Worker（https://reyz.inc/api/contact）
-   受付 → 検証 → Turnstile（ボット対策）→ Gmail API で ① contact@ へ控え ② 送信者へ受付確認。
+   受付 → 検証 → honeypot → レート制限 → Turnstile（ボット対策）→ Gmail API で ① contact@ へ控え ② 送信者へ受付確認。
    送信は Google Workspace のサービスアカウント（ドメイン全体の委任、scope gmail.send）で行う。
+
+   多層防御（送信者の環境に依存しない）:
+   - Turnstile が読めない環境（拡張機能・企業ネットワーク等）や照合失敗でも、UNVERIFIED_POLICY=accept-flagged なら
+     「未検証」として受け付ける（控えの件名に [未検証]、送信者への確認メールは送らない＝なりすまし宛先への自動返信を避ける）。
+   - 全経路にレート制限（CONTACT_RL binding、同一 IP）、honeypot、内容の簡易ヒューリスティック。
+   - dry_run=true は検証だけ行い送信しない（通し確認用）。
    依存ライブラリなし（WebCrypto + fetch）。秘密は Worker の secret（GMAIL_SA_KEY / GMAIL_SENDER_USER / TURNSTILE_SECRET_KEY）。 */
 
 const PATH = '/api/contact';
@@ -8,7 +14,7 @@ const SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GMAIL_SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
 const TURNSTILE_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-const LIMITS = { name: 100, person: 100, email: 254, type: 100, message: 5000, turnstile: 2048, website: 200, body: 32 * 1024 };
+const LIMITS = { name: 100, person: 100, email: 254, type: 100, message: 5000, turnstile: 2048, website: 200, client: 120, body: 32 * 1024 };
 const EMAIL_RE = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
 const REQUIRED_ENV = ['GMAIL_SA_KEY', 'GMAIL_SENDER_USER', 'TURNSTILE_SECRET_KEY', 'MAIL_TO', 'MAIL_FROM'];
 
@@ -47,20 +53,33 @@ export async function handle(request, env, deps) {
   if (errors.length) return json({ ok: false, error: 'validation', fields: errors }, 400);
   if (fields.website) { log({ event: 'contact', ok: true, honeypot: true }); return json({ ok: true }); }   // ボット: 成功を装って捨てる
 
-  const meta = { at: formatJst(deps.now()), country: request.headers.get('CF-IPCountry') || '', ray: request.headers.get('CF-Ray') || '' };
-  const ts = await verifyTurnstile(deps, env.TURNSTILE_SECRET_KEY, fields.turnstile, request.headers.get('CF-Connecting-IP') || '', origins.map(o => new URL(o).hostname));
-  if (!ts.ok) { log({ event: 'contact', ok: false, error: 'turnstile', codes: ts.codes, ray: meta.ray }); return json({ ok: false, error: 'turnstile', codes: ts.codes }, 403); }
+  const ip = request.headers.get('CF-Connecting-IP') || '';
+  const meta = { at: formatJst(deps.now()), country: request.headers.get('CF-IPCountry') || '', ray: request.headers.get('CF-Ray') || '', client: fields.client };
+  const rl = await rateLimit(env, ip);
+  if (!rl.ok) { log({ event: 'contact', ok: false, error: 'rate_limited', ray: meta.ray }); return json({ ok: false, error: 'rate_limited' }, 429, { 'Retry-After': '60' }); }
+
+  // Turnstile: トークンがあれば照合。無い／不合格なら方針に従う（accept-flagged = 未検証で受付、reject = 拒否）
+  let verified = false, codes = ['missing-input-response'];
+  if (fields.turnstile) { const ts = await verifyTurnstile(deps, env.TURNSTILE_SECRET_KEY, fields.turnstile, ip, origins.map(o => new URL(o).hostname)); verified = ts.ok; codes = ts.ok ? [] : ts.codes; }
+  if (!verified) {
+    const reason = unverifiedReject(fields, env.UNVERIFIED_POLICY);
+    if (reason) { log({ event: 'contact', ok: false, error: reason, codes, client: meta.client, ray: meta.ray }); return json({ ok: false, error: reason, codes }, 403); }
+  }
+  if (fields.dry_run) return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok' });
 
   let token;
   try { token = await accessToken(deps, env); }
   catch (err) { log({ event: 'contact', ok: false, error: 'token', detail: String(err).slice(0, 300), ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'token', detail: shortCode(String(err)) }, 502); }
 
-  const copy = await gmailSend(deps, token, buildMime(copyMessage(env, fields, meta)));
+  const copy = await gmailSend(deps, token, buildMime(copyMessage(env, fields, meta, verified, codes)));
   if (!copy.ok) { log({ event: 'contact', ok: false, error: 'send', status: copy.status, detail: copy.detail, ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'copy', detail: shortCode(copy.detail) }, 502); }
-  const confirmation = await gmailSend(deps, token, buildMime(confirmationMessage(env, fields, meta)));
-  if (!confirmation.ok) log({ event: 'contact', ok: true, confirmation: false, status: confirmation.status, detail: confirmation.detail, ray: meta.ray });
-  log({ event: 'contact', ok: true, confirmation: confirmation.ok, type: fields.type, country: meta.country, ray: meta.ray, ms: deps.now() - started });
-  return json({ ok: true, confirmation: confirmation.ok });
+  let confirmation = { ok: false };
+  if (verified) {   // 送信者への確認メールは、送信者が実在の人であることが確認できたときだけ（未確認の宛先へ自動返信しない）
+    confirmation = await gmailSend(deps, token, buildMime(confirmationMessage(env, fields, meta)));
+    if (!confirmation.ok) log({ event: 'contact', ok: true, confirmation: false, status: confirmation.status, detail: confirmation.detail, ray: meta.ray });
+  }
+  log({ event: 'contact', ok: true, verified, codes, client: meta.client, confirmation: confirmation.ok, type: fields.type, country: meta.country, ray: meta.ray, ms: deps.now() - started });
+  return json({ ok: true, verified, confirmation: confirmation.ok });
 }
 
 /* ---------- 検証 ---------- */
@@ -85,7 +104,27 @@ export function validate(data) {
   take('turnstile');
   take('website');
   if (fields.email && !errors.includes('email') && !EMAIL_RE.test(fields.email)) errors.push('email');
+  // 診断情報（フォーム側の Turnstile 状態）と dry_run は任意。型が違っても拒否せず無視する
+  const c = data.client && typeof data.client === 'object' && typeof data.client.turnstile === 'string' ? data.client.turnstile : '';
+  fields.client = c.replace(/[^\x20-\x7e]/g, '').slice(0, LIMITS.client);
+  fields.dry_run = data.dry_run === true;
   return { fields, errors };
+}
+
+// 未検証（Turnstile 無し／不合格）の送信を受け付けるか。null = 受け付ける、文字列 = 拒否理由
+export function unverifiedReject(fields, policy) {
+  if ((policy || 'accept-flagged') !== 'accept-flagged') return 'turnstile';
+  const links = (fields.message.match(/https?:\/\/|www\./gi) || []).length;
+  if (links > 2) return 'suspicious';
+  if (/https?:\/\/|www\./i.test(fields.name + ' ' + fields.person)) return 'suspicious';
+  return null;
+}
+
+// 同一 IP のレート制限（wrangler.toml の [[ratelimits]] CONTACT_RL）。binding が無い環境（テスト等）では通す
+async function rateLimit(env, ip) {
+  if (!env.CONTACT_RL || !ip) return { ok: true, skipped: true };
+  try { const r = await env.CONTACT_RL.limit({ key: ip }); return { ok: r && r.success !== false, skipped: false }; }
+  catch (err) { log({ event: 'contact', warn: 'ratelimit_error', detail: String(err).slice(0, 200) }); return { ok: true, skipped: true }; }
 }
 
 function allowedOrigins(env) {
@@ -155,9 +194,9 @@ async function gmailSend(deps, token, mime) {
 
 /* ---------- メール本文 ---------- */
 
-function copyMessage(env, f, meta) {
+function copyMessage(env, f, meta, verified, codes) {
   const text = [
-    '[REYZ お問い合わせ]',
+    verified ? '[REYZ お問い合わせ]' : '[REYZ お問い合わせ]（未検証: ボット対策の照合なし。差出人アドレスは未確認のため、返信前に内容を確認してください）',
     `受付: ${meta.at}`,
     `ご用件: ${f.type}`,
     `お名前: ${f.name}`,
@@ -168,9 +207,10 @@ function copyMessage(env, f, meta) {
     '',
     '--',
     `送信元: reyz.inc 問い合わせフォーム（国: ${meta.country || '-'} / Ray: ${meta.ray || '-'}）`,
+    `ボット対策: ${verified ? '検証済み' : '未検証'}${verified ? '' : `（form: ${meta.client || '-'} / siteverify: ${(codes || []).join(',') || '-'}）`}`,
     'このメールに返信すると送信者へ届きます。'
   ].filter(l => l !== null).join('\n');
-  return { from: env.MAIL_FROM, to: env.MAIL_TO, replyTo: f.email, subject: `[REYZ お問い合わせ] ${f.type}｜${f.name}`, text };
+  return { from: env.MAIL_FROM, to: env.MAIL_TO, replyTo: f.email, subject: `${verified ? '' : '[未検証] '}[REYZ お問い合わせ] ${f.type}｜${f.name}`, text };
 }
 
 function confirmationMessage(env, f, meta) {

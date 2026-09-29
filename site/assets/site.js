@@ -22,7 +22,7 @@
   const CONFIG = {
     formEndpoint: '/api/contact',     // 同一ドメインの受付 Worker（workers/contact）→「送信」で直接送信（POST, JSON）。空にすると「文面をコピー」の暫定挙動に戻る
     turnstileSiteKey: '0x4AAAAAAFIPs9iKoP2Ouj0x',   // Cloudflare Turnstile のサイトキー（公開値。ウィジェット reyz-site-contact）。確認ページにボット対策の確認を表示し、送信時にトークンを添える
-    contactEmail: '',                 // 例: 'info@example.com' → 送信先未設定時は「送信」でメールアプリを開く／フッターに連絡先表示
+    contactEmail: 'contact@reyz.inc', // 代替経路（送れなかったときの「メールアプリで送る」）とフッターの連絡先表示。空にすると非表示
     lineUrl: ''                       // 例: 'https://lin.ee/xxxx' → 予備の連絡手段として案内文に表示
   };
 
@@ -278,13 +278,19 @@
   }
 
   /* ================================================================
-     CONTACT — 入力 → 確認ページ → 送信（送信先は CONFIG.formEndpoint / contactEmail で有効化。未設定時は文面をコピーして案内。
-     formEndpoint が受付 Worker のとき: honeypot（#cWebsite）と Turnstile トークンを添えて JSON で POST）
+     CONTACT — 入力 → 確認ページ → 送信。
+     送信先 CONFIG.formEndpoint（受付 Worker）に honeypot（#cWebsite）と Turnstile トークンを添えて JSON で POST する。
+     送信者の環境に依存しない設計:
+       - Turnstile は「読めたら使う」。読めない（拡張機能・企業ネットワーク）／描画失敗／時間切れでも送信を止めず、
+         状態（client.turnstile）を添えて送る。Worker 側は未検証として受け付ける（控えに [未検証]、確認メールなし）
+       - トークン不受理は 1 回だけ取り直して再送、通信断は 1 回だけ再試行
+       - それでも送れなければ、文面のコピーとメールアプリ（CONFIG.contactEmail）の代替経路を必ず示す
+     送信先未設定（formEndpoint 空）のときは「文面をコピー」の暫定挙動。
      ================================================================ */
   const form = document.getElementById('contactForm');
   if (form) {
     const $ = id => document.getElementById(id);
-    const stepForm = $('stepForm'), stepConfirm = $('stepConfirm'), stepDone = $('stepDone'), status = $('status'), sendStatus = $('sendStatus'), list = $('confirmList'), copyLabel = $('copyLabel'), copyArea = $('copyArea'), sendBtn = $('sendBtn');
+    const stepForm = $('stepForm'), stepConfirm = $('stepConfirm'), stepDone = $('stepDone'), status = $('status'), sendStatus = $('sendStatus'), list = $('confirmList'), copyLabel = $('copyLabel'), copyArea = $('copyArea'), sendBtn = $('sendBtn'), mailBtn = $('mailBtn'), doneNote = $('doneNote');
     const line = $('contactLine'); if (line && CONFIG.contactEmail) { line.textContent = 'お問い合わせ: ' + CONFIG.contactEmail; line.hidden = false; }
     const LABELS = { name: 'お名前', person: 'ご担当者様', email: 'メールアドレス', type: 'ご用件', msg: '内容' };
     // メールアドレス: @より前（入力）＋ドメイン（選択。会社ドメイン等は「その他」で入力）。貼り付けで全体が入った場合は自動で分割
@@ -304,22 +310,54 @@
     };
     const fields = () => ({ name: $('cName').value.trim(), person: $('cPerson').value.trim(), email: email(), type: $('cType').value, msg: $('cMsg').value.trim() });
     const text = f => '[REYZ お問い合わせ]\nご用件: ' + f.type + '\nお名前: ' + f.name + (f.person ? '\nご担当者様: ' + f.person : '') + '\nメール: ' + f.email + '\n内容:\n' + f.msg;
-    // Turnstile（ボット対策）: サイトキーがある時だけスクリプトを読み、確認ページで描画する。トークンは1回限りなので送信失敗時はリセットする
-    const tsBox = $('turnstile'); let tsToken = '', tsWidget = null, tsLoading = null;
-    const tsReady = () => {
-      if (!CONFIG.turnstileSiteKey || !tsBox) return Promise.resolve(false);
-      if (window.turnstile) return Promise.resolve(true);
-      if (!tsLoading) tsLoading = new Promise(resolve => { const s = document.createElement('script'); s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; s.async = true; s.defer = true; s.onload = () => resolve(!!window.turnstile); s.onerror = () => resolve(false); document.head.append(s); });
-      return tsLoading;
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    /* Turnstile（ボット対策）。状態: off（サイトキー未設定）/ pending / blocked（スクリプトが読めない）/ rendered / ok（トークン取得）/ error:<code> / render-error / unsupported
+       入力開始時にスクリプトを先読みし、確認ページで描画（appearance=interaction-only: 必要なときだけ表示）。 */
+    // 注意: 要素の id を "turnstile" にしてはならない（id 付き要素は window.turnstile として見え、API の window.turnstile を隠す）
+    const tsBox = $('turnstileBox'); const ts = { state: (CONFIG.turnstileSiteKey && tsBox) ? 'pending' : 'off', token: '', widget: null, loading: null, error: '' };
+    const tsApi = () => (window.turnstile && typeof window.turnstile.render === 'function') ? window.turnstile : null;
+    window.__reyzContact = ts;   // 通し確認（qa/e2e_contact.js）用の読み取り口
+    const tsLoad = () => {
+      if (ts.state === 'off') return Promise.resolve(false);
+      if (tsApi()) return Promise.resolve(true);
+      if (!ts.loading) ts.loading = new Promise(resolve => {
+        const s = document.createElement('script'); s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; s.async = true; s.defer = true;
+        const t = setTimeout(() => resolve(!!tsApi()), 8000);
+        s.onload = () => { clearTimeout(t); resolve(!!tsApi()); }; s.onerror = () => { clearTimeout(t); resolve(false); };
+        document.head.append(s);
+      });
+      return ts.loading;
     };
-    const tsReset = () => { tsToken = ''; if (tsWidget !== null) { try { window.turnstile.reset(tsWidget); } catch (err) {} } };
+    const tsReset = () => { ts.token = ''; if (ts.widget !== null && tsApi()) { try { tsApi().reset(ts.widget); } catch (err) {} } };
     const tsRender = async () => {
-      if (!(await tsReady())) return;
-      tsBox.hidden = false;
-      if (tsWidget !== null) { tsReset(); return; }
-      tsToken = '';
-      tsWidget = window.turnstile.render(tsBox, { sitekey: CONFIG.turnstileSiteKey, theme: 'dark', language: 'ja', callback: t => { tsToken = t; }, 'expired-callback': () => { tsToken = ''; }, 'error-callback': () => { tsToken = ''; } });
+      if (ts.state === 'off') return;
+      if (!(await tsLoad())) { ts.state = 'blocked'; return; }
+      if (ts.widget !== null) { tsReset(); return; }
+      const api = tsApi();
+      const render = () => {
+        try {
+          tsBox.hidden = false;
+          ts.widget = api.render(tsBox, {
+            sitekey: CONFIG.turnstileSiteKey, theme: 'dark', language: 'ja', appearance: 'interaction-only', retry: 'auto', 'refresh-expired': 'auto',
+            callback: t => { ts.token = t; ts.state = 'ok'; },
+            'expired-callback': () => { ts.token = ''; },
+            'error-callback': code => { ts.token = ''; ts.state = 'error'; ts.error = String(code || ''); return true; },
+            'unsupported-callback': () => { ts.state = 'unsupported'; }
+          });
+          if (ts.state === 'pending') ts.state = (ts.widget !== undefined && ts.widget !== null) ? 'rendered' : 'render-error';
+        } catch (err) { ts.state = 'render-error'; ts.error = String(err && err.message || err).slice(0, 80); }
+      };
+      if (typeof api.ready === 'function') api.ready(render); else render();
     };
+    const tsState = () => (ts.token ? 'ok' : ts.state + (ts.error ? ':' + ts.error : ''));
+    const tsWait = async ms => {   // トークンを最大 ms 待つ（読み込み中／照合中のみ。表示された対話式チェックはユーザー操作待ちなので待たない）
+      const until = Date.now() + ms;
+      while (!ts.token && Date.now() < until && (ts.state === 'pending' || ts.state === 'rendered') && !(tsBox && tsBox.offsetHeight > 20)) await sleep(200);
+      return ts.token;
+    };
+    form.addEventListener('focusin', () => { tsLoad(); }, { once: true });   // 入力開始時に先読み（確認ページで待たせない）
+
     const show = (step) => {
       for (const el of [stepForm, stepConfirm, stepDone]) el.hidden = el !== step;
       const sec = form.closest('.section') || form; const top = sec.getBoundingClientRect().top + window.scrollY + 8;   // 見出し「お問い合わせ」から見える位置へ
@@ -333,44 +371,59 @@
       if (!form.reportValidity()) { status.textContent = '未入力または形式の誤りがある項目があります。'; return; }
       const f = fields(); list.textContent = '';
       for (const k of ['name', 'person', 'email', 'type', 'msg']) { if (!f[k]) continue; const row = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = LABELS[k]; const dd = document.createElement('dd'); dd.textContent = f[k]; row.append(dt, dd); list.append(row); }
-      sendStatus.textContent = ''; copyLabel.hidden = true; sendBtn.disabled = false;
+      sendStatus.textContent = ''; copyLabel.hidden = true; if (mailBtn) mailBtn.hidden = true; sendBtn.disabled = false;
       try { history.pushState({ step: 'confirm' }, '', '#confirm'); } catch (err) {}
       show(stepConfirm);
     });
     $('backBtn').addEventListener('click', () => { if (history.state && history.state.step === 'confirm') history.back(); else show(stepForm); });
     window.addEventListener('popstate', () => { if (stepForm.hidden && !(history.state && history.state.step)) show(stepForm); });
     if (location.hash === '#confirm' || location.hash === '#sent') { try { history.replaceState(null, '', location.pathname); } catch (err) {} }
+
+    // 送れなかったとき: 文面をコピー ＋ メールアプリで送る（連絡経路を必ず残す）
+    const fallback = (msg, body) => {
+      copyLabel.hidden = false; copyArea.value = body;
+      if (mailBtn && CONFIG.contactEmail) { mailBtn.href = 'mailto:' + CONFIG.contactEmail + '?subject=' + encodeURIComponent('REYZ お問い合わせ') + '&body=' + encodeURIComponent(body); mailBtn.hidden = false; }
+      sendStatus.textContent = msg; sendBtn.disabled = false;
+    };
+    const post = async (f, token, state) => {
+      const website = $('cWebsite');
+      const payload = { name: f.name, person: f.person, email: f.email, type: f.type, message: f.msg, website: website ? website.value : '', turnstile: token, client: { turnstile: state }, _subject: 'REYZ お問い合わせ', _replyto: f.email };
+      try {
+        const res = await fetch(CONFIG.formEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) });
+        let j = null; try { j = await res.json(); } catch (err) {}
+        return { status: res.status, j: j || {} };
+      } catch (err) { return { status: 0, j: { error: 'network' } }; }
+    };
     // 送信
     sendBtn.addEventListener('click', async () => {
-      const f = fields(); const body = text(f); sendBtn.disabled = true;
-      if (CONFIG.formEndpoint) {
-        if (tsWidget !== null && !tsToken) { sendStatus.textContent = 'ボット対策の確認がまだ完了していません。数秒待ってからもう一度「送信」を押してください。'; sendBtn.disabled = false; return; }
-        sendStatus.textContent = '送信中…';
-        const website = $('cWebsite'); const payload = { name: f.name, person: f.person, email: f.email, type: f.type, message: f.msg, website: website ? website.value : '', turnstile: tsToken, _subject: 'REYZ お問い合わせ', _replyto: f.email };
-        try {
-          const res = await fetch(CONFIG.formEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) });
-          if (!res.ok) { let j = null; try { j = await res.json(); } catch (err) {} const e = new Error((j && j.error) || ('HTTP ' + res.status)); e.detail = j && (j.stage || '') + ' ' + (j.detail || ''); throw e; }
-          try { history.replaceState({ step: 'done' }, '', '#sent'); } catch (err) {}
-          form.reset(); show(stepDone); return;
-        } catch (err) {
-          const code = String(err && err.message || '');
-          try { console.warn('contact form: ' + code + ' ' + (err.detail || '')); } catch (e2) {}   // 原因調査用（本文・個人情報は含まない）
-          sendStatus.textContent = code === 'turnstile' ? 'ボット対策の確認ができませんでした。ページを再読み込みしてから、もう一度お試しください。'
-            : code === 'validation' ? '入力内容に確認が必要な項目があります。「修正する」から見直してください。'
-            : '送信できませんでした。時間をおいて再度お試しください。';
-          tsReset(); sendBtn.disabled = false; return;
-        }
+      const f = fields(); const body = text(f); sendBtn.disabled = true; copyLabel.hidden = true; if (mailBtn) mailBtn.hidden = true;
+      if (!CONFIG.formEndpoint) {   // 送信先が未設定: 文面をコピーして案内（公開前の暫定挙動）
+        const note = CONFIG.lineUrl ? 'メールまたはLINEでお送りください。' : 'メールでお送りください。';
+        try { await navigator.clipboard.writeText(body); fallback('送信先を準備中のため、文面をコピーしました。' + note, body); }
+        catch (err) { fallback('送信先を準備中です。下の文面をコピーして' + note, body); copyArea.focus(); copyArea.select(); }
+        return;
       }
-      if (CONFIG.contactEmail) {
-        location.href = 'mailto:' + CONFIG.contactEmail + '?subject=' + encodeURIComponent('REYZ お問い合わせ') + '&body=' + encodeURIComponent(body);
-        sendStatus.textContent = 'メールアプリが開きます。そのまま送信してください。'; sendBtn.disabled = false; return;
+      if (tsBox && tsBox.offsetHeight > 20 && !ts.token) { sendStatus.textContent = '上の確認（ボット対策）を完了してから「送信」を押してください。'; sendBtn.disabled = false; return; }
+      sendStatus.textContent = '送信中…';
+      let token = await tsWait(6000);
+      let r = await post(f, token, token ? 'ok' : tsState());
+      if (r.status === 403 && r.j.error === 'turnstile' && token) {   // トークン不受理: 取り直して 1 回だけ再送。それでも駄目なら未検証として送る
+        const codes = (r.j.codes || []).join(',');
+        tsReset(); token = await tsWait(6000);
+        r = await post(f, token, token ? 'retry:' + codes : 'rejected:' + codes);
+        if (r.status === 403 && r.j.error === 'turnstile' && token) r = await post(f, '', 'rejected:' + ((r.j.codes || []).join(',') || codes));
+      } else if (r.status === 0 || r.status >= 500) {   // 通信断・一時的な失敗: 1 回だけ再試行
+        await sleep(1500); r = await post(f, token, token ? 'ok' : tsState());
       }
-      // 送信先が未設定: 文面をコピーして案内（公開前の暫定挙動）
-      copyLabel.hidden = false; copyArea.value = body;
-      const note = CONFIG.lineUrl ? 'メールまたはLINEでお送りください。' : 'メールでお送りください。';
-      try { await navigator.clipboard.writeText(body); sendStatus.textContent = '送信先を準備中のため、文面をコピーしました。' + note; }
-      catch (err) { copyArea.focus(); copyArea.select(); sendStatus.textContent = '送信先を準備中です。下の文面をコピーして' + note; }
-      sendBtn.disabled = false;
+      if (r.status === 200 && r.j.ok) {
+        try { history.replaceState({ step: 'done' }, '', '#sent'); } catch (err) {}
+        if (doneNote) doneNote.hidden = r.j.confirmation !== false;   // 確認メールが送られなかった場合の注記
+        form.reset(); show(stepDone); return;
+      }
+      try { console.warn('contact form: ' + (r.j.error || ('HTTP ' + r.status)) + ' ' + (r.j.stage || '') + ' ' + (r.j.detail || (r.j.codes || []).join(','))); } catch (e2) {}   // 原因調査用（本文・個人情報は含まない）
+      if (r.j.error === 'validation') { sendStatus.textContent = '入力内容に確認が必要な項目があります。「修正する」から見直してください。'; sendBtn.disabled = false; return; }
+      fallback(r.j.error === 'rate_limited' ? '短時間に多くの送信がありました。しばらく待ってから再度お試しいただくか、下の文面をメールでお送りください。'
+        : '送信できませんでした。お手数ですが、下の文面をコピーするか「メールアプリで送る」からお送りください。', body);
     });
   }
 })();
