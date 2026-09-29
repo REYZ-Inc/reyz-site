@@ -1,0 +1,40 @@
+# 毎日 1 回、問い合わせ Worker の記録を集計し、異常（エラー・未検証の急増）と鍵の期限だけを noc@ へ通知する（平常時は送らない）。
+# 記録の一覧は Actions → contact-logs。設計: docs/contact-pipeline.md
+name: contact-watch
+on:
+  schedule:
+    - cron: "37 0 * * *"   # 09:37 JST
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: 直近 24 時間の集計と鍵の期限を判定
+        id: check
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          GMAIL_SA_KEY_CREATED: ${{ vars.GMAIL_SA_KEY_CREATED }}
+          KEY_MAX_AGE_DAYS: "90"
+          UNVERIFIED_ALERT: "10"
+        run: python3 infra/check/contact_logs.py --hours 24 --check /tmp/check.json --report /tmp/report.txt
+      - name: 異常があれば noc@ へ通知
+        if: steps.check.outputs.alert == 'true'
+        env:
+          GMAIL_SA_KEY: ${{ secrets.GMAIL_SA_KEY }}
+          GMAIL_SENDER_USER: ${{ secrets.GMAIL_SENDER_USER }}
+          NOC_EMAIL: ${{ vars.NOC_EMAIL }}
+          TITLE: ${{ steps.check.outputs.title }}
+        run: |
+          node infra/check/notify_noc.mjs --subject "[REYZ noc] contact-watch: $TITLE" --body-file /tmp/report.txt
+      - name: 異常は run も失敗にする（GitHub の通知にも載せる）
+        if: steps.check.outputs.alert == 'true'
+        run: exit 1

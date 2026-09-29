@@ -1,10 +1,13 @@
-# 問い合わせフォーム受付 Worker（workers/contact → Cloudflare Workers、reyz.inc/api/contact）。
-# PR: 自己テスト + 設定検証（dry-run、トークン不要）。main へのマージ: 同じ検証のあと配備（environment `cloudflare` の承認ルールで止められる）。
-# 秘密は GitHub Secrets → Worker の secret として投入する（リポジトリには置かない）。
+# 問い合わせフォーム受付 Worker（workers/contact → Cloudflare Workers、reyz.inc/api/contact）と、フォーム側 JS の関門。設計: docs/contact-pipeline.md
+#
+# PR   : worker-tests（自己テスト + wrangler dry-run、認証不要）
+#        stack-e2e（CI 内でサイト生成物 ＋ Worker を同一 origin で起動し、本物の Turnstile（公式テストキー）でフォーム UI を最後まで操作。
+#                   Google は委任トークン取得まで。メールは送らない。通らなければマージできない）
+# main : deploy（GitHub Secrets → Worker secret → deploy → 疎通。environment `cloudflare`）→ 本番 e2e は contact-e2e.yml が引き継ぐ
 name: contact-worker
 on:
   pull_request:
-    paths: ['workers/contact/**', '.github/workflows/contact-worker.yml']
+    paths: ['workers/contact/**', 'site/assets/site.js', 'build/build.py', 'qa/e2e_contact.js', '.github/workflows/contact-worker.yml']
   push:
     branches: [main]
     paths: ['workers/contact/**', '.github/workflows/contact-worker.yml']
@@ -12,12 +15,12 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: contact-worker
+  group: contact-worker-${{ github.ref }}
   cancel-in-progress: false
 env:
   WRANGLER_VERSION: "4.142.0"
 jobs:
-  test:
+  worker-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults: { run: { working-directory: workers/contact } }
@@ -30,9 +33,64 @@ jobs:
       - name: wrangler config / bundle check（dry-run、認証不要）
         run: npx --yes wrangler@${WRANGLER_VERSION} deploy --dry-run --outdir /tmp/wr-out
         env: { WRANGLER_SEND_METRICS: "false" }
+
+  stack-e2e:
+    # フォーク PR には secret が渡らないため実行しない（この repo は所有者のみ push 可）
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: サイト生成物をコピーし、CI 用 wrangler 設定を本番設定から生成
+        run: |
+          python3 build/build.py >/dev/null
+          rm -rf /tmp/ci-site && cp -r site /tmp/ci-site
+          python3 workers/contact/ci/make_ci_config.py --site /tmp/ci-site --origin http://127.0.0.1:8787 --out /tmp/wrangler.ci.jsonc
+      - name: Worker を起動（秘密は .dev.vars に一時展開。ログには出さない）
+        env:
+          GMAIL_SA_KEY: ${{ secrets.GMAIL_SA_KEY }}
+          GMAIL_SENDER_USER: ${{ secrets.GMAIL_SENDER_USER }}
+          WRANGLER_SEND_METRICS: "false"
+        run: |
+          mkdir -p /tmp/ci-stack && cp /tmp/wrangler.ci.jsonc /tmp/ci-stack/wrangler.ci.jsonc
+          # .dev.vars は設定ファイルと同じディレクトリに置く。JSON 鍵は 1 行にする（改行を除去。鍵本文の \n は文字列のまま）
+          printf 'GMAIL_SA_KEY=%s\nGMAIL_SENDER_USER=%s\nTURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA\n' "$(printf '%s' "$GMAIL_SA_KEY" | tr -d '\n')" "$GMAIL_SENDER_USER" > /tmp/ci-stack/.dev.vars
+          cd /tmp/ci-stack
+          nohup npx --yes wrangler@${WRANGLER_VERSION} dev --config wrangler.ci.jsonc --port 8787 --ip 127.0.0.1 --log-level warn > /tmp/wrangler-dev.log 2>&1 &
+          for i in $(seq 1 60); do sleep 1; curl -s -o /dev/null http://127.0.0.1:8787/api/contact && break; done
+          curl -s -o /dev/null -w 'GET /api/contact -> %{http_code}\n' http://127.0.0.1:8787/api/contact
+      - name: e2e — pass（合格 → 受付・Google 委任トークン取得）
+        run: node qa/e2e_contact.js --mode ci --base http://127.0.0.1:8787 --case pass
+      - name: e2e — fail-widget（ウィジェット失敗 → fail-open で未検証受付）
+        run: node qa/e2e_contact.js --mode ci --base http://127.0.0.1:8787 --case fail-widget
+      - name: e2e — interactive（対話式 → 送信ボタンが完了を待つ）
+        run: node qa/e2e_contact.js --mode ci --base http://127.0.0.1:8787 --case interactive
+      - name: Worker を「常に不合格」の秘密キーで再起動
+        env: { WRANGLER_SEND_METRICS: "false" }
+        run: |
+          pkill -f 'wrangler dev' || true; sleep 2
+          cd /tmp/ci-stack && sed -i 's/^TURNSTILE_SECRET_KEY=.*/TURNSTILE_SECRET_KEY=2x0000000000000000000000000000000AA/' .dev.vars
+          nohup npx --yes wrangler@${WRANGLER_VERSION} dev --config wrangler.ci.jsonc --port 8787 --ip 127.0.0.1 --log-level warn > /tmp/wrangler-dev2.log 2>&1 &
+          for i in $(seq 1 60); do sleep 1; curl -s -o /dev/null http://127.0.0.1:8787/api/contact && break; done
+      - name: e2e — fail-secret（照合不合格 → 未検証で受付、codes に理由）
+        run: node qa/e2e_contact.js --mode ci --base http://127.0.0.1:8787 --case fail-secret
+      - name: 後始末（秘密の一時ファイルを削除）
+        if: always()
+        run: pkill -f 'wrangler dev' || true; rm -f /tmp/ci-stack/.dev.vars
+      - name: keep screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: contact-stack-e2e, path: qa/out/e2e_contact_ci_*.png, retention-days: 7, if-no-files-found: ignore }
+
   deploy:
     if: github.event_name != 'pull_request'
-    needs: test
+    needs: [worker-tests, stack-e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: cloudflare

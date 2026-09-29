@@ -1,5 +1,7 @@
 # 問い合わせフォーム受付 Worker（reyz.inc/api/contact）
 
+設計の正本は [docs/contact-pipeline.md](../../docs/contact-pipeline.md)（要件・関門・方針・秘密・運用）。ここは実装と手順。
+
 フォーム（`site/contact.html`）の「送信」を受け、① `contact@reyz.inc` へ控え、② 送信者へ受付確認メールを送る。Cloudflare Workers 上で動き、同じドメイン（`reyz.inc/api/*`）で応答するので CORS 不要。メールは Google Workspace（Gmail API）から `no-reply@reyz.inc` として送るため、SPF / DKIM / DMARC は既存の設定のまま整合する。
 
 ## 流れ
@@ -35,7 +37,15 @@
 | 502 `send` | Google 側で失敗（委任未設定・鍵不正・API 無効など。Workers Logs に詳細） |
 | 503 `not_configured` | secret / vars が足りない（配備直後の未設定など） |
 
-honeypot（`website`）に値があるものは成功を装って捨てる。記録（Workers Logs）は結果・種別・国・Ray のみで、本文とメールアドレスは残さない。
+honeypot（`website`）に値があるものは、Turnstile 検証済み（＝人。ブラウザの自動入力が埋めた可能性）なら注記付きで受け付け、未検証なら成功を装って捨てる。記録（Workers Logs）は結果・検証状態・Gmail の受理 ID・種別・国・Ray のみで、本文とメールアドレスは残さない。
+
+### 運用（人手を最小にする）
+
+| 知りたいこと | 手段 | 誰が |
+|---|---|---|
+| フォームが壊れていないか | `contact-e2e`（配備のたびに自動。手動起動も可） | 自動 → AI が結果を読む |
+| 送信が Worker に届き、Gmail が受理したか | `contact-logs`（Actions → Run workflow → 直近 N 時間）。`gmail_copy` / `gmail_confirmation` に ID が出れば Gmail は受理済み（＝送信者アカウントの「送信済み」にある） | AI が起動・判読 |
+| 受信箱に実際に入ったか（迷惑メール判定など） | 受信側のメールボックス（自動化しない: 読み取り権限を広げない方針） | ロウ（必要時のみ） |
 
 ## 配置
 
@@ -44,8 +54,13 @@ honeypot（`website`）に値があるものは成功を装って捨てる。記
 | `src/index.js` | Worker 本体（依存ライブラリなし。WebCrypto + fetch） |
 | `test/contact.test.js` | 自己テスト（`node --test`。Google / Turnstile は fetch 差し替え、鍵はテスト内で生成） |
 | `wrangler.toml` | 名前 `reyz-contact`、ルート `reyz.inc/api/*` `www.reyz.inc/api/*`、`workers_dev=false`、レート制限 binding、公開値の vars（`UNVERIFIED_POLICY` 含む） |
-| `../../qa/e2e_contact.js` + `../../.github/workflows/contact-e2e.yml` | 公開サイトの通し確認（Turnstile の状態 → Worker の dry_run）。配備後に自動実行 |
-| `../../.github/workflows/contact-worker.yml` | PR: テスト + dry-run。main へのマージ: secret 投入 → deploy → 疎通（GET が 405）。environment `cloudflare` |
+| `ci/make_ci_config.py` | CI 用 wrangler 設定を本番 `wrangler.toml` から生成（差分 5 点のみ。生成物はコミットしない） |
+| `../../qa/e2e_contact.js` | 通し確認。`--mode ci`（CI 内フルスタック、公式テストキー、4 ケース）／`--mode prod`（公開サイト） |
+| `../../.github/workflows/contact-worker.yml` | PR: `worker-tests` ＋ `stack-e2e`。main: 配備 |
+| `../../.github/workflows/contact-e2e.yml` | 配備後の本番通し確認。失敗は noc@ へ通知 |
+| `../../.github/workflows/contact-watch.yml` | 毎日の集計。異常と鍵の期限だけ noc@ へ通知 |
+| `../../infra/check/notify_noc.mjs` | 通知メール送信（Worker と同じ送信経路・同じコード） |
+| `../../infra/check/contact_logs.py` + `../../.github/workflows/contact-logs.yml` | Worker の記録（結果・検証状態・Gmail 受理 ID）を Workers Logs API から一覧にする。手動起動、読み取りのみ |
 | `../../site/assets/site.js` | `CONFIG.formEndpoint='/api/contact'`、`CONFIG.turnstileSiteKey` で有効化（確認ページに Turnstile を描画） |
 
 ## 前提（1 回だけ。値はリポジトリに書かない）
@@ -57,6 +72,8 @@ honeypot（`website`）に値があるものは成功を装って捨てる。記
 | GitHub → Secrets | `TURNSTILE_SECRET_KEY` | Turnstile ウィジェットの Secret Key | Cloudflare → Turnstile → ウィジェット（hostname: reyz.inc, www.reyz.inc） |
 | GitHub → Secrets | `CLOUDFLARE_WORKERS_TOKEN` | Workers 配備用トークン（テンプレート「Cloudflare Workers を編集する」、Zone を reyz.inc に限定） | Cloudflare → プロフィール → API トークン |
 | GitHub → Variables | `CLOUDFLARE_ACCOUNT_ID` | （DNS と共通。設定済み） | — |
+| GitHub → Variables | `NOC_EMAIL` | 異常通知の宛先（`noc@reyz.inc`。RFC 2142 の役割アドレス） | 管理コンソールでエイリアス作成 |
+| GitHub → Variables | `GMAIL_SA_KEY_CREATED` | サービスアカウント鍵の作成日 `YYYY-MM-DD`（90 日ローテーションの起点） | 鍵を作った日 |
 | `site/assets/site.js` | `turnstileSiteKey` | Turnstile の Site Key（公開値） | 同上ウィジェット |
 
 Google 側（管理コンソール）:

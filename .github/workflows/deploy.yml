@@ -4,7 +4,7 @@ name: verify-and-deploy
 on:
   push:
     branches: [main]
-    paths-ignore: ['infra/**', 'workers/**', '.github/workflows/cloudflare-dns.yml', '.github/workflows/contact-worker.yml']
+    paths-ignore: ['infra/**', 'workers/**', 'docs/**', '.github/workflows/cloudflare-dns.yml', '.github/workflows/contact-worker.yml', '.github/workflows/contact-logs.yml', '.github/workflows/contact-e2e.yml', '.github/workflows/contact-watch.yml']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -15,7 +15,7 @@ concurrency:
   group: pages
   cancel-in-progress: false
 jobs:
-  verify:
+  site-verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -45,7 +45,7 @@ jobs:
         with: { path: site }
   deploy:
     if: github.event_name != 'pull_request'
-    needs: verify
+    needs: site-verify
     runs-on: ubuntu-latest
     environment:
       name: github-pages

@@ -67,7 +67,7 @@ test('validate: 正常値は整形して通し、不正は項目名で返す', (
   assert.deepEqual(validate({ ...good(), name: ['x'] }).errors, ['name']);
   assert.deepEqual(validate({ ...good(), email: 'a@b' }).errors, ['email']);
   const v = validate({ ...good(), client: { turnstile: 'blocked\u3042' }, dry_run: 'yes' });
-  assert.deepEqual(v.errors, []); assert.equal(v.fields.client, 'blocked'); assert.equal(v.fields.dry_run, false);
+  assert.deepEqual(v.errors, []); assert.equal(v.fields.client, 'blocked'); assert.equal(v.fields.dry_run, '');
   assert.equal(validate({ ...good(), client: 'x' }).fields.client, '');
   assert.equal(unverifiedReject({ name: 'a', person: '', message: 'see http://a.example http://b.example http://c.example' }, 'accept-flagged'), 'suspicious');
   assert.equal(unverifiedReject({ name: 'http://spam.example', person: '', message: 'x' }, 'accept-flagged'), 'suspicious');
@@ -155,14 +155,19 @@ test('handle: 入口の拒否（path / method / origin / content-type / size / j
   assert.deepEqual(f.calls, []);   // 拒否では外部に何も送らない
 });
 
-test('handle: 設定不足は 503、honeypot は成功を装って何も送らない', async () => {
+test('handle: 設定不足は 503。honeypot は未検証なら成功を装って捨て、検証済み（自動入力の人）なら注記付きで受け付ける', async () => {
   const f = fakeFetch();
   const e = env(); delete e.GMAIL_SA_KEY;
   const r = await handle(post(good()), e, deps(f));
   assert.equal(r.status, 503); assert.deepEqual(await r.json(), { ok: false, error: 'not_configured' });
-  const h = await handle(post({ ...good(), website: 'http://spam.example' }), env(), deps(f));
+  const h = await handle(post({ ...good(), website: 'http://spam.example', turnstile: '' }), env(), deps(f));
   assert.equal(h.status, 200); assert.deepEqual(await h.json(), { ok: true });
   assert.deepEqual(f.calls, []);
+  resetTokenCache();
+  const f2 = fakeFetch();
+  const ok = await handle(post({ ...good(), website: 'https://example.co.jp' }), env(), deps(f2));
+  assert.deepEqual(await ok.json(), { ok: true, verified: true, confirmation: true });
+  assert.ok(decodeBody(decodeRaw(f2.calls.find(c => c.url === GMAIL_URL).init)).includes('隠しフィールドに値が入っていました'));
 });
 
 test('handle: 未検証（トークン無し／不合格／hostname 不一致）は accept-flagged なら受け付け、控えだけ [未検証] で送り、確認メールは送らない', async () => {
@@ -182,6 +187,8 @@ test('handle: 未検証（トークン無し／不合格／hostname 不一致）
   assert.ok(decodeBody(decodeRaw(f2.calls.find(c => c.url === GMAIL_URL).init)).includes('siteverify: invalid-input-secret'));
   const f3 = fakeFetch({ [TURNSTILE_URL]: () => Response.json({ success: true, hostname: 'evil.example' }) });
   assert.equal((await (await handle(post(good()), env(), deps(f3))).json()).verified, false);
+  const f3b = fakeFetch({ [TURNSTILE_URL]: () => Response.json({ success: true, hostname: 'example.com' }) });   // CI: 公式テストキーの応答は example.com → 上書きで許可
+  assert.equal((await (await handle(post(good()), env({ TURNSTILE_HOSTNAMES: 'example.com, localhost' }), deps(f3b))).json()).verified, true);
   const f4 = fakeFetch({ [TURNSTILE_URL]: () => { throw new Error('down'); } });
   assert.equal((await (await handle(post(good()), env(), deps(f4))).json()).verified, false);
 });
@@ -206,7 +213,7 @@ test('handle: レート制限は全経路の前段（429、外部呼び出しな
   assert.equal((await handle(post(good()), e, deps(f))).status, 200);
 });
 
-test('handle: dry_run は照合まで行い送信しない', async () => {
+test('handle: dry_run=true は照合まで、dry_run="token" は Google のトークン取得まで行い、どちらも送信しない', async () => {
   resetTokenCache();
   const f = fakeFetch();
   const r = await handle(post({ ...good(), dry_run: true, client: { turnstile: 'ok' } }), env(), deps(f));
@@ -215,6 +222,14 @@ test('handle: dry_run は照合まで行い送信しない', async () => {
   const r2 = await handle(post({ ...good(), dry_run: true, turnstile: '' }), env(), deps(f));
   assert.deepEqual(await r2.json(), { ok: true, dry_run: true, verified: false, codes: ['missing-input-response'], client: '', rate_limit: 'ok' });
   assert.equal(f.calls.length, 1);
+  const r3 = await handle(post({ ...good(), dry_run: 'token' }), env(), deps(f));
+  assert.deepEqual(await r3.json(), { ok: true, dry_run: true, verified: true, codes: [], client: '', rate_limit: 'ok', google_token: true });
+  assert.deepEqual(f.calls.slice(1).map(c => c.url), [TURNSTILE_URL, TOKEN_URL]);   // Gmail は呼ばない
+  resetTokenCache();
+  const bad = fakeFetch({ [TOKEN_URL]: () => Response.json({ error: 'unauthorized_client' }, { status: 401 }) });
+  const r4 = await handle(post({ ...good(), dry_run: 'token' }), env(), deps(bad));
+  assert.equal(r4.status, 200); assert.deepEqual(await r4.json(), { ok: true, dry_run: true, verified: true, codes: [], client: '', rate_limit: 'ok', google_token: false, detail: 'unauthorized_client' });
+  assert.equal(validate({ ...good(), dry_run: 'other' }).fields.dry_run, '');
 });
 
 test('handle: Google 側の失敗 — token 取得失敗と控えの送信失敗は 502、確認メールだけの失敗は 200 + confirmation:false', async () => {
@@ -239,5 +254,6 @@ test('handle: Google 側の失敗 — token 取得失敗と控えの送信失敗
   assert.equal(r4.status, 502); assert.equal((await r4.json()).stage, 'token');
   assert.equal(shortCode('{"error":{"code":403,"message":"Gmail API has not been used","status":"PERMISSION_DENIED"}}'), 'PERMISSION_DENIED');
   assert.equal(shortCode('Error: token endpoint 400: {"error":"invalid_grant","error_description":"Invalid JWT Signature."}'), 'invalid_grant');
-  assert.equal(shortCode('plain text'), '');
+  assert.equal(shortCode('plain text'), 'plain text');
+  assert.equal(shortCode('Error: GMAIL_SA_KEY: client_email / private_key がない'), 'Error: GMAIL_SA_KEY: client_email / private_key がない');
 });

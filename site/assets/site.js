@@ -417,7 +417,7 @@
       }
       if (r.status === 200 && r.j.ok) {
         try { history.replaceState({ step: 'done' }, '', '#sent'); } catch (err) {}
-        if (doneNote) doneNote.hidden = r.j.confirmation !== false;   // 確認メールが送られなかった場合の注記
+        if (doneNote) doneNote.hidden = !(r.j.verified === false || r.j.confirmation === false);   // 未検証受付、または確認メールが送れなかった場合の注記
         form.reset(); show(stepDone); return;
       }
       try { console.warn('contact form: ' + (r.j.error || ('HTTP ' + r.status)) + ' ' + (r.j.stage || '') + ' ' + (r.j.detail || (r.j.codes || []).join(','))); } catch (e2) {}   // 原因調査用（本文・個人情報は含まない）

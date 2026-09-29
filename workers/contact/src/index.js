@@ -6,7 +6,7 @@
    - Turnstile が読めない環境（拡張機能・企業ネットワーク等）や照合失敗でも、UNVERIFIED_POLICY=accept-flagged なら
      「未検証」として受け付ける（控えの件名に [未検証]、送信者への確認メールは送らない＝なりすまし宛先への自動返信を避ける）。
    - 全経路にレート制限（CONTACT_RL binding、同一 IP）、honeypot、内容の簡易ヒューリスティック。
-   - dry_run=true は検証だけ行い送信しない（通し確認用）。
+   - dry_run=true は照合まで、dry_run="token" は Google のトークン取得までを行い、どちらも送信しない（通し確認用）。
    依存ライブラリなし（WebCrypto + fetch）。秘密は Worker の secret（GMAIL_SA_KEY / GMAIL_SENDER_USER / TURNSTILE_SECRET_KEY）。 */
 
 const PATH = '/api/contact';
@@ -51,7 +51,6 @@ export async function handle(request, env, deps) {
 
   const { fields, errors } = validate(data);
   if (errors.length) return json({ ok: false, error: 'validation', fields: errors }, 400);
-  if (fields.website) { log({ event: 'contact', ok: true, honeypot: true }); return json({ ok: true }); }   // ボット: 成功を装って捨てる
 
   const ip = request.headers.get('CF-Connecting-IP') || '';
   const meta = { at: formatJst(deps.now()), country: request.headers.get('CF-IPCountry') || '', ray: request.headers.get('CF-Ray') || '', client: fields.client };
@@ -60,25 +59,36 @@ export async function handle(request, env, deps) {
 
   // Turnstile: トークンがあれば照合。無い／不合格なら方針に従う（accept-flagged = 未検証で受付、reject = 拒否）
   let verified = false, codes = ['missing-input-response'];
-  if (fields.turnstile) { const ts = await verifyTurnstile(deps, env.TURNSTILE_SECRET_KEY, fields.turnstile, ip, origins.map(o => new URL(o).hostname)); verified = ts.ok; codes = ts.ok ? [] : ts.codes; }
+  // siteverify が返す hostname（ウィジェットが解かれたサイト）は、既定では許可 origin のホスト名と一致を要求。CI（公式テストキーは example.com を返す）は TURNSTILE_HOSTNAMES で上書き
+  const hosts = String(env.TURNSTILE_HOSTNAMES || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (fields.turnstile) { const ts = await verifyTurnstile(deps, env.TURNSTILE_SECRET_KEY, fields.turnstile, ip, hosts.length ? hosts : origins.map(o => new URL(o).hostname)); verified = ts.ok; codes = ts.ok ? [] : ts.codes; }
+  // honeypot（隠しフィールド）に値がある: 人（Turnstile 検証済み）ならブラウザの自動入力とみなして受け付け（控えに注記）、ボット（未検証）は成功を装って捨てる
+  const honeypot = !!fields.website;
+  if (honeypot && !verified) { log({ event: 'contact', ok: true, honeypot: true, dropped: true, codes, client: meta.client, ray: meta.ray }); return json({ ok: true }); }
   if (!verified) {
     const reason = unverifiedReject(fields, env.UNVERIFIED_POLICY);
     if (reason) { log({ event: 'contact', ok: false, error: reason, codes, client: meta.client, ray: meta.ray }); return json({ ok: false, error: reason, codes }, 403); }
   }
-  if (fields.dry_run) return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok' });
+  if (fields.dry_run === 'verify') return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok' });
 
   let token;
   try { token = await accessToken(deps, env); }
-  catch (err) { log({ event: 'contact', ok: false, error: 'token', detail: String(err).slice(0, 300), ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'token', detail: shortCode(String(err)) }, 502); }
+  catch (err) {
+    log({ event: 'contact', ok: false, error: 'token', detail: String(err).slice(0, 300), dry_run: fields.dry_run || undefined, ray: meta.ray });
+    if (fields.dry_run === 'token') return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok', google_token: false, detail: shortCode(String(err)) });
+    return json({ ok: false, error: 'send', stage: 'token', detail: shortCode(String(err)) }, 502);
+  }
+  if (fields.dry_run === 'token') return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok', google_token: true });
 
-  const copy = await gmailSend(deps, token, buildMime(copyMessage(env, fields, meta, verified, codes)));
+  const copy = await gmailSend(deps, token, buildMime(copyMessage(env, fields, meta, verified, codes, honeypot)));
   if (!copy.ok) { log({ event: 'contact', ok: false, error: 'send', status: copy.status, detail: copy.detail, ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'copy', detail: shortCode(copy.detail) }, 502); }
-  let confirmation = { ok: false };
+  let confirmation = { ok: false, id: '' };
   if (verified) {   // 送信者への確認メールは、送信者が実在の人であることが確認できたときだけ（未確認の宛先へ自動返信しない）
     confirmation = await gmailSend(deps, token, buildMime(confirmationMessage(env, fields, meta)));
     if (!confirmation.ok) log({ event: 'contact', ok: true, confirmation: false, status: confirmation.status, detail: confirmation.detail, ray: meta.ray });
   }
-  log({ event: 'contact', ok: true, verified, codes, client: meta.client, confirmation: confirmation.ok, type: fields.type, country: meta.country, ray: meta.ray, ms: deps.now() - started });
+  // gmail_copy / gmail_confirmation = Gmail が受理して「送信済み」に保存したメッセージ ID（送達の一次証拠）
+  log({ event: 'contact', ok: true, verified, codes, client: meta.client, honeypot, confirmation: confirmation.ok, gmail_copy: copy.id, gmail_confirmation: confirmation.id || '', type: fields.type, country: meta.country, ray: meta.ray, ms: deps.now() - started });
   return json({ ok: true, verified, confirmation: confirmation.ok });
 }
 
@@ -107,7 +117,7 @@ export function validate(data) {
   // 診断情報（フォーム側の Turnstile 状態）と dry_run は任意。型が違っても拒否せず無視する
   const c = data.client && typeof data.client === 'object' && typeof data.client.turnstile === 'string' ? data.client.turnstile : '';
   fields.client = c.replace(/[^\x20-\x7e]/g, '').slice(0, LIMITS.client);
-  fields.dry_run = data.dry_run === true;
+  fields.dry_run = data.dry_run === true ? 'verify' : (data.dry_run === 'token' ? 'token' : '');   // verify = 照合まで / token = Google のトークン取得まで（送信しない）
   return { fields, errors };
 }
 
@@ -194,9 +204,10 @@ async function gmailSend(deps, token, mime) {
 
 /* ---------- メール本文 ---------- */
 
-function copyMessage(env, f, meta, verified, codes) {
+function copyMessage(env, f, meta, verified, codes, honeypot) {
   const text = [
     verified ? '[REYZ お問い合わせ]' : '[REYZ お問い合わせ]（未検証: ボット対策の照合なし。差出人アドレスは未確認のため、返信前に内容を確認してください）',
+    honeypot ? '（注: 隠しフィールドに値が入っていました。ブラウザの自動入力の可能性が高いですが、内容を確認してください）' : null,
     `受付: ${meta.at}`,
     `ご用件: ${f.type}`,
     `お名前: ${f.name}`,
@@ -283,7 +294,8 @@ export const b64url = bytes => b64(bytes).replace(/\+/g, '-').replace(/\//g, '_'
 export function shortCode(s) {
   const t = String(s || '');
   const m = /"error"\s*:\s*"([A-Za-z_]+)"/.exec(t) || /"status"\s*:\s*"([A-Z_]+)"/.exec(t) || /"message"\s*:\s*"([^"]{1,80})"/.exec(t);
-  return m ? m[1].slice(0, 80) : '';
+  if (m) return m[1].slice(0, 80);
+  return t.replace(/[{}"\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);   // JSON でない失敗（鍵の形式不備など）は先頭だけ
 }
 
 function baseHeaders(extra = {}) {
