@@ -26,12 +26,12 @@ REYZ は、AI オーケストレーション／AI エージェント開発の中
 | 領域 | 最先端の実務（出典） | REYZ の実装 | 判定 | 是正計画 |
 |---|---|---|---|---|
 | 変更管理 | 版管理・PR・自動テスト・小さなバッチ・配備前検証（DORA、Continuous Delivery） | GitHub ＋ PR ＋ CI（単体・全検証・CI 内フルスタック e2e）＋ Actions 配備 | PASS | — |
-| 変更の承認 | 必須チェック・ブランチ保護・複数人レビュー | 必須チェック設定は作業中（PR #15 後）。レビュアーは 1 名 | GAP | ブランチ保護（ロウ）。2 人目の承認者は組織拡大時 |
-| 最小権限 | 鍵は必要な 1 箱だけに届く | Cloudflare トークンはゾーン限定。**Google はドメイン全体の委任＝過大** | GAP | ADR-0002: 送信主体 `no-reply@` 実ユーザー ＋ OAuth 同意へ |
+| 変更の承認 | 必須チェック・ブランチ保護・複数人レビュー | ルールセット `main`（PR 必須、必須チェック 4 件、削除・強制 push 禁止、バイパスなし。2026-09-29）。レビュアーは 1 名 | PASS（複数人レビューは組織拡大時） | — |
+| 最小権限 | 鍵は必要な 1 箱だけに届く | Cloudflare トークンはゾーン限定。Google は OAuth（送信専用ユーザーの同意、送信のみ）へ移行中。移行完了まで委任も残る | GAP（是正中） | ADR-0007（コードは対応済み。ロウの移行手順 → 委任と SA 鍵の削除で PASS） |
 | 秘密の扱い | 秘密はリポジトリ・チャット・ログに出さない。ローテーション | GitHub Secrets → Worker secret。90 日警告 | PASS | — |
 | ボット対策 | 多層（OWASP Automated Threats）、代替手段（WCAG 2.2） | Turnstile fail-open ＋ レート制限 ＋ honeypot ＋ ヒューリスティック ＋ メール代替経路 | PASS | — |
 | メール認証 | SPF / DKIM / DMARC p=reject（Google・Yahoo 送信者要件、RFC 7489） | 済 | PASS | — |
-| 送信主体の分離 | システムのメールは人のアカウントから出さない | CEO のアカウントから送信 | GAP | ADR-0002 |
+| 送信主体の分離 | システムのメールは人のアカウントから出さない | `no-reply@` 実ユーザーへ移行中 | GAP（是正中） | ADR-0007 |
 | 受信の保護 | MTA-STS ＋ TLS-RPT（RFC 8461 / 8460） | 未 | GAP | 設計 v2 段階 2 |
 | 到達性の監視 | Postmaster Tools、DMARC 集計の解析 | dmarc@ 受け口のみ | GAP | 設計 v2 段階 2 |
 | 役割アドレス | RFC 2142（noc / hostmaster / security / abuse / postmaster）、RFC 9116（security.txt） | contact / hostmaster / dmarc / noc は済。security@・security.txt は未 | GAP | 設計 v2 段階 2 |

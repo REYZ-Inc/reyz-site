@@ -1,13 +1,13 @@
 /* REYZ Inc. — 問い合わせフォーム受付 Worker（https://reyz.inc/api/contact）
    受付 → 検証 → honeypot → レート制限 → Turnstile（ボット対策）→ Gmail API で ① contact@ へ控え ② 送信者へ受付確認。
-   送信は Google Workspace のサービスアカウント（ドメイン全体の委任、scope gmail.send）で行う。
+   送信は Google Workspace の送信専用ユーザー（no-reply@）の OAuth（scope gmail.send）で行う。移行期間のみサービスアカウント（ドメイン全体の委任）も可。
 
    多層防御（送信者の環境に依存しない）:
    - Turnstile が読めない環境（拡張機能・企業ネットワーク等）や照合失敗でも、UNVERIFIED_POLICY=accept-flagged なら
      「未検証」として受け付ける（控えの件名に [未検証]、送信者への確認メールは送らない＝なりすまし宛先への自動返信を避ける）。
    - 全経路にレート制限（CONTACT_RL binding、同一 IP）、honeypot、内容の簡易ヒューリスティック。
    - dry_run=true は照合まで、dry_run="token" は Google のトークン取得までを行い、どちらも送信しない（通し確認用）。
-   依存ライブラリなし（WebCrypto + fetch）。秘密は Worker の secret（GMAIL_SA_KEY / GMAIL_SENDER_USER / TURNSTILE_SECRET_KEY）。 */
+   依存ライブラリなし（WebCrypto + fetch）。秘密は Worker の secret（GMAIL_OAUTH_CLIENT_ID / GMAIL_OAUTH_CLIENT_SECRET / GMAIL_OAUTH_REFRESH_TOKEN / TURNSTILE_SECRET_KEY。移行期間は GMAIL_SA_KEY / GMAIL_SENDER_USER）。 */
 
 const PATH = '/api/contact';
 const SCOPE = 'https://www.googleapis.com/auth/gmail.send';
@@ -16,7 +16,7 @@ const GMAIL_SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/
 const TURNSTILE_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const LIMITS = { name: 100, person: 100, email: 254, type: 100, message: 5000, turnstile: 2048, website: 200, client: 120, body: 32 * 1024 };
 const EMAIL_RE = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
-const REQUIRED_ENV = ['GMAIL_SA_KEY', 'GMAIL_SENDER_USER', 'TURNSTILE_SECRET_KEY', 'MAIL_TO', 'MAIL_FROM'];
+const REQUIRED_ENV = ['TURNSTILE_SECRET_KEY', 'MAIL_TO', 'MAIL_FROM'];   // 送信の認証は authMode() で判定（oauth または service-account）
 
 export default {
   async fetch(request, env) {
@@ -38,6 +38,7 @@ export async function handle(request, env, deps) {
   if (!origins.includes(origin)) return json({ ok: false, error: 'origin' }, 403);
 
   const missing = REQUIRED_ENV.filter(k => !env[k]);
+  if (!authMode(env)) missing.push('GMAIL_OAUTH_* or GMAIL_SA_KEY+GMAIL_SENDER_USER');
   if (missing.length) { log({ event: 'contact', ok: false, error: 'not_configured', missing }); return json({ ok: false, error: 'not_configured' }, 503); }
 
   const ct = (request.headers.get('Content-Type') || '').toLowerCase();
@@ -88,7 +89,7 @@ export async function handle(request, env, deps) {
     if (!confirmation.ok) log({ event: 'contact', ok: true, confirmation: false, status: confirmation.status, detail: confirmation.detail, ray: meta.ray });
   }
   // gmail_copy / gmail_confirmation = Gmail が受理して「送信済み」に保存したメッセージ ID（送達の一次証拠）
-  log({ event: 'contact', ok: true, verified, codes, client: meta.client, honeypot, confirmation: confirmation.ok, gmail_copy: copy.id, gmail_confirmation: confirmation.id || '', type: fields.type, country: meta.country, ray: meta.ray, ms: deps.now() - started });
+  log({ event: 'contact', ok: true, verified, codes, client: meta.client, honeypot, confirmation: confirmation.ok, gmail_copy: copy.id, gmail_confirmation: confirmation.id || '', auth: authMode(env), type: fields.type, country: meta.country, ray: meta.ray, ms: deps.now() - started });
   return json({ ok: true, verified, confirmation: confirmation.ok });
 }
 
@@ -157,19 +158,37 @@ async function verifyTurnstile(deps, secret, token, ip, hosts) {
   return { ok: true };
 }
 
-/* ---------- Google: サービスアカウント → アクセストークン（ドメイン全体の委任で GMAIL_SENDER_USER になりすます） ---------- */
+/* ---------- Google: アクセストークン（送信の認証 adapter） ----------
+   oauth（既定・推奨）: 送信専用ユーザー（no-reply@）本人の OAuth 同意で得たリフレッシュトークン → アクセストークン。
+                       鍵が漏れても影響は「そのユーザーの送信」だけ（ADR-0007）。
+   service-account   : サービスアカウント JWT ＋ ドメイン全体の委任で GMAIL_SENDER_USER になりすます（移行期間のみ。委任は全ユーザーに及ぶ）。
+   両方ある場合は oauth を使う。 */
+
+export function authMode(env) {
+  if (env.GMAIL_OAUTH_CLIENT_ID && env.GMAIL_OAUTH_CLIENT_SECRET && env.GMAIL_OAUTH_REFRESH_TOKEN) return 'oauth';
+  if (env.GMAIL_SA_KEY && env.GMAIL_SENDER_USER) return 'service-account';
+  return null;
+}
 
 let tokenCache = { key: '', token: '', expMs: 0 };
 export function resetTokenCache() { tokenCache = { key: '', token: '', expMs: 0 }; }
 
-async function accessToken(deps, env) {
-  const sa = JSON.parse(env.GMAIL_SA_KEY);
-  if (!sa.client_email || !sa.private_key) throw new Error('GMAIL_SA_KEY: client_email / private_key がない');
-  const key = sa.client_email + '|' + env.GMAIL_SENDER_USER;
+export async function accessToken(deps, env) {
+  const mode = authMode(env);
+  if (!mode) throw new Error('送信の認証情報がない（GMAIL_OAUTH_* または GMAIL_SA_KEY + GMAIL_SENDER_USER）');
   const now = deps.now();
+  let key, body;
+  if (mode === 'oauth') {
+    key = 'oauth|' + env.GMAIL_OAUTH_CLIENT_ID;
+    body = { grant_type: 'refresh_token', client_id: env.GMAIL_OAUTH_CLIENT_ID, client_secret: env.GMAIL_OAUTH_CLIENT_SECRET, refresh_token: env.GMAIL_OAUTH_REFRESH_TOKEN };
+  } else {
+    const sa = JSON.parse(env.GMAIL_SA_KEY);
+    if (!sa.client_email || !sa.private_key) throw new Error('GMAIL_SA_KEY: client_email / private_key がない');
+    key = 'sa|' + sa.client_email + '|' + env.GMAIL_SENDER_USER;
+  }
   if (tokenCache.key === key && tokenCache.token && now < tokenCache.expMs - 60_000) return tokenCache.token;
-  const assertion = await makeJwt(sa, env.GMAIL_SENDER_USER, now);
-  const res = await deps.fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }).toString() });
+  if (mode !== 'oauth') body = { grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: await makeJwt(JSON.parse(env.GMAIL_SA_KEY), env.GMAIL_SENDER_USER, now) };
+  const res = await deps.fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
   const j = await res.json().catch(() => ({}));
   if (!res.ok || !j.access_token) throw new Error(`token endpoint ${res.status}: ${JSON.stringify(j).slice(0, 300)}`);
   tokenCache = { key, token: j.access_token, expMs: now + (Number(j.expires_in) || 3600) * 1000 };
