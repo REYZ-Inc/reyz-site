@@ -1,3 +1,5 @@
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/REYZ-Inc/reyz-site/badge)](https://scorecard.dev/viewer/?uri=github.com/REYZ-Inc/reyz-site)
+
 # reyz-site
 
 株式会社レイズ（REYZ Inc.）コーポレートサイト — https://reyz.inc
@@ -22,7 +24,8 @@
 | `workers/contact/` | 問い合わせフォームの受付 Worker（`reyz.inc/api/contact`。Turnstile → Gmail API で控え＋確認メール）。実装と手順は [workers/contact/README.md](workers/contact/README.md) |
 | `.github/workflows/contact-worker.yml` | PR: 単体テスト ＋ CI 内フルスタック e2e（本物の Turnstile を公式テストキーで）。main: Cloudflare Workers へ配備 |
 | `.github/workflows/contact-e2e.yml` / `contact-watch.yml` / `contact-logs.yml` | 本番の通し確認（配備後に自動）／毎日の集計と異常通知（noc@）／記録の一覧（手動） |
-| `site/oauth/callback.html` / `infra/oauth/` / `.github/workflows/oauth-consent.yml` | 送信専用ユーザーの OAuth 同意の自動化（受け取りページ → 同意コードを 1 回貼る → 口座検証・Secret 更新・配備・失効・記録を workflow が行う。ADR-0008） |
+| `site/oauth/callback.html` / `infra/oauth/` / `.github/workflows/oauth-consent.yml` | 送信専用ユーザーの OAuth 同意の自動化（受け取りページ → 同意コードを 1 回貼る → 口座検証・Secret 更新・配備・失効・記録を workflow が行う。PKCE。ADR-0008） |
+| `.github/workflows/turnstile-rotate.yml` / `scorecard.yml` / `dependabot.yml` / `infra/ops/` | Turnstile 秘密キーの無人回転／OpenSSF Scorecard の常設／依存とアクションの自動更新（アクションは SHA 固定）／運用 workflow の共通スクリプト |
 
 ## 更新の流れ
 1. 設計・判断が要る変更は、先に `docs/`（設計書・ADR）を書く（[docs/STANDARDS.md](docs/STANDARDS.md)）

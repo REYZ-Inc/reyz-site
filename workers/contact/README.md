@@ -57,14 +57,16 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 | `ci/make_ci_config.py` | CI 用 wrangler 設定を本番 `wrangler.toml` から生成（差分 5 点のみ。生成物はコミットしない） |
 | `../../qa/e2e_contact.js` | 通し確認。`--mode ci`（CI 内フルスタック、公式テストキー、4 ケース）／`--mode prod`（公開サイト） |
 | `../../.github/workflows/contact-worker.yml` | PR: `worker-tests` ＋ `stack-e2e`。main: 配備 → Worker secret を GitHub Secrets と宣言的に同期（管理対象外は削除）→ 疎通 |
-| `../../.github/workflows/contact-e2e.yml` | 配備後の本番通し確認。失敗は noc@ へ通知 |
+| `../../.github/workflows/contact-e2e.yml` | 配備後と毎日 09:07 JST の本番通し確認（`dry_run='token'`＝Google のトークン取得まで。同意の失効を送信前に検知）。失敗は noc@ へ通知 |
 | `../../.github/workflows/contact-watch.yml` | 毎日の集計。異常（エラー応答・未検証の急増）だけ noc@ へ通知。同意の失効はエラー応答 `send/token` として現れる |
 | `../../infra/check/notify_noc.mjs` | 通知メール送信（Worker と同じ送信経路・同じコード） |
 | `../../infra/check/contact_logs.py` + `../../.github/workflows/contact-logs.yml` | Worker の記録（結果・検証状態・Gmail 受理 ID・認証方式 `auth`）を Workers Logs API から一覧にする。手動起動、読み取りのみ |
 | `../../site/assets/site.js` | `CONFIG.formEndpoint='/api/contact'`、`CONFIG.turnstileSiteKey` で有効化（確認ページに Turnstile を描画） |
 | `../../site/oauth/callback.html` | 同意の受け取りページ（同意リンクの組み立てと同意コードの表示だけ。秘密なし、noindex、サイト導線から未リンク） |
 | `../../infra/oauth/consent.mjs` + `test/` | 同意コードの交換、ID トークンによる口座の検証（不一致なら失効して失敗）、古いトークンの失効 |
-| `../../.github/workflows/oauth-consent.yml` | 同意コードを 1 回貼ると、検証 → Secret 更新 → 配備 → 失効 → 記録まで行う（GitHub App の権限） |
+| `../../.github/workflows/oauth-consent.yml` | 同意コード（`コード~verifier`、PKCE）を 1 回貼ると、検証 → Secret 更新 → 配備 → 失効 → 記録まで行う（GitHub App の権限） |
+| `../../.github/workflows/turnstile-rotate.yml` | Turnstile 秘密キーの回転を無人で行う（Cloudflare API → Secret → 配備 → 記録） |
+| `../../infra/ops/deploy_wait.sh` / `record.sh` | 運用 workflow 共通: 配備の起動と完了待ち／運用記録 issue へのコメント |
 
 ## 前提（1 回だけ。値はリポジトリに書かない）
 
@@ -74,7 +76,8 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 | GitHub → Secrets | `GMAIL_OAUTH_REFRESH_TOKEN` | 送信専用ユーザー `no-reply@reyz.inc` **本人**が同意して得たリフレッシュトークン（scope gmail.send）。人は貼らない: `oauth-consent` workflow が検証して登録する | 下の「設定手順」7〜8 |
 | GitHub → Secrets / Variables | `OPS_APP_PRIVATE_KEY` / `OPS_APP_ID` | 運用 workflow の主体となる GitHub App「REYZ Ops」の秘密鍵と App ID（Secret 更新・配備起動・記録に使う。ADR-0008） | 下の「GitHub App（1 回）」 |
 | GitHub → Variables | `MAIL_SENDER_USER` | 送信専用ユーザーのアドレス `no-reply@reyz.inc`（同意した口座の検証に使う） | — |
-| GitHub → Secrets | `TURNSTILE_SECRET_KEY` | Turnstile ウィジェットの Secret Key | Cloudflare → Turnstile → ウィジェット（hostname: reyz.inc, www.reyz.inc） |
+| GitHub → Secrets | `TURNSTILE_SECRET_KEY` | Turnstile ウィジェットの Secret Key。初回は作成画面で登録、以後の回転は `turnstile-rotate` workflow が API で行い人は値を見ない | Cloudflare → Turnstile → ウィジェット（hostname: reyz.inc, www.reyz.inc） |
+| GitHub → Secrets | `CLOUDFLARE_TURNSTILE_TOKEN` | Turnstile の回転用トークン（アカウント単位、権限は **Turnstile: 編集** のみ） | Cloudflare → プロフィール → API トークン → カスタム トークン |
 | GitHub → Secrets | `CLOUDFLARE_WORKERS_TOKEN` | Workers 配備用トークン（テンプレート「Cloudflare Workers を編集する」、Zone を reyz.inc に限定） | Cloudflare → プロフィール → API トークン |
 | GitHub → Variables | `CLOUDFLARE_ACCOUNT_ID` | （DNS と共通。設定済み） | — |
 | GitHub → Variables | `NOC_EMAIL` | 異常通知の宛先（`noc@reyz.inc`。RFC 2142 の役割アドレス） | 管理コンソールでエイリアス作成 |
@@ -95,7 +98,7 @@ GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のた�
 | 4 | 同プロジェクト → API とサービス → ライブラリ | **Gmail API** を有効化 |
 | 5 | 同 → Google Auth Platform → ブランディング／対象／データアクセス | 対象 **内部**、アプリ名 `REYZ Mail Sender`、サポートメールは Workspace のユーザーかグループ、**データアクセス**でスコープ `https://www.googleapis.com/auth/gmail.send` を追加 → 保存 |
 | 6 | 同 → クライアント → クライアントを作成 | 種類 **ウェブ アプリケーション**、名前 `reyz-mail-sender`、「承認済みのリダイレクト URI」（JavaScript 生成元ではない）に **`https://reyz.inc/oauth/callback.html`** → 作成 → **この画面で** クライアント ID を GitHub Secret `GMAIL_OAUTH_CLIENT_ID`、クライアント シークレットを `GMAIL_OAUTH_CLIENT_SECRET` に登録（閉じると末尾 4 文字しか見えない。見失ったら「シークレットを追加」で新しいものを作り、古いものは無効化 → 削除）。クライアント ID は `site/oauth/callback.html` の `CONFIG.clientId` にも書く（公開値） |
-| 7 | https://reyz.inc/oauth/callback.html | **「同意を開始する」** → Google のログインは `no-reply@reyz.inc`（リンクが口座を指定している。他の口座で許可しても 8 で拒否される）→ 許可 → ページに戻ると **同意コード**が表示される → 「コードをコピー」 |
+| 7 | https://reyz.inc/oauth/callback.html | **「同意を開始する」** → Google のログインは `no-reply@reyz.inc`（リンクが口座を指定している。他の口座で許可しても 8 で拒否される）→ 許可 → ページに戻ると **同意コード**（`コード~verifier`。PKCE の verifier を含む 1 つの文字列）が表示される → 「コードをコピー」。同意を始めたのと同じブラウザで受け取る（verifier はそのブラウザにしかない） |
 | 8 | GitHub → Actions → **oauth-consent** → Run workflow | `code` に貼って実行。workflow が: 交換 → 同意した口座が no-reply@ か検証（違えば失効して失敗） → Secret `GMAIL_OAUTH_REFRESH_TOKEN` 更新 → `contact-worker` を起動して配備完了を待つ → 古いトークンを失効 → issue「運用記録 — 認証情報」にコメント。結果は run の Summary |
 | 9 | 実送信テスト | フォームから 1 件送る → 控え（contact@ 宛）と確認メールの **両方が `REYZ Inc. <no-reply@reyz.inc>` から届き、受信トレイに入る**ことを確認。`contact-logs` の記録は `verified=True confirmation=True auth=oauth` と Gmail 受理 ID 2 件 |
 
@@ -122,7 +125,17 @@ GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のた�
 |---|---|
 | リフレッシュトークン（失効: 取り消し・no-reply@ のパスワード変更・6 か月未使用。症状: 502 `send/token` `invalid_grant`、`contact-watch` が通知） | 上の 7 → 8（→ 9 で確認）。古いトークンは workflow が失効させる |
 | クライアント シークレット（漏えい時） | GCP → クライアント → 「シークレットを追加」→ 新しい値を GitHub Secret `GMAIL_OAUTH_CLIENT_SECRET` に上書き → 7 → 8（リフレッシュトークンは新しいシークレットでも有効だが、漏えい時は一緒に取り直す）→ 古いシークレットを無効化 → 削除 |
-| Turnstile 秘密キー | Cloudflare → Turnstile → ウィジェット → ローテーション → Secret 更新 → 9 |
+| Turnstile 秘密キー | **無人**: `turnstile-rotate` workflow（四半期ごとに自動。漏えい時は Run workflow）が Cloudflare API で回転 → Secret 更新 → 配備 → 記録。旧キーは Cloudflare の猶予期間（約 2 時間）のあと無効。前提は下の「Turnstile 秘密キーの回転」 |
+
+### Turnstile 秘密キーの回転（1 回の準備。Owner 権限。ロウ）
+
+1. Cloudflare → 右上プロフィール → **API トークン** → **トークンを作成** → **カスタム トークン**: 名前 `reyz-turnstile-rotate`、権限 **アカウント | Turnstile | 編集** だけ、アカウント リソース = REYZ のアカウント → 作成
+2. 表示されたトークンを GitHub Secret `CLOUDFLARE_TURNSTILE_TOKEN` に登録（画面のスクリーンショットは送らない）
+3. 以後は `turnstile-rotate` が四半期ごと（1・4・7・10 月 1 日 10:17 JST）に自動で回転する。漏えい時は Actions → `turnstile-rotate` → Run workflow
+
+### 失敗した main の run を再開する
+
+main の `contact-worker` が失敗したとき、修正が起動条件（`workers/contact/**`、`infra/oauth/**`、`qa/e2e_contact.js`、workflow 自体）に当たらないファイルだけなら配備は再開しない。その場合は Actions → 失敗した run → **Re-run failed jobs**（または `contact-worker` の Run workflow）。
 
 ### 旧方式（サービスアカウント＋ドメイン全体の委任）の後片付け — 2026-09-30
 

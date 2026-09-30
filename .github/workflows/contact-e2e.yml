@@ -1,7 +1,9 @@
-# 本番（公開サイト）の問い合わせフォームを、拡張機能のない Chromium から通しで確認する（メールは送らない: Worker の dry_run）。
-# Worker またはサイトの配備が終わるたびに自動で走る。手動起動も可。失敗したら noc@ へメール通知。設計: docs/contact-pipeline.md
+# 本番（公開サイト）の問い合わせフォームを、拡張機能のない Chromium から通しで確認する（メールは送らない: Worker の dry_run='token'＝Google のトークン取得まで）。
+# Worker またはサイトの配備が終わるたび、および毎日 09:07 JST に走る。手動起動も可。失敗（同意の失効を含む）は noc@ へメール通知。設計: docs/contact-pipeline.md
 name: contact-e2e
 on:
+  schedule:
+    - cron: "7 0 * * *"   # 毎日 09:07 JST（本番の同意の生存を dry_run='token' で事前検知。失敗は noc@ へ）
   workflow_dispatch:
     inputs:
       url:
@@ -16,12 +18,12 @@ permissions:
   contents: read
 jobs:
   e2e:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -46,5 +48,5 @@ jobs:
           node infra/check/notify_noc.mjs --subject "[REYZ noc] contact-e2e FAIL" --body-file /tmp/body.txt
       - name: keep screenshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with: { name: contact-e2e, path: qa/out/e2e_contact_prod_*.png, retention-days: 7, if-no-files-found: ignore }

@@ -1,0 +1,106 @@
+# Turnstile 秘密キーの回転を無人で行う（docs/site-factory.md 段階 0、ADR-0009）。人は秘密を見ない。
+#   Cloudflare API rotate_secret（旧キーは猶予期間のあと無効）→ 新しい秘密を GitHub Secret TURNSTILE_SECRET_KEY へ（App 権限）
+#   → contact-worker を起動して配備完了を待つ → 運用記録の issue にコメント → Summary
+# 前提（1 回）: secrets.CLOUDFLARE_TURNSTILE_TOKEN（アカウント単位、権限は Turnstile: 編集 のみ）、GitHub App（vars.OPS_APP_ID / secrets.OPS_APP_PRIVATE_KEY）
+# サイトキーは公開値で、site/assets/site.js の CONFIG.turnstileSiteKey を正本として読む。
+name: turnstile-rotate
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 1 1 */3 *"   # 四半期ごと（1・4・7・10 月 1 日 10:17 JST）
+permissions:
+  contents: read
+concurrency:
+  group: turnstile-rotate
+  cancel-in-progress: false
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: 前提の確認
+        env:
+          HAS_CF: ${{ secrets.CLOUDFLARE_TURNSTILE_TOKEN != '' }}
+          OPS_APP_ID: ${{ vars.OPS_APP_ID }}
+          HAS_KEY: ${{ secrets.OPS_APP_PRIVATE_KEY != '' }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=""
+          [ "$HAS_CF" = "true" ] || missing="$missing secrets.CLOUDFLARE_TURNSTILE_TOKEN"
+          [ -n "$OPS_APP_ID" ] || missing="$missing vars.OPS_APP_ID"
+          [ "$HAS_KEY" = "true" ] || missing="$missing secrets.OPS_APP_PRIVATE_KEY"
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing="$missing vars.CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$missing" ]; then echo "::error title=turnstile-rotate::未設定:$missing（workers/contact/README.md「Turnstile 秘密キーの回転」）"; exit 1; fi
+      - name: GitHub App のトークンを取得
+        id: app
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ vars.OPS_APP_ID }}
+          private-key: ${{ secrets.OPS_APP_PRIVATE_KEY }}
+      - name: サイトキーを site.js から読む（公開値）
+        id: sitekey
+        run: |
+          key=$(grep -oE "turnstileSiteKey:\s*'[^']+'" site/assets/site.js | sed -E "s/.*'([^']+)'/\1/")
+          [ -n "$key" ] || { echo "::error title=turnstile-rotate::site/assets/site.js に turnstileSiteKey がありません"; exit 1; }
+          echo "sitekey=$key" >> "$GITHUB_OUTPUT"; echo "sitekey: $key"
+      - name: Cloudflare API で秘密キーを回転（旧キーは猶予期間のあと無効。応答の秘密は一時ファイルへ、表示しない）
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_TURNSTILE_TOKEN }}
+          CF_ACCOUNT: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          SITEKEY: ${{ steps.sitekey.outputs.sitekey }}
+        run: |
+          umask 077
+          code=$(curl -sS -o /tmp/rotate.json -w '%{http_code}' -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/challenges/widgets/$SITEKEY/rotate_secret" \
+            -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+            --data '{"invalidate_immediately": false}')
+          ok=$(python3 -c "import json;d=json.load(open('/tmp/rotate.json'));print('1' if d.get('success') and d.get('result',{}).get('secret') else '0')" 2>/dev/null || echo 0)
+          if [ "$code" != "200" ] || [ "$ok" != "1" ]; then
+            python3 -c "import json;d=json.load(open('/tmp/rotate.json'));print('errors:', json.dumps(d.get('errors'), ensure_ascii=False))" 2>/dev/null || true
+            rm -f /tmp/rotate.json; echo "::error title=turnstile-rotate::rotate_secret が失敗（HTTP $code）"; exit 1
+          fi
+          python3 -c "import json;print(json.load(open('/tmp/rotate.json'))['result']['secret'], end='')" > /tmp/new.secret
+          python3 -c "import json;d=json.load(open('/tmp/rotate.json'))['result'];print('rotated:', d.get('name'), 'domains:', d.get('domains'), 'modified:', d.get('modified_on'))"
+          rm -f /tmp/rotate.json
+      - name: GitHub Secret TURNSTILE_SECRET_KEY を更新
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          gh secret set TURNSTILE_SECRET_KEY --repo "$REPO" < /tmp/new.secret
+          echo "secret updated: TURNSTILE_SECRET_KEY"
+      - name: contact-worker を起動して配備完了を待つ（Worker secret が同期される）
+        id: deploy
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: bash infra/ops/deploy_wait.sh
+      - name: 後始末
+        if: always()
+        run: shred -u /tmp/new.secret 2>/dev/null || rm -f /tmp/new.secret /tmp/rotate.json
+      - name: 運用記録（issue「運用記録 — 認証情報」にコメント）
+        if: always()
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          RESULT: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          DEPLOY_RUN: ${{ steps.deploy.outputs.run_id }}
+          ACTOR: ${{ github.actor }}
+          EVENT: ${{ github.event_name }}
+          TITLE: 運用記録 — 認証情報（送信専用ユーザーの OAuth）
+        run: |
+          [ -n "$GH_TOKEN" ] || { echo "App トークンなし。記録は run の Summary のみ"; exit 0; }
+          BODY="$(date -u '+%Y-%m-%d %H:%M UTC') / Turnstile 秘密キーの回転 / 結果: **${RESULT}** / 起動: ${EVENT} @${ACTOR} / run: ${RUN_URL} / 配備 run: ${DEPLOY_RUN:--}" bash infra/ops/record.sh
+      - name: Summary
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+          DEPLOY_RUN: ${{ steps.deploy.outputs.run_id }}
+        run: |
+          {
+            echo "## turnstile-rotate: ${RESULT}"
+            echo
+            echo "- 旧キーは Cloudflare の猶予期間のあと無効（invalidate_immediately=false）"
+            echo "- 配備（contact-worker）: ${DEPLOY_RUN:+run $DEPLOY_RUN}${DEPLOY_RUN:-未起動}"
+          } >> "$GITHUB_STEP_SUMMARY"

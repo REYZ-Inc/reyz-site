@@ -1,7 +1,8 @@
 // ネットワーク不要の自己テスト（node --test infra/oauth/test）。Google の token / revoke endpoint は fetch の差し替えで再現する。
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { authUrl, decodeIdToken, verifyIdentity, exchange, revoke, TOKEN_URL, REVOKE_URL, SCOPES } from '../consent.mjs';
+import { authUrl, decodeIdToken, verifyIdentity, exchange, revoke, pkcePair, splitCode, TOKEN_URL, REVOKE_URL, SCOPES } from '../consent.mjs';
+import { createHash } from 'node:crypto';
 
 const b64url = s => Buffer.from(s).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const idToken = (claims) => `${b64url('{"alg":"RS256","kid":"x"}')}.${b64url(JSON.stringify(claims))}.sig`;
@@ -31,6 +32,14 @@ test('authUrl: 送信専用ユーザーを固定（login_hint / hd）、オフ�
   assert.equal(q.get('response_type'), 'code'); assert.equal(q.get('access_type'), 'offline'); assert.equal(q.get('prompt'), 'consent');
   assert.equal(q.get('login_hint'), SENDER); assert.equal(q.get('hd'), 'reyz.inc'); assert.equal(q.get('state'), 'abc');
   assert.deepEqual(q.get('scope').split(' '), SCOPES);
+  assert.equal(q.get('code_challenge'), null);   // challenge を渡さなければ PKCE パラメータは付かない
+  const pk = pkcePair('v'.repeat(43));
+  const u2 = new URL(authUrl({ clientId: CLIENT, sender: SENDER, challenge: pk.challenge }));
+  assert.equal(u2.searchParams.get('code_challenge_method'), 'S256');
+  assert.equal(u2.searchParams.get('code_challenge'), Buffer.from(createHash('sha256').update('v'.repeat(43)).digest()).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''));
+  const gen = pkcePair(); assert.match(gen.verifier, /^[A-Za-z0-9_-]{43}$/); assert.match(gen.challenge, /^[A-Za-z0-9_-]{43}$/);
+  assert.deepEqual(splitCode(' 4/0Acode~ver123 '), { code: '4/0Acode', verifier: 'ver123' });
+  assert.deepEqual(splitCode('4/0Acode'), { code: '4/0Acode', verifier: '' });
 });
 
 test('verifyIdentity: 本人なら ok、別の口座・別クライアント・未検証メール・偽 iss は拒否', () => {
@@ -47,12 +56,16 @@ test('verifyIdentity: 本人なら ok、別の口座・別クライアント・�
 
 test('exchange: 本人の同意 → refresh token を返し、失効は呼ばない。token endpoint には code / client / redirect_uri を正しく送る', async () => {
   const f = fakeFetch({ token: okToken() });
-  const r = await exchange(deps(f), { code: ' 4/0Acode ', clientId: CLIENT, clientSecret: 'sec', sender: SENDER });
+  const r = await exchange(deps(f), { code: ' 4/0Acode~verifierXYZ ', clientId: CLIENT, clientSecret: 'sec', sender: SENDER });
   assert.equal(r.ok, true); assert.equal(r.email, SENDER); assert.equal(r.hd, 'reyz.inc'); assert.equal(r.refreshToken, 'rt-new'); assert.equal(r.expires_in, 3599);
   assert.deepEqual(f.calls.map(c => c.url), [TOKEN_URL]);
   const b = f.calls[0].body;
-  assert.equal(b.get('code'), '4/0Acode'); assert.equal(b.get('grant_type'), 'authorization_code'); assert.equal(b.get('client_id'), CLIENT);
+  assert.equal(b.get('code'), '4/0Acode'); assert.equal(b.get('code_verifier'), 'verifierXYZ'); assert.equal(b.get('grant_type'), 'authorization_code'); assert.equal(b.get('client_id'), CLIENT);
   assert.equal(b.get('client_secret'), 'sec'); assert.equal(b.get('redirect_uri'), 'https://reyz.inc/oauth/callback.html');
+  // 旧形式（verifier なし）は code_verifier を送らない
+  const f2 = fakeFetch({ token: okToken() });
+  await exchange(deps(f2), { code: '4/0Aplain', clientId: CLIENT, clientSecret: 'sec', sender: SENDER });
+  assert.equal(f2.calls[0].body.get('code_verifier'), null);
 });
 
 test('exchange: 別の口座（個人）で同意されたら、受け取ったトークンをその場で失効させて失敗', async () => {

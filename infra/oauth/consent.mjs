@@ -1,7 +1,7 @@
 // 送信専用ユーザー（no-reply@）の OAuth 同意を、人の転記なしで GitHub Secrets に反映するための処理（ADR-0008）。
 // GitHub Actions（.github/workflows/oauth-consent.yml）から使う。人がやるのは「同意画面で許可」と「コードを 1 回貼る」だけ。
 //
-//   node infra/oauth/consent.mjs exchange   同意コード → トークン。ID トークンで「誰が同意したか」を検証し、送信専用ユーザー本人でなければ
+//   node infra/oauth/consent.mjs exchange   同意コード（`code~verifier`。PKCE）→ トークン。ID トークンで「誰が同意したか」を検証し、送信専用ユーザー本人でなければ
 //                                          その場で新トークンを失効させて失敗（exit 3）。合格なら OUT_FILE にリフレッシュトークンを書く（値は表示しない）
 //   node infra/oauth/consent.mjs revoke     TOKEN_FILE のリフレッシュトークンを失効させる（古いトークンの後始末。失効済みなら成功扱い）
 //   node infra/oauth/consent.mjs auth-url   同意 URL を組み立てて表示（受け取りページと同じ規則。手元確認用）
@@ -9,6 +9,7 @@
 // 環境変数: GMAIL_OAUTH_CLIENT_ID, GMAIL_OAUTH_CLIENT_SECRET, MAIL_SENDER_USER（例 no-reply@reyz.inc）, OAUTH_REDIRECT_URI, CODE, OUT_FILE, TOKEN_FILE
 // 出力: 標準出力に JSON 1 行（email / hd / scope / expires_in など。トークンは含めない）。GitHub Actions では Summary にも書く。
 import { readFileSync, writeFileSync, appendFileSync, chmodSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
 
 export const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 export const REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
@@ -16,12 +17,26 @@ export const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/gmail.send'];   // openid+email = ID トークンで同意した口座を検証するため
 export const DEFAULT_REDIRECT = 'https://reyz.inc/oauth/callback.html';
 
+export const b64url = buf => Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+/** PKCE（RFC 7636 / RFC 9700 で機密クライアントにも RECOMMENDED）: verifier は 43〜128 文字の [A-Za-z0-9-._~]、challenge は S256。 */
+export function pkcePair(verifier = b64url(randomBytes(32))) {
+  return { verifier, challenge: b64url(createHash('sha256').update(verifier).digest()) };
+}
+/** 受け取りページが表示する「同意コード」は `<code>~<verifier>`（1 回貼るだけで PKCE が成立する）。旧形式（code だけ）も受け付ける。 */
+export function splitCode(input) {
+  const s = String(input || '').trim();
+  const i = s.indexOf('~');
+  if (i < 0) return { code: s, verifier: '' };
+  return { code: s.slice(0, i).trim(), verifier: s.slice(i + 1).trim() };
+}
+
 /** 同意 URL。受け取りページ（site/oauth/callback.html）が組み立てるものと同じ規則。 */
-export function authUrl({ clientId, sender, redirectUri = DEFAULT_REDIRECT, state = '' }) {
+export function authUrl({ clientId, sender, redirectUri = DEFAULT_REDIRECT, state = '', challenge = '' }) {
   const p = new URLSearchParams({
     client_id: clientId, redirect_uri: redirectUri, response_type: 'code', scope: SCOPES.join(' '),
     access_type: 'offline', prompt: 'consent', login_hint: sender, hd: sender.split('@')[1] || '',
   });
+  if (challenge) { p.set('code_challenge', challenge); p.set('code_challenge_method', 'S256'); }
   if (state) p.set('state', state);
   return AUTH_URL + '?' + p.toString();
 }
@@ -61,8 +76,11 @@ export async function revoke(deps, token) {
  * 返り値: { ok, email, hd, scope, expires_in, refreshToken? , reason? }。不一致のときは受け取ったリフレッシュトークンを失効させてから返す。
  */
 export async function exchange(deps, { code, clientId, clientSecret, sender, redirectUri = DEFAULT_REDIRECT }) {
-  if (!code || !clientId || !clientSecret || !sender) throw new Error('CODE / GMAIL_OAUTH_CLIENT_ID / GMAIL_OAUTH_CLIENT_SECRET / MAIL_SENDER_USER が必要');
-  const res = await deps.fetch(TOKEN_URL, form({ code: code.trim(), client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: 'authorization_code' }));
+  const { code: c, verifier } = splitCode(code);
+  if (!c || !clientId || !clientSecret || !sender) throw new Error('CODE / GMAIL_OAUTH_CLIENT_ID / GMAIL_OAUTH_CLIENT_SECRET / MAIL_SENDER_USER が必要');
+  const body = { code: c, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: 'authorization_code' };
+  if (verifier) body.code_verifier = verifier;   // PKCE。受け取りページ経由なら必ず付く
+  const res = await deps.fetch(TOKEN_URL, form(body));
   const j = await res.json().catch(() => ({}));
   if (!res.ok) return { ok: false, reason: `token endpoint ${res.status}: ${j.error || ''} ${j.error_description || ''}`.trim() };
   if (!j.refresh_token) return { ok: false, reason: 'refresh_token が返らなかった（prompt=consent と access_type=offline の同意 URL から始めること）' };
@@ -87,7 +105,9 @@ async function main() {
   const deps = { fetch: (...a) => fetch(...a), now: () => Date.now() };
   const redirectUri = env.OAUTH_REDIRECT_URI || DEFAULT_REDIRECT;
   if (cmd === 'auth-url') {
-    console.log(authUrl({ clientId: env.GMAIL_OAUTH_CLIENT_ID || '', sender: env.MAIL_SENDER_USER || '', redirectUri }));
+    const pk = pkcePair();
+    console.log(authUrl({ clientId: env.GMAIL_OAUTH_CLIENT_ID || '', sender: env.MAIL_SENDER_USER || '', redirectUri, challenge: pk.challenge }));
+    console.error('code_verifier（交換時に code~verifier の形で渡す）: ' + pk.verifier);
     return;
   }
   if (cmd === 'exchange') {
