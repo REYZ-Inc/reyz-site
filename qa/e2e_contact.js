@@ -59,7 +59,7 @@ const OUT = process.env.QA_OUT || 'qa/out';
       if (!last || last.status !== 200 || !last.body || last.body.ok !== true) fails.push(CASE + ': 最終応答が受付成功でない: ' + JSON.stringify(last));
       if (CASE === 'pass') {
         if (!(last && last.body && last.body.verified === true)) fails.push('pass: Turnstile 検証済みにならない: ' + JSON.stringify(last && last.body));
-        if (!(last && last.body && last.body.google_token === true)) fails.push('pass: Google の委任トークンが取れない: ' + JSON.stringify(last && last.body));
+        if (!(last && last.body && last.body.google_token === true)) fails.push('pass: Google のアクセストークンが取れない（no-reply@ の OAuth）: ' + JSON.stringify(last && last.body));
         if (!(last && last.token && last.client === 'ok')) fails.push('pass: フォームがトークンを添えていない: ' + JSON.stringify(last));
         if (out.done.note) fails.push('pass: 検証済みなのに「確認メールなし」の注記が出た');
       }

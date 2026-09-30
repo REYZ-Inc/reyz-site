@@ -1,8 +1,8 @@
 // 異常通知を運用窓口（NOC_EMAIL、既定 noc@reyz.inc）へメールで送る。GitHub Actions から使う。
-// 送信経路は問い合わせ Worker と同じ（送信専用ユーザー no-reply@ の OAuth → Gmail API。移行期間はサービスアカウントも可）。
+// 送信経路は問い合わせ Worker と同じ（送信専用ユーザー no-reply@ 本人の OAuth → Gmail API）。
 // Worker 本体の accessToken / buildMime をそのまま使うので、送信ロジックは 1 か所（workers/contact/src/index.js）だけ。
 // 使い方: node infra/check/notify_noc.mjs --subject "件名" --body-file report.txt [--to noc@reyz.inc]
-//   環境変数: GMAIL_OAUTH_CLIENT_ID / GMAIL_OAUTH_CLIENT_SECRET / GMAIL_OAUTH_REFRESH_TOKEN（または GMAIL_SA_KEY + GMAIL_SENDER_USER）, MAIL_FROM（既定 REYZ Inc. <no-reply@reyz.inc>）
+//   環境変数: GMAIL_OAUTH_CLIENT_ID / GMAIL_OAUTH_CLIENT_SECRET / GMAIL_OAUTH_REFRESH_TOKEN, MAIL_FROM（既定 REYZ Inc. <no-reply@reyz.inc>）
 // 送れなかった場合は exit 2（呼び出し側の workflow が失敗として見える）。本文に秘密を入れないこと。
 import { readFileSync } from 'node:fs';
 import { accessToken, authMode, buildMime, b64url } from '../../workers/contact/src/index.js';
@@ -12,7 +12,7 @@ const to = args.to || process.env.NOC_EMAIL || 'noc@reyz.inc';
 const subject = args.subject || '[REYZ noc] 通知';
 const body = args['body-file'] ? readFileSync(args['body-file'], 'utf8') : (args.body || '');
 const from = process.env.MAIL_FROM || 'REYZ Inc. <no-reply@reyz.inc>';
-if (!authMode(process.env)) { console.error('送信の認証情報がない（GMAIL_OAUTH_* または GMAIL_SA_KEY + GMAIL_SENDER_USER）'); process.exit(2); }
+if (!authMode(process.env)) { console.error('送信の認証情報がない（GMAIL_OAUTH_CLIENT_ID / GMAIL_OAUTH_CLIENT_SECRET / GMAIL_OAUTH_REFRESH_TOKEN）'); process.exit(2); }
 
 let token;
 try { token = await accessToken({ fetch: (...a) => fetch(...a), now: () => Date.now() }, process.env); }

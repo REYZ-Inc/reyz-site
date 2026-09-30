@@ -1,22 +1,22 @@
 /* REYZ Inc. — 問い合わせフォーム受付 Worker（https://reyz.inc/api/contact）
    受付 → 検証 → honeypot → レート制限 → Turnstile（ボット対策）→ Gmail API で ① contact@ へ控え ② 送信者へ受付確認。
-   送信は Google Workspace の送信専用ユーザー（no-reply@）の OAuth（scope gmail.send）で行う。移行期間のみサービスアカウント（ドメイン全体の委任）も可。
+   送信は Google Workspace の送信専用ユーザー（no-reply@）本人の OAuth 同意（scope gmail.send）で行う（ADR-0007）。
 
    多層防御（送信者の環境に依存しない）:
    - Turnstile が読めない環境（拡張機能・企業ネットワーク等）や照合失敗でも、UNVERIFIED_POLICY=accept-flagged なら
      「未検証」として受け付ける（控えの件名に [未検証]、送信者への確認メールは送らない＝なりすまし宛先への自動返信を避ける）。
    - 全経路にレート制限（CONTACT_RL binding、同一 IP）、honeypot、内容の簡易ヒューリスティック。
    - dry_run=true は照合まで、dry_run="token" は Google のトークン取得までを行い、どちらも送信しない（通し確認用）。
-   依存ライブラリなし（WebCrypto + fetch）。秘密は Worker の secret（GMAIL_OAUTH_CLIENT_ID / GMAIL_OAUTH_CLIENT_SECRET / GMAIL_OAUTH_REFRESH_TOKEN / TURNSTILE_SECRET_KEY。移行期間は GMAIL_SA_KEY / GMAIL_SENDER_USER）。 */
+   依存ライブラリなし（fetch のみ）。秘密は Worker の secret（GMAIL_OAUTH_CLIENT_ID / GMAIL_OAUTH_CLIENT_SECRET / GMAIL_OAUTH_REFRESH_TOKEN / TURNSTILE_SECRET_KEY）。
+   secret の正本は GitHub Secrets（.github/workflows/contact-worker.yml が配備のたびに宣言的に同期する）。 */
 
 const PATH = '/api/contact';
-const SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GMAIL_SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
 const TURNSTILE_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const LIMITS = { name: 100, person: 100, email: 254, type: 100, message: 5000, turnstile: 2048, website: 200, client: 120, body: 32 * 1024 };
 const EMAIL_RE = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
-const REQUIRED_ENV = ['TURNSTILE_SECRET_KEY', 'MAIL_TO', 'MAIL_FROM'];   // 送信の認証は authMode() で判定（oauth または service-account）
+const REQUIRED_ENV = ['TURNSTILE_SECRET_KEY', 'MAIL_TO', 'MAIL_FROM', 'GMAIL_OAUTH_CLIENT_ID', 'GMAIL_OAUTH_CLIENT_SECRET', 'GMAIL_OAUTH_REFRESH_TOKEN'];
 
 export default {
   async fetch(request, env) {
@@ -38,7 +38,6 @@ export async function handle(request, env, deps) {
   if (!origins.includes(origin)) return json({ ok: false, error: 'origin' }, 403);
 
   const missing = REQUIRED_ENV.filter(k => !env[k]);
-  if (!authMode(env)) missing.push('GMAIL_OAUTH_* or GMAIL_SA_KEY+GMAIL_SENDER_USER');
   if (missing.length) { log({ event: 'contact', ok: false, error: 'not_configured', missing }); return json({ ok: false, error: 'not_configured' }, 503); }
 
   const ct = (request.headers.get('Content-Type') || '').toLowerCase();
@@ -159,14 +158,13 @@ async function verifyTurnstile(deps, secret, token, ip, hosts) {
 }
 
 /* ---------- Google: アクセストークン（送信の認証 adapter） ----------
-   oauth（既定・推奨）: 送信専用ユーザー（no-reply@）本人の OAuth 同意で得たリフレッシュトークン → アクセストークン。
-                       鍵が漏れても影響は「そのユーザーの送信」だけ（ADR-0007）。
-   service-account   : サービスアカウント JWT ＋ ドメイン全体の委任で GMAIL_SENDER_USER になりすます（移行期間のみ。委任は全ユーザーに及ぶ）。
-   両方ある場合は oauth を使う。 */
+   oauth: 送信専用ユーザー（no-reply@）本人の OAuth 同意で得たリフレッシュトークン → アクセストークン（refresh_token grant）。
+          鍵が漏れても影響は「そのユーザーの送信」だけ（ADR-0007）。失効（取り消し・パスワード変更・6 か月未使用）は
+          token endpoint の invalid_grant として現れ、502 `send/token` → contact-watch が noc@ へ通知する。
+   authMode() は将来の adapter 追加（別の送信事業者など）のための識別子。現在は 'oauth' のみ。 */
 
 export function authMode(env) {
   if (env.GMAIL_OAUTH_CLIENT_ID && env.GMAIL_OAUTH_CLIENT_SECRET && env.GMAIL_OAUTH_REFRESH_TOKEN) return 'oauth';
-  if (env.GMAIL_SA_KEY && env.GMAIL_SENDER_USER) return 'service-account';
   return null;
 }
 
@@ -174,40 +172,17 @@ let tokenCache = { key: '', token: '', expMs: 0 };
 export function resetTokenCache() { tokenCache = { key: '', token: '', expMs: 0 }; }
 
 export async function accessToken(deps, env) {
-  const mode = authMode(env);
-  if (!mode) throw new Error('送信の認証情報がない（GMAIL_OAUTH_* または GMAIL_SA_KEY + GMAIL_SENDER_USER）');
+  if (!authMode(env)) throw new Error('送信の認証情報がない（GMAIL_OAUTH_CLIENT_ID / GMAIL_OAUTH_CLIENT_SECRET / GMAIL_OAUTH_REFRESH_TOKEN）');
   const now = deps.now();
-  let key, body;
-  if (mode === 'oauth') {
-    key = 'oauth|' + env.GMAIL_OAUTH_CLIENT_ID;
-    body = { grant_type: 'refresh_token', client_id: env.GMAIL_OAUTH_CLIENT_ID, client_secret: env.GMAIL_OAUTH_CLIENT_SECRET, refresh_token: env.GMAIL_OAUTH_REFRESH_TOKEN };
-  } else {
-    const sa = JSON.parse(env.GMAIL_SA_KEY);
-    if (!sa.client_email || !sa.private_key) throw new Error('GMAIL_SA_KEY: client_email / private_key がない');
-    key = 'sa|' + sa.client_email + '|' + env.GMAIL_SENDER_USER;
-  }
+  // cache の鍵にリフレッシュトークン末尾を含め、トークンを差し替えたときに古いアクセストークンを使い続けない
+  const key = 'oauth|' + env.GMAIL_OAUTH_CLIENT_ID + '|' + String(env.GMAIL_OAUTH_REFRESH_TOKEN).slice(-6);
   if (tokenCache.key === key && tokenCache.token && now < tokenCache.expMs - 60_000) return tokenCache.token;
-  if (mode !== 'oauth') body = { grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: await makeJwt(JSON.parse(env.GMAIL_SA_KEY), env.GMAIL_SENDER_USER, now) };
+  const body = { grant_type: 'refresh_token', client_id: env.GMAIL_OAUTH_CLIENT_ID, client_secret: env.GMAIL_OAUTH_CLIENT_SECRET, refresh_token: env.GMAIL_OAUTH_REFRESH_TOKEN };
   const res = await deps.fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
   const j = await res.json().catch(() => ({}));
   if (!res.ok || !j.access_token) throw new Error(`token endpoint ${res.status}: ${JSON.stringify(j).slice(0, 300)}`);
   tokenCache = { key, token: j.access_token, expMs: now + (Number(j.expires_in) || 3600) * 1000 };
   return j.access_token;
-}
-
-export async function makeJwt(sa, sub, nowMs) {
-  const iat = Math.floor(nowMs / 1000);
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const claims = { iss: sa.client_email, sub, scope: SCOPE, aud: TOKEN_URL, iat, exp: iat + 3600 };
-  const input = b64url(utf8(JSON.stringify(header))) + '.' + b64url(utf8(JSON.stringify(claims)));
-  const key = await crypto.subtle.importKey('pkcs8', pemToDer(sa.private_key), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign({ name: 'RSASSA-PKCS1-v1_5' }, key, utf8(input));
-  return input + '.' + b64url(new Uint8Array(sig));
-}
-
-export function pemToDer(pem) {
-  const b64 = String(pem).replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
-  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
 }
 
 /* ---------- Gmail API ---------- */
@@ -309,7 +284,7 @@ const utf8 = s => new TextEncoder().encode(s);
 export function b64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
 export const b64url = bytes => b64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-// Google 側エラーの種別だけを短く返す（例: unauthorized_client = 委任未設定 / PERMISSION_DENIED = API 無効や権限）。本文・秘密は含めない
+// Google 側エラーの種別だけを短く返す（例: invalid_grant = 同意の失効 / invalid_client = クライアント ID・シークレット不正 / PERMISSION_DENIED = API 無効や権限）。本文・秘密は含めない
 export function shortCode(s) {
   const t = String(s || '');
   const m = /"error"\s*:\s*"([A-Za-z_]+)"/.exec(t) || /"status"\s*:\s*"([A-Z_]+)"/.exec(t) || /"message"\s*:\s*"([^"]{1,80})"/.exec(t);

@@ -10,7 +10,7 @@
 ブラウザ（contact.html）
   └─ POST /api/contact（JSON: name, person, email, type, message, website=honeypot, turnstile, client.turnstile=フォーム側の状態, dry_run）
        └─ Worker: Origin 検査 → 入力検証 → honeypot → レート制限（同一 IP 60 秒に 5 回）→ Turnstile 照合（siteverify）
-            → 検証済み: Google token（サービスアカウント JWT、ドメイン全体の委任で GMAIL_SENDER_USER になりすます）
+            → 検証済み: Google アクセストークン（送信専用ユーザー no-reply@ 本人の OAuth リフレッシュトークン → refresh_token grant）
                         → Gmail API send ×2（控え → 送信者へ確認メール）→ {ok:true, verified:true, confirmation:true|false}
             → 未検証（トークン無し／不合格）: UNVERIFIED_POLICY=accept-flagged なら控えだけ送る（件名 [未検証]、本文にフォーム側の状態と siteverify の codes）
                         → {ok:true, verified:false, confirmation:false}。確認メールは送らない（未確認の宛先へ自動返信しない）
@@ -34,7 +34,7 @@
 | 403 `origin` / `turnstile` / `suspicious` | フォーム以外からの送信 / 未検証を拒否する方針のとき / 未検証かつ内容が疑わしい |
 | 429 `rate_limited` | 同一 IP からの送りすぎ（`Retry-After: 60`） |
 | 413 / 415 / 405 / 404 | 大きすぎる / JSON でない / POST 以外 / 別パス |
-| 502 `send` | Google 側で失敗（委任未設定・鍵不正・API 無効など。Workers Logs に詳細） |
+| 502 `send` | Google 側で失敗（`stage: token` = 同意の失効・クライアント不正、`stage: copy` = Gmail API 側。Workers Logs に詳細） |
 | 503 `not_configured` | secret / vars が足りない（配備直後の未設定など） |
 
 honeypot（`website`）に値があるものは、Turnstile 検証済み（＝人。ブラウザの自動入力が埋めた可能性）なら注記付きで受け付け、未検証なら成功を装って捨てる。記録（Workers Logs）は結果・検証状態・Gmail の受理 ID・種別・国・Ray のみで、本文とメールアドレスは残さない。
@@ -51,65 +51,82 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 
 | パス | 役割 |
 |---|---|
-| `src/index.js` | Worker 本体（依存ライブラリなし。WebCrypto + fetch） |
-| `test/contact.test.js` | 自己テスト（`node --test`。Google / Turnstile は fetch 差し替え、鍵はテスト内で生成） |
+| `src/index.js` | Worker 本体（依存ライブラリなし。fetch のみ） |
+| `test/contact.test.js` | 自己テスト（`node --test`。Google / Turnstile は fetch 差し替え） |
 | `wrangler.toml` | 名前 `reyz-contact`、ルート `reyz.inc/api/*` `www.reyz.inc/api/*`、`workers_dev=false`、レート制限 binding、公開値の vars（`UNVERIFIED_POLICY` 含む） |
 | `ci/make_ci_config.py` | CI 用 wrangler 設定を本番 `wrangler.toml` から生成（差分 5 点のみ。生成物はコミットしない） |
 | `../../qa/e2e_contact.js` | 通し確認。`--mode ci`（CI 内フルスタック、公式テストキー、4 ケース）／`--mode prod`（公開サイト） |
-| `../../.github/workflows/contact-worker.yml` | PR: `worker-tests` ＋ `stack-e2e`。main: 配備 |
+| `../../.github/workflows/contact-worker.yml` | PR: `worker-tests` ＋ `stack-e2e`。main: 配備 → Worker secret を GitHub Secrets と宣言的に同期（管理対象外は削除）→ 疎通 |
 | `../../.github/workflows/contact-e2e.yml` | 配備後の本番通し確認。失敗は noc@ へ通知 |
-| `../../.github/workflows/contact-watch.yml` | 毎日の集計。異常と鍵の期限だけ noc@ へ通知 |
+| `../../.github/workflows/contact-watch.yml` | 毎日の集計。異常（エラー応答・未検証の急増）だけ noc@ へ通知。同意の失効はエラー応答 `send/token` として現れる |
 | `../../infra/check/notify_noc.mjs` | 通知メール送信（Worker と同じ送信経路・同じコード） |
-| `../../infra/check/contact_logs.py` + `../../.github/workflows/contact-logs.yml` | Worker の記録（結果・検証状態・Gmail 受理 ID）を Workers Logs API から一覧にする。手動起動、読み取りのみ |
+| `../../infra/check/contact_logs.py` + `../../.github/workflows/contact-logs.yml` | Worker の記録（結果・検証状態・Gmail 受理 ID・認証方式 `auth`）を Workers Logs API から一覧にする。手動起動、読み取りのみ |
 | `../../site/assets/site.js` | `CONFIG.formEndpoint='/api/contact'`、`CONFIG.turnstileSiteKey` で有効化（確認ページに Turnstile を描画） |
 
 ## 前提（1 回だけ。値はリポジトリに書かない）
 
 | 場所 | 名前 | 中身 | 出所 |
 |---|---|---|---|
-| GitHub → Secrets | `GMAIL_OAUTH_CLIENT_ID` / `GMAIL_OAUTH_CLIENT_SECRET` | OAuth クライアント（内部アプリ、Web アプリケーション、リダイレクト URI = OAuth Playground） | GCP（reyz.inc 組織配下のプロジェクト）→ API とサービス → 認証情報 |
-| GitHub → Secrets | `GMAIL_OAUTH_REFRESH_TOKEN` | 送信専用ユーザー `no-reply@reyz.inc` 本人が同意して得たリフレッシュトークン（scope gmail.send） | OAuth Playground（下の「移行手順」） |
-| （移行期間のみ）GitHub → Secrets | `GMAIL_SA_KEY` / `GMAIL_SENDER_USER` | サービスアカウント鍵と、なりすまし先ユーザー。OAuth の 3 件がそろえば adapter は OAuth を使い、これらは削除できる | — |
+| GitHub → Secrets | `GMAIL_OAUTH_CLIENT_ID` / `GMAIL_OAUTH_CLIENT_SECRET` | OAuth クライアント（内部アプリ、ウェブ アプリケーション、リダイレクト URI = OAuth Playground）。シークレットは作成時にしか全文が見えない（Google の仕様）ので、その場で登録する | GCP（組織 `reyz.inc` 配下のプロジェクト `reyz-mail`）→ Google Auth Platform → クライアント |
+| GitHub → Secrets | `GMAIL_OAUTH_REFRESH_TOKEN` | 送信専用ユーザー `no-reply@reyz.inc` **本人**が同意して得たリフレッシュトークン（scope gmail.send） | 下の「設定手順」7〜8 |
 | GitHub → Secrets | `TURNSTILE_SECRET_KEY` | Turnstile ウィジェットの Secret Key | Cloudflare → Turnstile → ウィジェット（hostname: reyz.inc, www.reyz.inc） |
 | GitHub → Secrets | `CLOUDFLARE_WORKERS_TOKEN` | Workers 配備用トークン（テンプレート「Cloudflare Workers を編集する」、Zone を reyz.inc に限定） | Cloudflare → プロフィール → API トークン |
 | GitHub → Variables | `CLOUDFLARE_ACCOUNT_ID` | （DNS と共通。設定済み） | — |
 | GitHub → Variables | `NOC_EMAIL` | 異常通知の宛先（`noc@reyz.inc`。RFC 2142 の役割アドレス） | 管理コンソールでエイリアス作成 |
-| GitHub → Variables | `GMAIL_SA_KEY_CREATED` | サービスアカウント鍵の作成日 `YYYY-MM-DD`（90 日ローテーションの起点） | 鍵を作った日 |
 | `site/assets/site.js` | `turnstileSiteKey` | Turnstile の Site Key（公開値） | 同上ウィジェット |
 
-## 移行手順（サービスアカウント＋委任 → 送信専用ユーザーの OAuth。ADR-0007。1 回だけ、ロウ）
+GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のたびに、管理対象 4 件は値があれば設定・空なら削除され、管理対象外（Worker にだけある名前）は削除される。手で `wrangler secret put` した値は次の配備で消える。
 
-秘密の値が表示される画面（クライアント シークレット、リフレッシュトークン）は **スクリーンショットを送らない**。
+## 設定手順（送信専用ユーザーと OAuth。ADR-0007。初回と、型を別サイトへ複製するとき。ロウ）
+
+秘密の値が表示される画面（クライアント シークレット、リフレッシュトークン、バックアップコード）は **スクリーンショットを送らない**。
+2026-09-30 の初回実施で分かった落とし穴を手順に織り込んである（[事故記録](../../docs/incidents/2026-09-30-oauth-consent-wrong-account.md)）。
 
 | # | 場所 | 操作 |
 |---|---|---|
-| 1 | 管理コンソール → ユーザー → horiuchi@ → 予備のメールアドレス | エイリアス `no-reply` を削除（同じアドレスを実ユーザーにするため） |
-| 2 | 管理コンソール → ユーザー → 新しいユーザーを追加 | 名 `REYZ` / 姓 `Inc.`（表示名 REYZ Inc.）/ メール `no-reply` → パスワードを控える（初回ログインで 2 段階認証の設定を求められる） |
-| 3 | https://console.cloud.google.com に **horiuchi@reyz.inc** でログイン | 利用規約に同意すると組織 `reyz.inc` が自動作成される → 「プロジェクトを作成」: 名前 `reyz-mail`、場所 = 組織 `reyz.inc`（請求先は不要） |
+| 1 | 管理コンソール → ユーザー → 新しいユーザーを追加 | 名 `REYZ` / 姓 `Inc.`（表示名 REYZ Inc.）/ メール `no-reply` → パスワードは会社のパスワード管理へ。同じアドレスがエイリアスとして残っていれば先に削除 |
+| 2 | **シークレット ウィンドウ**で https://accounts.google.com に `no-reply@reyz.inc` でログイン | **初回ログインと 2 段階認証の登録をこの時点で済ませる**（組織は 2SV 必須。未登録のままだと後の同意画面でログインを拒否される）。方法は認証システム アプリ。その鍵とバックアップコードもパスワード管理へ |
+| 3 | https://console.cloud.google.com に **horiuchi@reyz.inc**（組織の管理者）でログイン | 組織 `reyz.inc` 配下に「プロジェクトを作成」: 名前 `reyz-mail`（請求先は不要）。個人 Gmail の口座で作ったプロジェクトは「組織なし」になり内部アプリを作れない |
 | 4 | 同プロジェクト → API とサービス → ライブラリ | **Gmail API** を有効化 |
-| 5 | 同プロジェクト → API とサービス → OAuth 同意画面（Google Auth Platform） | 対象 **内部**、アプリ名 `REYZ Mail Sender`、サポートメール `noc@reyz.inc`、スコープに `https://www.googleapis.com/auth/gmail.send` を追加 → 保存 |
-| 6 | 同 → 認証情報 → 認証情報を作成 → OAuth クライアント ID | 種類 **ウェブ アプリケーション**、名前 `reyz-mail-sender`、承認済みのリダイレクト URI `https://developers.google.com/oauthplayground` → 作成 → クライアント ID を GitHub Secret `GMAIL_OAUTH_CLIENT_ID`、クライアント シークレットを `GMAIL_OAUTH_CLIENT_SECRET` に登録 |
-| 7 | https://developers.google.com/oauthplayground | 右上の歯車 → ✅ Use your own OAuth credentials → 6 の ID とシークレットを入力 → 左の Step 1 の入力欄に `https://www.googleapis.com/auth/gmail.send` → Authorize APIs → **no-reply@reyz.inc** でログインして許可 → Step 2 「Exchange authorization code for tokens」→ 表示された **Refresh token** を GitHub Secret `GMAIL_OAUTH_REFRESH_TOKEN` に登録 |
-| 8 | GitHub → Actions → contact-worker → Run workflow | 再配備（Worker secret が同期される）。以後の送信は no-reply@ 本人の OAuth |
-| 9 | 動作確認後の後始末 | GitHub Secrets `GMAIL_SA_KEY` `GMAIL_SENDER_USER` と変数 `GMAIL_SA_KEY_CREATED` を削除 → contact-worker を再実行（Worker からも削除される）→ 管理コンソール → API の制御 → ドメイン全体の委任 の行を削除 → 旧プロジェクト `reyz-site` のサービスアカウント `contact-mailer` を削除 → horiuchi@ の Gmail「他のメールアドレス」から no-reply を削除 |
+| 5 | 同 → Google Auth Platform → ブランディング／対象／データアクセス | 対象 **内部**、アプリ名 `REYZ Mail Sender`、サポートメールは Workspace のユーザーかグループ、**データアクセス**でスコープ `https://www.googleapis.com/auth/gmail.send` を追加 → 保存 |
+| 6 | 同 → クライアント → クライアントを作成 | 種類 **ウェブ アプリケーション**、名前 `reyz-mail-sender`、「承認済みのリダイレクト URI」（JavaScript 生成元ではない）に `https://developers.google.com/oauthplayground` → 作成 → **この画面で** クライアント ID を GitHub Secret `GMAIL_OAUTH_CLIENT_ID`、クライアント シークレットを `GMAIL_OAUTH_CLIENT_SECRET` に登録（閉じると末尾 4 文字しか見えない。見失ったら「シークレットを追加」で新しいものを作り、古いものは無効化 → 削除） |
+| 7 | **シークレット ウィンドウ**（2 と同じ。通常ウィンドウは horiuchi@ でログイン中なので使わない）で https://developers.google.com/oauthplayground | 右上の歯車 → ✅ Use your own OAuth credentials → 6 の ID とシークレットを入力 → Close → Step 1 の入力欄に `https://www.googleapis.com/auth/gmail.send` → Authorize APIs → ログインは **no-reply@reyz.inc** → 同意画面に表示された口座が **no-reply@reyz.inc であることを確認してから** 許可 |
+| 8 | 同 Playground | Step 2 「Exchange authorization code for tokens」→ 表示された **Refresh token** を GitHub Secret `GMAIL_OAUTH_REFRESH_TOKEN` に登録 → Playground のウィンドウを閉じる |
+| 9 | GitHub → Actions → contact-worker → Run workflow | 配備（Worker secret が同期される）。run の annotation に `set=GMAIL_OAUTH_CLIENT_ID,…` と `HTTP 405` |
+| 10 | 実送信テスト | フォームから 1 件送る → 控え（contact@ 宛）と確認メールの **両方が `REYZ Inc. <no-reply@reyz.inc>` から届き、受信トレイに入る**ことを確認。差出人が別のアドレスに書き換わっていたら 7 の口座が違う（Gmail は同意した本人以外の差出人を本人のアドレスへ書き換える）→ 7 からやり直し。`contact-logs` の記録は `verified=True confirmation=True auth=oauth` と Gmail 受理 ID 2 件 |
 
-Google 側（参考。旧方式＝移行期間のみ）:
+### 認証情報の更新（ローテーション・失効時）
 
-1. Gmail API を有効化
-2. 管理コンソール → セキュリティ → API の制御 → ドメイン全体の委任 → サービスアカウントの「一意の ID」とスコープ `https://www.googleapis.com/auth/gmail.send`
-3. `GMAIL_SENDER_USER` のユーザーにエイリアス `no-reply@reyz.inc` と Gmail の送信元登録
+| 更新するもの | 手順 |
+|---|---|
+| リフレッシュトークン（失効: 取り消し・no-reply@ のパスワード変更・6 か月未使用。症状: 502 `send/token` `invalid_grant`、`contact-watch` が通知） | 上の 7 → 8 → 9。古いトークンは no-reply@ の Google アカウント → セキュリティ → サードパーティ製のアプリとサービス → REYZ Mail Sender → アクセス権を削除、で失効させる |
+| クライアント シークレット（漏えい時） | GCP → クライアント → 「シークレットを追加」→ 新しい値を GitHub Secret `GMAIL_OAUTH_CLIENT_SECRET` に上書き → 7 → 8 → 9（リフレッシュトークンは新しいシークレットでも有効だが、漏えい時は一緒に取り直す）→ 古いシークレットを無効化 → 削除 |
+| Turnstile 秘密キー | Cloudflare → Turnstile → ウィジェット → ローテーション → Secret 更新 → 9 |
 
-## 切替手順
+### 旧方式（サービスアカウント＋ドメイン全体の委任）の後片付け — 2026-09-30
 
-1. 上記の secret / token をすべて登録
+| 項目 | 状態 |
+|---|---|
+| GitHub Secrets `GMAIL_SA_KEY` / `GMAIL_SENDER_USER`、変数 `GMAIL_SA_KEY_CREATED` の削除 | 済（2026-09-30） |
+| Worker 側の同名 secret の削除 | この PR の配備で宣言的に削除（run の annotation `delete=GMAIL_SA_KEY,GMAIL_SENDER_USER`） |
+| horiuchi@ の Gmail「他のメールアドレス」から `no-reply@` を削除 | 済（2026-09-30） |
+| 管理コンソール → API の制御 → ドメイン全体の委任 の行（contact-mailer）を削除 | ロウ実施（完了日を記入） |
+| 旧プロジェクト `reyz-site`（個人 Gmail の口座）のサービスアカウント `contact-mailer` を削除 | ロウ実施（完了日を記入） |
+| horiuchi@ に誤って与えた「REYZ Mail Sender」のアクセス権を削除 | ロウ実施（完了日を記入） |
+| 古いクライアント シークレットの無効化・削除 | ロウ実施（完了日を記入） |
+
+## 切替手順（新規サイトで最初に有効にするとき）
+
+1. 上記の secret / 変数をすべて登録
 2. この Worker を含む PR をマージ → `contact-worker` が配備 → run の annotation に `GET https://reyz.inc/api/contact -> HTTP 405`
 3. `site/assets/site.js` の `formEndpoint: '/api/contact'` と `turnstileSiteKey` を設定する PR をマージ（サイト側の切替。Worker が先）
-4. 実送信テスト: フォームから 1 件送り、`contact@reyz.inc` の控え（Reply-To が送信者）と送信者側の確認メール（From `no-reply@reyz.inc`、DKIM/SPF/DMARC PASS）を確認
+4. 実送信テスト（設定手順 10）
 
 ## 守ること
 
 - フォーム側の要素 id を `turnstile` にしない（id 付き要素は `window.turnstile` として見え、Turnstile API の `window.turnstile` を隠して描画が失敗する。2026-09-29 に実際に起きた障害）
 
-- JSON 鍵・Secret Key・トークンをチャット・Markdown・コミットに書かない。鍵の JSON はダウンロード後に Secret へ入れて手元から削除
+- クライアント シークレット・リフレッシュトークン・Secret Key をチャット・Markdown・コミット・workflow の入力欄に書かない（入力欄の値は run の記録に残る）
+- 同意（OAuth）は必ず送信専用ユーザー **本人** で行い、同意画面の口座名を確認してから許可する。個人の口座で同意すると、確認メールがその人のアドレスから出て、控えは受信トレイに入らない（2026-09-30 の事故）
 - Worker は `workers_dev=false`（`*.workers.dev` では公開しない）。ルートは `reyz.inc/api/*` のみ
 - 送信上限は Workspace の枠（有料 2,000 通/日/ユーザー）。フォームの想定量では問題にならないが、迷惑送信の疑いが出たら Turnstile の設定と Workers Logs を見る

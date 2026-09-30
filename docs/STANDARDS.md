@@ -27,11 +27,11 @@ REYZ は、AI オーケストレーション／AI エージェント開発の中
 |---|---|---|---|---|
 | 変更管理 | 版管理・PR・自動テスト・小さなバッチ・配備前検証（DORA、Continuous Delivery） | GitHub ＋ PR ＋ CI（単体・全検証・CI 内フルスタック e2e）＋ Actions 配備 | PASS | — |
 | 変更の承認 | 必須チェック・ブランチ保護・複数人レビュー | ルールセット `main`（PR 必須、必須チェック 4 件、削除・強制 push 禁止、バイパスなし。2026-09-29）。レビュアーは 1 名 | PASS（複数人レビューは組織拡大時） | — |
-| 最小権限 | 鍵は必要な 1 箱だけに届く | Cloudflare トークンはゾーン限定。Google は OAuth（送信専用ユーザーの同意、送信のみ）へ移行中。移行完了まで委任も残る | GAP（是正中） | ADR-0007（コードは対応済み。ロウの移行手順 → 委任と SA 鍵の削除で PASS） |
-| 秘密の扱い | 秘密はリポジトリ・チャット・ログに出さない。ローテーション | GitHub Secrets → Worker secret。90 日警告 | PASS | — |
+| 最小権限 | 鍵は必要な 1 箱だけに届く | Cloudflare トークンはゾーン限定。Google は送信専用ユーザー本人の OAuth（scope 送信のみ）。ドメイン全体の委任・サービスアカウント鍵は 2026-09-30 に削除（Worker・workflow・GitHub Secrets から削除済み。管理コンソールの委任行と旧 SA の削除はロウ実施） | PASS（委任行・旧 SA の削除完了で確定） | — |
+| 秘密の扱い | 秘密はリポジトリ・チャット・ログに出さない。ローテーション。正本は 1 か所 | GitHub Secrets が正本 → Worker secret へ配備のたびに宣言的同期（管理対象外は削除）。失効は監視で検知、取り直し手順は README | PASS | — |
 | ボット対策 | 多層（OWASP Automated Threats）、代替手段（WCAG 2.2） | Turnstile fail-open ＋ レート制限 ＋ honeypot ＋ ヒューリスティック ＋ メール代替経路 | PASS | — |
 | メール認証 | SPF / DKIM / DMARC p=reject（Google・Yahoo 送信者要件、RFC 7489） | 済 | PASS | — |
-| 送信主体の分離 | システムのメールは人のアカウントから出さない | `no-reply@` 実ユーザーへ移行中 | GAP（是正中） | ADR-0007 |
+| 送信主体の分離 | システムのメールは人のアカウントから出さない | `no-reply@` 実ユーザー本人の OAuth で送信（2026-09-30 実送信で差出人・受信トレイ・記録を確認） | PASS | — |
 | 受信の保護 | MTA-STS ＋ TLS-RPT（RFC 8461 / 8460） | 未 | GAP | 設計 v2 段階 2 |
 | 到達性の監視 | Postmaster Tools、DMARC 集計の解析 | dmarc@ 受け口のみ | GAP | 設計 v2 段階 2 |
 | 役割アドレス | RFC 2142（noc / hostmaster / security / abuse / postmaster）、RFC 9116（security.txt） | contact / hostmaster / dmarc / noc は済。security@・security.txt は未 | GAP | 設計 v2 段階 2 |
@@ -39,8 +39,9 @@ REYZ は、AI オーケストレーション／AI エージェント開発の中
 | 監視・通知 | 合成監視、異常時のみ通知、当番 | 配備後 e2e、日次集計、noc@ へ異常時通知 | PASS | — |
 | 証跡の保全 | 監査に耐える保持期間、改変不可 | Cloudflare の保持期間（無料枠 3 日）に依存 | GAP | 設計 v2 段階 3: 日次書き出し |
 | 事故対応 | blameless ポストモーテム、再発防止の追跡 | `docs/incidents/` に記録（2026-09-29 から） | PASS | — |
-| AI の関与の可視化 | 誰（人／AI）が書き、誰が承認したかを機械的に区別 | AI のコミットが CEO のアカウント名義 | GAP | ADR（予定）: AI 専用 GitHub App |
+| AI の関与の可視化 | 誰（人／AI）が書き、誰が承認したかを機械的に区別 | AI のコミットが CEO のアカウント名義 | GAP | ADR-0008（予定）: 運用用 GitHub App（同意の自動化と共用） |
 | 提供元の差し替え可能性 | 宣言は自社、事業者は adapter | DNS as code、Worker の adapter 構成 | PASS | — |
+| 人の操作の最小化 | 人が行うのは本人確認と承認だけ。値の転記・確認は機械が行う | OAuth の同意はまだ手動（Playground、転記 3 回、口座は人が確認） | GAP | ADR-0008（予定）: 同意 workflow（口座の機械検証、Secret 登録、配備、記録を自動化） |
 
 ## 3. 判定の手順（Full Cycle）
 
