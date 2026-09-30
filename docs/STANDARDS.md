@@ -70,6 +70,8 @@ REYZ は、AI オーケストレーション／AI エージェント開発の中
 
 ## 5. 索引
 
+- 入口: [README.md](README.md)（読む順番・全体図・運用カレンダー・用語）
+
 - 設計書: [contact-pipeline.md](contact-pipeline.md)（問い合わせ受付の型）、[site-factory.md](site-factory.md)（型の量産と運用の自動化）
 - 決定記録: [adr/](adr/)
 - 事故記録: [incidents/](incidents/)
