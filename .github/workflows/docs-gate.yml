@@ -7,6 +7,8 @@ permissions:
   contents: read
 jobs:
   docs-gate:
+    # Dependabot の PR は本文が機械生成（更新内容と互換性の要約）で、検証は関門が行うため免除する（skip は必須チェック上は通過扱い）。docs/STANDARDS.md §4
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
