@@ -1,7 +1,7 @@
 # 問い合わせ受付の標準型 v2（設計書・正本）
 
 対象: reyz.inc の問い合わせフォーム（受付・ボット対策・メール送信・検証・運用）。今後の顧客サイトにそのまま複製する「型」。
-更新日: 2026-09-30（v2.1: OAuth への切替完了、旧方式の削除、secret 同期の完全宣言型化）。変更はこの文書を PR で更新してから実装する。
+更新日: 2026-09-30（v2.2: OAuth 同意の自動化、ADR-0008）。変更はこの文書を PR で更新してから実装する。
 
 ## 1. 目的と要件
 
@@ -14,6 +14,7 @@
 | R5 | 状態が人手なしで分かる | 記録は PII なしの構造化ログ。`contact-logs` / `contact-watch` / `contact-e2e` を AI が API で読む |
 | R6 | 秘密はリポジトリ・チャット・ログに出さない | GitHub Secrets → Worker secret（配備のたびに宣言的に同期。管理対象外は削除）。CI では一時ファイルに展開し必ず削除 |
 | R7 | 追加インフラ・費用なし、専用環境を常設しない | Workers / Actions の無料枠。CI 内で起動して終わったら破棄 |
+| R8 | 人が行うのは本人確認と承認だけ。値の転記・確認は機械が行う | 秘密の転記が手順に無い。同意した口座は workflow が検証し、違えば保存しない（`infra/oauth` のテスト） |
 
 ## 2. 構成
 
@@ -27,6 +28,8 @@ Cloudflare Worker reyz-contact
    → Gmail API: ① contact@ へ控え ② 検証済みの送信者へ確認メール（差出人 no-reply@reyz.inc ＝ 送信専用ユーザー本人）
    → 構造化ログ（結果・検証状態・Gmail 受理 ID・種別・国・Ray。本文・氏名・メールアドレスは記録しない）
 ```
+
+同意の更新（運用）: `reyz.inc/oauth/callback.html`（静的・秘密なし）→ Google の同意 → 同意コードを Actions `oauth-consent` に貼る → workflow が交換・口座検証・Secret 更新・配備・失効・記録（ADR-0008）。
 
 送信者に見える挙動: 「送信しました。」。未検証で受け付けた場合は「確認メールの自動送信は行われませんでしたが、内容は届いています。」を追記。送れなかった場合は文面コピー ＋「メールアプリで送る」（contact@reyz.inc）を必ず表示。
 
@@ -58,7 +61,8 @@ CI 用設定の差分（`workers/contact/ci/make_ci_config.py` が生成。手�
 | 秘密 | 置き場 | 権限 | 寿命 |
 |---|---|---|---|
 | OAuth クライアント `GMAIL_OAUTH_CLIENT_ID` / `GMAIL_OAUTH_CLIENT_SECRET` | GitHub Secrets → Worker secret / CI の一時ファイル | 内部アプリ（reyz.inc のユーザーのみ同意可） | 漏えい時に「シークレットを追加」で再発行し古いものを削除（クライアント作成は Google の API では不可＝コンソールのみ） |
-| リフレッシュトークン `GMAIL_OAUTH_REFRESH_TOKEN`（no-reply@ 本人の同意） | 同上 | scope `gmail.send` のみ。影響範囲は no-reply@ の送信だけ | 失効条件: 取り消し／no-reply のパスワード変更／6 か月未使用。失効は送信失敗として `contact-watch` と `stack-e2e` が検知。取り直しの手順と自動化は README と ADR-0008 |
+| リフレッシュトークン `GMAIL_OAUTH_REFRESH_TOKEN`（no-reply@ 本人の同意） | 同上。**人は貼らない**: `oauth-consent` workflow が交換・口座検証・登録・旧トークンの失効まで行う | scope `gmail.send` のみ（ID トークン用に `openid email` を併せて許可）。影響範囲は no-reply@ の送信だけ | 失効条件: 取り消し／no-reply のパスワード変更／6 か月未使用。失効は送信失敗として `contact-watch` と `stack-e2e` が検知。取り直しは受け取りページ → workflow（ADR-0008） |
+| GitHub App「REYZ Ops」の秘密鍵 `OPS_APP_PRIVATE_KEY`（ID は変数 `OPS_APP_ID`） | GitHub Secrets | この repo のみ。Secrets 書き込み・Actions 書き込み・Issues 書き込み | 漏えい時は App の鍵を再生成して差し替え |
 | Turnstile 秘密キー | 同上 | — | 漏えい時はローテーション（2026-09-29 実施済み） |
 | Cloudflare トークン `CLOUDFLARE_WORKERS_TOKEN` | GitHub Secrets | Workers スクリプト編集・ルート編集（reyz.inc 限定）・可観測性 | 必要時に再発行 |
 
@@ -96,16 +100,17 @@ AI は秘密の値を持たない。読むのは配備結果・記録・e2e の�
 |---|---|
 | 状態を知る | Actions → `contact-logs` → Run workflow（直近 N 時間）。AI が起動して読む |
 | 異常通知が来た | 本文の記録を見る → `contact-logs` で詳細 → 必要なら `UNVERIFIED_POLICY` 変更や鍵の再発行（PR） |
-| 送信の認証情報を更新 | `workers/contact/README.md` の「認証情報の更新」（no-reply@ 本人としてシークレット ウィンドウで再同意 → Secret 更新 → `contact-worker` を Run workflow → 実送信で差出人を確認） |
+| 送信の認証情報を更新 | https://reyz.inc/oauth/callback.html → 「同意を開始する」→ no-reply@ で許可 → 表示された同意コードを Actions `oauth-consent` に貼って実行（検証・Secret 更新・配備・旧トークン失効・記録は workflow）。詳細は `workers/contact/README.md` の「認証情報の更新」 |
 | 型を新規サイトに設定（1 回） | `workers/contact/README.md` の「設定手順」 |
 | Turnstile 秘密キーをローテーション | Cloudflare → Turnstile → ウィジェット → ローテーション → Secret 更新 → `contact-worker` を Run workflow |
 | 型を別サイトへ複製 | `workers/contact/` と `qa/e2e_contact.js`、workflow 3 本をコピーし、vars（origin・宛先）と secrets を差し替える |
 
 ## 10. 関連する決定記録
-ADR-0001（Cloudflare 出口）、0003（プロビジョニング層）、0004（役割アドレス）、0005（fail-open）、0006（CI 内フルスタック関門）、0007（送信主体の分離と OAuth。実施済み）、0008（同意の自動化。予定）。
+ADR-0001（Cloudflare 出口）、0003（プロビジョニング層）、0004（役割アドレス）、0005（fail-open）、0006（CI 内フルスタック関門）、0007（送信主体の分離と OAuth。実施済み）、0008（同意の自動化。採用）。
 
 ## 11. 変更履歴
 
 - 2026-09-29 v1: 初版。障害（`#turnstile` id 衝突、`turnstile.ready()`）を機に、PR 関門を CI 内フルスタック化。
 - 2026-09-29 v2: 送信主体を `no-reply@` 実ユーザーに分離し、ドメイン全体の委任を OAuth 同意に置き換え（ADR-0007）。Worker の secret を GitHub Secrets から宣言的に同期。段階 2（MTA-STS / TLS-RPT / Postmaster Tools / security.txt）と段階 3（証跡の日次保管、AI 専用 GitHub App）は次版。
 - 2026-09-30 v2.1: OAuth へ切替完了（実送信で差出人・受信トレイ・記録を確認）。サービスアカウント経路を Worker・workflow から削除。secret 同期を完全宣言型（管理対象外の削除）に。記録に認証方式 `auth`。同意を個人口座で行った事故（`docs/incidents/2026-09-30-…`）の再発防止として同意の自動化を ADR-0008 で扱う。
+- 2026-09-30 v2.2: 同意の自動化（ADR-0008）: 受け取りページ `site/oauth/callback.html`、`infra/oauth/consent.mjs`、workflow `oauth-consent`（口座の機械検証・Secret 更新・配備・旧トークン失効・issue への記録）、GitHub App「REYZ Ops」。Worker は Gmail の 401 で 1 回だけ取り直す。要件 R8 を追加。

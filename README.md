@@ -16,11 +16,12 @@
 | `docs/STANDARDS.md` | **REYZ エンジニアリング標準（正本）**: 原則、最先端の実務との基準対応表、Full Cycle、記録の形式。すべての変更はこの型に従う |
 | `docs/adr/` | 決定記録（ADR、MADR 形式）。なぜそうなっているかの履歴 |
 | `docs/incidents/` | 事故記録（blameless ポストモーテム）。再発防止は PR 番号で追跡 |
-| `docs/contact-pipeline.md` | 問い合わせ受付の標準型 v1（設計書・正本）。要件・関門・未検証方針・秘密・役割アドレス・運用 |
+| `docs/contact-pipeline.md` | 問い合わせ受付の標準型 v2（設計書・正本）。要件・関門・未検証方針・秘密・役割アドレス・運用 |
 | `.github/PULL_REQUEST_TEMPLATE.md` / `docs-gate.yml` | PR の必須見出し（目的・参照基準・一致と差分・検証・未確認・影響）と、その機械検査 |
 | `workers/contact/` | 問い合わせフォームの受付 Worker（`reyz.inc/api/contact`。Turnstile → Gmail API で控え＋確認メール）。実装と手順は [workers/contact/README.md](workers/contact/README.md) |
 | `.github/workflows/contact-worker.yml` | PR: 単体テスト ＋ CI 内フルスタック e2e（本物の Turnstile を公式テストキーで）。main: Cloudflare Workers へ配備 |
 | `.github/workflows/contact-e2e.yml` / `contact-watch.yml` / `contact-logs.yml` | 本番の通し確認（配備後に自動）／毎日の集計と異常通知（noc@）／記録の一覧（手動） |
+| `site/oauth/callback.html` / `infra/oauth/` / `.github/workflows/oauth-consent.yml` | 送信専用ユーザーの OAuth 同意の自動化（受け取りページ → 同意コードを 1 回貼る → 口座検証・Secret 更新・配備・失効・記録を workflow が行う。ADR-0008） |
 
 ## 更新の流れ
 1. 設計・判断が要る変更は、先に `docs/`（設計書・ADR）を書く（[docs/STANDARDS.md](docs/STANDARDS.md)）

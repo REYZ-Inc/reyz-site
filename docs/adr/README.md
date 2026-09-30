@@ -11,3 +11,4 @@
 | [0005](0005-contact-form-fail-open-turnstile.md) | 問い合わせフォームのボット対策は fail-open（未検証受付・確認メールなし）とする | 採用 |
 | [0006](0006-ci-full-stack-gate-no-staging.md) | 配備前検証は CI 内フルスタック（公式テストキー）で行い、staging を常設しない | 採用 |
 | [0007](0007-system-sender-identity-oauth.md) | システムメールの送信主体を `no-reply@` 実ユーザーにし、ドメイン全体の委任を OAuth 同意に置き換える | 実施済み（2026-09-30） |
+| [0008](0008-oauth-consent-automation.md) | 送信専用ユーザーの OAuth 同意を自動化し、人の操作を「許可」と「コードを 1 回貼る」だけにする | 採用（初回実行で確定） |

@@ -71,8 +71,7 @@ export async function handle(request, env, deps) {
   }
   if (fields.dry_run === 'verify') return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok' });
 
-  let token;
-  try { token = await accessToken(deps, env); }
+  try { await accessToken(deps, env); }
   catch (err) {
     log({ event: 'contact', ok: false, error: 'token', detail: String(err).slice(0, 300), dry_run: fields.dry_run || undefined, ray: meta.ray });
     if (fields.dry_run === 'token') return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok', google_token: false, detail: shortCode(String(err)) });
@@ -80,11 +79,11 @@ export async function handle(request, env, deps) {
   }
   if (fields.dry_run === 'token') return json({ ok: true, dry_run: true, verified, codes, client: meta.client, rate_limit: rl.skipped ? 'skipped' : 'ok', google_token: true });
 
-  const copy = await gmailSend(deps, token, buildMime(copyMessage(env, fields, meta, verified, codes, honeypot)));
-  if (!copy.ok) { log({ event: 'contact', ok: false, error: 'send', status: copy.status, detail: copy.detail, ray: meta.ray }); return json({ ok: false, error: 'send', stage: 'copy', detail: shortCode(copy.detail) }, 502); }
+  const copy = await gmailSend(deps, env, buildMime(copyMessage(env, fields, meta, verified, codes, honeypot)));
+  if (!copy.ok) { log({ event: 'contact', ok: false, error: 'send', stage: copy.stage || 'copy', status: copy.status, detail: copy.detail, ray: meta.ray }); return json({ ok: false, error: 'send', stage: copy.stage || 'copy', detail: shortCode(copy.detail) }, 502); }
   let confirmation = { ok: false, id: '' };
   if (verified) {   // 送信者への確認メールは、送信者が実在の人であることが確認できたときだけ（未確認の宛先へ自動返信しない）
-    confirmation = await gmailSend(deps, token, buildMime(confirmationMessage(env, fields, meta)));
+    confirmation = await gmailSend(deps, env, buildMime(confirmationMessage(env, fields, meta)));
     if (!confirmation.ok) log({ event: 'contact', ok: true, confirmation: false, status: confirmation.status, detail: confirmation.detail, ray: meta.ray });
   }
   // gmail_copy / gmail_confirmation = Gmail が受理して「送信済み」に保存したメッセージ ID（送達の一次証拠）
@@ -187,9 +186,13 @@ export async function accessToken(deps, env) {
 
 /* ---------- Gmail API ---------- */
 
-async function gmailSend(deps, token, mime) {
+// 401（アクセストークンが途中で失効: リフレッシュトークンのローテーション直後など）は cache を捨てて 1 回だけ取り直す
+async function gmailSend(deps, env, mime, retried = false) {
+  let token;
+  try { token = await accessToken(deps, env); } catch (err) { return { ok: false, status: 0, stage: 'token', detail: String(err).slice(0, 300) }; }
   try {
     const res = await deps.fetch(GMAIL_SEND_URL, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ raw: b64url(utf8(mime)) }) });
+    if (res.status === 401 && !retried) { resetTokenCache(); return gmailSend(deps, env, mime, true); }
     if (!res.ok) { const t = await res.text().catch(() => ''); return { ok: false, status: res.status, detail: t.slice(0, 300) }; }
     const j = await res.json().catch(() => ({}));
     return { ok: true, id: j.id || '' };

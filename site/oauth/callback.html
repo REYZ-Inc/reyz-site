@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>送信専用ユーザーの同意 — REYZ Ops</title>
+  <!-- 送信専用ユーザー（no-reply@）の OAuth 同意の「開始」と「コードの受け取り」だけを行う運用ページ（ADR-0008、docs/contact-pipeline.md）。
+       秘密は持たない。受け取るコードは 1 回限り・数分で失効し、クライアント シークレットが無ければ何もできない。
+       本番サイトの導線からはリンクしない。検索対象外（noindex）。外部資源は読み込まない。 -->
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #060609; color: #e9e9ef; font: 15px/1.7 -apple-system, "Helvetica Neue", "Noto Sans JP", sans-serif; }
+    main { max-width: 640px; margin: 0 auto; padding: 48px 20px 80px; }
+    h1 { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
+    p { margin: 8px 0; }
+    .muted { color: #9a9aa6; font-size: 13px; }
+    .box { border: 1px solid #2a2a33; border-radius: 12px; padding: 20px; margin: 20px 0; background: #0c0c12; }
+    .btn { display: inline-block; padding: 12px 18px; border-radius: 999px; border: 1px solid #F715AC; color: #fff; background: #F715AC; text-decoration: none; font-weight: 500; cursor: pointer; font-size: 15px; }
+    .btn.secondary { background: transparent; color: #fff; border-color: #55556a; }
+    textarea { width: 100%; box-sizing: border-box; min-height: 88px; font: 14px/1.5 ui-monospace, Menlo, monospace; color: #fff; background: #111118; border: 1px solid #2a2a33; border-radius: 8px; padding: 10px; resize: vertical; }
+    ol { padding-left: 22px; } li { margin: 6px 0; }
+    .ok { color: #7ee2a8; } .ng { color: #ff8a8a; }
+    code { font-family: ui-monospace, Menlo, monospace; background: #17171f; padding: 1px 6px; border-radius: 6px; }
+    .foot { margin-top: 40px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <p class="muted">REYZ Ops — 問い合わせフォームの送信専用ユーザー</p>
+  <h1 id="title">送信専用ユーザーの同意</h1>
+
+  <div id="start" hidden>
+    <p>送信専用ユーザー <code id="senderLabel"></code> として Google に同意し、問い合わせフォームの送信権限（Gmail 送信のみ）を更新します。</p>
+    <p class="muted">ログイン画面ではこのユーザーでログインします（他の口座で同意しても、後続の検証で拒否され保存されません）。</p>
+    <p><a class="btn" id="startBtn" href="#">同意を開始する</a></p>
+  </div>
+
+  <div id="got" hidden>
+    <p class="ok">同意コードを受け取りました。</p>
+    <div class="box">
+      <textarea id="code" readonly aria-label="同意コード"></textarea>
+      <p><button class="btn" id="copyBtn" type="button">コードをコピー</button> <span id="copied" class="muted"></span></p>
+    </div>
+    <ol>
+      <li><a class="btn secondary" id="wfLink" href="#" target="_blank" rel="noopener">GitHub Actions「oauth-consent」を開く</a></li>
+      <li>右上の <strong>Run workflow</strong> → <code>code</code> にコピーしたコードを貼る → 緑の <strong>Run workflow</strong></li>
+      <li>workflow が口座を検証し、Secret を更新して配備します。結果は run の Summary に出ます</li>
+    </ol>
+    <p class="muted">このコードは数分で失効し、1 回しか使えません。使えなかったら「同意を開始する」からやり直してください。 <span id="meta"></span></p>
+    <p class="muted" id="stateWarn" hidden>注意: この画面を開いた端末と同意を始めた端末が違うようです（state 不一致）。自分で始めた同意であれば問題ありません。</p>
+  </div>
+
+  <div id="err" hidden>
+    <p class="ng">同意が完了しませんでした: <code id="errText"></code></p>
+    <p><a class="btn secondary" href="?">やり直す</a></p>
+  </div>
+
+  <p class="muted foot">設計: <code>docs/contact-pipeline.md</code> / 決定記録 ADR-0008。このページは秘密を持たず、コードの表示だけを行います。</p>
+</main>
+<script>
+  // 設定（公開値のみ）。クライアント ID は GitHub Secret GMAIL_OAUTH_CLIENT_ID と同じ値であること（違えば workflow の交換が失敗して分かる）。
+  var CONFIG = {
+    clientId: '299801938729-gh1m7flgft0n7sb59qlb361v87ivj5fk.apps.googleusercontent.com',
+    sender: 'no-reply@reyz.inc',
+    workflowUrl: 'https://github.com/REYZ-Inc/reyz-site/actions/workflows/oauth-consent.yml',
+    scopes: ['openid', 'email', 'https://www.googleapis.com/auth/gmail.send']
+  };
+  var q = new URLSearchParams(location.search);
+  var redirectUri = location.origin + location.pathname;
+  function show(id) { ['start', 'got', 'err'].forEach(function (s) { document.getElementById(s).hidden = (s !== id); }); }
+  function randomState() { var a = new Uint8Array(16); crypto.getRandomValues(a); return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
+
+  document.getElementById('senderLabel').textContent = CONFIG.sender;
+  document.getElementById('wfLink').href = CONFIG.workflowUrl;
+
+  if (q.get('error')) {
+    document.getElementById('errText').textContent = q.get('error') + (q.get('error_description') ? ' — ' + q.get('error_description') : '');
+    show('err');
+  } else if (q.get('code')) {
+    document.getElementById('code').value = q.get('code');
+    var meta = [];
+    if (q.get('hd')) meta.push('ドメイン: ' + q.get('hd'));
+    document.getElementById('meta').textContent = meta.join(' / ');
+    try { var expect = sessionStorage.getItem('oauth_state'); if (expect && q.get('state') && expect !== q.get('state')) document.getElementById('stateWarn').hidden = false; sessionStorage.removeItem('oauth_state'); } catch (e) {}
+    // アドレスバーからコードを消す（履歴に残さない）。表示は保持
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    show('got');
+    document.getElementById('copyBtn').addEventListener('click', function () {
+      var ta = document.getElementById('code'); ta.select();
+      var done = function () { document.getElementById('copied').textContent = 'コピーしました'; };
+      if (navigator.clipboard) navigator.clipboard.writeText(ta.value).then(done, function () { document.execCommand('copy'); done(); });
+      else { document.execCommand('copy'); done(); }
+    });
+  } else {
+    show('start');
+    document.getElementById('startBtn').addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var state = randomState();
+      try { sessionStorage.setItem('oauth_state', state); } catch (e) {}
+      var p = new URLSearchParams({
+        client_id: CONFIG.clientId, redirect_uri: redirectUri, response_type: 'code', scope: CONFIG.scopes.join(' '),
+        access_type: 'offline', prompt: 'consent', login_hint: CONFIG.sender, hd: CONFIG.sender.split('@')[1], state: state
+      });
+      location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p.toString();
+    });
+  }
+</script>
+</body>
+</html>
