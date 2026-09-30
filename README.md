@@ -4,6 +4,8 @@
 
 株式会社レイズ（REYZ Inc.）コーポレートサイト — https://reyz.inc
 
+**初めて読む人・AI は [docs/README.md](docs/README.md) から**（全体図・運用カレンダー・用語・迷ったときの行き先）。
+
 ## 構成
 | パス | 役割 |
 |---|---|
@@ -15,6 +17,7 @@
 | `.github/workflows/deploy.yml` | main への push → 検証 → GitHub Pages 配備。PR は検証のみ（`infra/` だけの変更では配備しない） |
 | `infra/cloudflare/` | DNS の正本（`zones/reyz.inc.json`）と反映スクリプト。手順は [infra/cloudflare/README.md](infra/cloudflare/README.md) |
 | `.github/workflows/cloudflare-dns.yml` | 手動起動：DNS 宣言 → Cloudflare へ plan / apply |
+| `docs/README.md` | 文書の入口: 読む順番、全体図、運用カレンダー、用語、迷ったときの行き先 |
 | `docs/STANDARDS.md` | **REYZ エンジニアリング標準（正本）**: 原則、最先端の実務との基準対応表、Full Cycle、記録の形式。すべての変更はこの型に従う |
 | `docs/adr/` | 決定記録（ADR、MADR 形式）。なぜそうなっているかの履歴 |
 | `docs/incidents/` | 事故記録（blameless ポストモーテム）。再発防止は PR 番号で追跡 |

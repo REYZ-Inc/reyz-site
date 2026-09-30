@@ -62,12 +62,15 @@ REYZ は、AI オーケストレーション／AI エージェント開発の中
 | 仕組み | 効果 |
 |---|---|
 | PR テンプレート（必須見出し） | 参照基準・検証・未確認を書かない PR を作れない |
-| `docs-gate` チェック | PR 本文に必須見出しがなければ失敗。ブランチ保護の必須チェックに含める |
+| `docs-gate` チェック | PR 本文に必須見出しがなければ失敗。ブランチ保護の必須チェックに含める。Dependabot の PR（本文が機械生成、検証は関門）は免除 |
+| 依存更新の受入 | Dependabot の PR は関門（単体・サイト全検証・CI 内 e2e の Turnstile/UI 部分）が通れば承認・マージする。Google トークン取得の判定だけは secret が渡らないため任意で、次の人の PR／main の配備で判定される |
 | 必須チェック `worker-tests` / `stack-e2e` / `site-verify` / `docs-gate` | 関門を通らない変更は main に入らない |
 | ADR の連番・置き換え規則 | 決定の履歴が消えない。「なぜそうなっているか」が常に追える |
 | 事故記録の再発防止欄に PR 番号を必須化 | 再発防止が実装されたことを追跡できる |
 
 ## 5. 索引
+
+- 入口: [README.md](README.md)（読む順番・全体図・運用カレンダー・用語）
 
 - 設計書: [contact-pipeline.md](contact-pipeline.md)（問い合わせ受付の型）、[site-factory.md](site-factory.md)（型の量産と運用の自動化）
 - 決定記録: [adr/](adr/)
