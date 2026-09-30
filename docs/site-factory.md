@@ -1,8 +1,8 @@
-# サイト工場（型の量産と運用の自動化）設計書 v1
+# サイト工場（型の量産と運用の自動化）設計書 v1.1
 
 対象: REYZ 自身のサイト（reyz.inc）の修正・運用と、REYZ が顧客のホームページを制作・運用する場合の、制作から運用・更新・失効対応までの全作業。
 目的: **人が行う操作を「承認・本人確認・支払い・契約」だけにする。** それ以外（作成・設定・検証・配備・監視・記録・鍵の更新）は宣言と workflow が行う。
-更新日: 2026-09-30 v1（棚卸しと目標状態、段階計画、DECISION）。決定: [ADR-0009](adr/0009-site-factory-declarative-provisioning.md)。
+更新日: 2026-09-30 v1.1（D6・D7 を追加。初版 v1 は同日: 棚卸しと目標状態、段階計画、DECISION）。決定: [ADR-0009](adr/0009-site-factory-declarative-provisioning.md)。
 
 ## 1. 今回（2026-09-28〜30、reyz.inc）の手動作業の棚卸し（FACT）
 
@@ -93,6 +93,8 @@ REYZ-Inc/<customer>-site（data-plane、顧客ごとに 1 repo。型から生成
 | D3 | control-plane repo | **`REYZ-Inc/site-factory`（private）** | 宣言と秘密の置き場 |
 | D4 | Workspace のシステム用ユーザーの 2SV | **本人操作で登録（手順の先頭に固定）**／ 2SV 免除の OU（安全性低下） | 運用手順 |
 | D5 | レジストラ | Squarespace 継続（API なし、手作業残る）／ **Cloudflare Registrar へ移管（U2 の結果次第）** | 2027-07 の更新前に |
+| D6 | Dependabot の PR のマージ | **人がマージ（現状。週 1〜2 クリック。main へのマージ＝本番配備の承認という原則を保つ）**／ 関門が全部通ったら自動マージ（クリック 0。ただし依存更新が人の承認なしに本番へ出る。repo が増える段階 1 で再検討） | 運用カレンダー |
+| D7 | GitHub Copilot（コードレビュー・自動修正）の導入 | **見送り（決定 2026-09-30、CEO「現段階では不要」）**。段階 2 で顧客 repo が増えたら再評価 | — |
 
 ## 8. 意図的に含めないもの
 - 受信箱の自動読取（AI にメール読み取り権限を渡さない）
@@ -101,3 +103,4 @@ REYZ-Inc/<customer>-site（data-plane、顧客ごとに 1 repo。型から生成
 
 ## 9. 変更履歴
 - 2026-09-30 v1: 初版。reyz.inc 制作の手動作業を棚卸し（GitHub 43 回、Cloudflare 4 回、Google 25 回、検証 7 回、画面共有約 60 枚）。目標状態・構成・段階計画・未確認・DECISION を定義。
+- 2026-09-30 v1.1: D6（Dependabot の PR のマージ方式。未決）・D7（Copilot 見送り。決定）を追加。段階 0 の初回の依存更新（PR #23・#24）で判明した、PR 検証と main 配備の同時実行の列の分離を `verify-and-deploy` に反映。
