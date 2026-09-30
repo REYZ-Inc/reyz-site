@@ -1,0 +1,48 @@
+# 前提の検査（何も変更しない）。1 回設定（Cloudflare トークン・OAuth クライアント・GitHub App・変数）の「完了確認」と、
+# 週 1 の定期確認（トークンの失効・App の権限変更・同意の失効・受け取りページの公開値のずれを早く知る）。
+# 判定は run の Summary（表）と annotation（1 項目 1 行）。秘密の値は出さない。検査内容: infra/ops/check.mjs の冒頭。
+# 起動: Actions → ops-check → Run workflow（IV は API で起動できる）。FAIL が 1 つでもあれば run は失敗（赤）。
+name: ops-check
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 0 * * 1"   # 毎週月曜 09:47 JST
+permissions:
+  contents: read
+concurrency:
+  group: ops-check
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: 22 }
+      - name: 前提を検査（変更なし。判定は Summary と annotation）
+        env:
+          CLOUDFLARE_TURNSTILE_TOKEN: ${{ secrets.CLOUDFLARE_TURNSTILE_TOKEN }}
+          CLOUDFLARE_WORKERS_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_TOKEN }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          GMAIL_OAUTH_CLIENT_ID: ${{ secrets.GMAIL_OAUTH_CLIENT_ID }}
+          GMAIL_OAUTH_CLIENT_SECRET: ${{ secrets.GMAIL_OAUTH_CLIENT_SECRET }}
+          GMAIL_OAUTH_REFRESH_TOKEN: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
+          OPS_APP_PRIVATE_KEY: ${{ secrets.OPS_APP_PRIVATE_KEY }}
+          OPS_APP_ID: ${{ vars.OPS_APP_ID }}
+          MAIL_SENDER_USER: ${{ vars.MAIL_SENDER_USER }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          NOC_EMAIL: ${{ vars.NOC_EMAIL }}
+          OAUTH_REDIRECT_URI: ${{ vars.OAUTH_REDIRECT_URI }}
+          REPORT_FILE: /tmp/ops-check.txt
+        run: node infra/ops/check.mjs
+      - name: 定期実行で FAIL なら noc@ へ通知（送信の鍵が生きている場合だけ届く）
+        if: failure() && github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GMAIL_OAUTH_CLIENT_ID: ${{ secrets.GMAIL_OAUTH_CLIENT_ID }}
+          GMAIL_OAUTH_CLIENT_SECRET: ${{ secrets.GMAIL_OAUTH_CLIENT_SECRET }}
+          GMAIL_OAUTH_REFRESH_TOKEN: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
+          NOC_EMAIL: ${{ vars.NOC_EMAIL }}
+        run: |
+          node infra/check/notify_noc.mjs --subject "[REYZ noc] ops-check に FAIL あり（前提の検査）" --body-file /tmp/ops-check.txt
