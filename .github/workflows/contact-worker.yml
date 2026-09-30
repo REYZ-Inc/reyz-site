@@ -56,14 +56,24 @@ jobs:
           rm -rf /tmp/ci-site && cp -r site /tmp/ci-site
           python3 workers/contact/ci/make_ci_config.py --site /tmp/ci-site --origin http://127.0.0.1:8787 --out /tmp/wrangler.ci.jsonc
       - name: Worker を起動（秘密は .dev.vars に一時展開。ログには出さない）
+        id: stack
         env:
           GMAIL_OAUTH_CLIENT_ID: ${{ secrets.GMAIL_OAUTH_CLIENT_ID }}
           GMAIL_OAUTH_CLIENT_SECRET: ${{ secrets.GMAIL_OAUTH_CLIENT_SECRET }}
           GMAIL_OAUTH_REFRESH_TOKEN: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
+          IS_BOT: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' }}
           WRANGLER_SEND_METRICS: "false"
         run: |
           mkdir -p /tmp/ci-stack && cp /tmp/wrangler.ci.jsonc /tmp/ci-stack/wrangler.ci.jsonc
-          # .dev.vars は設定ファイルと同じディレクトリに置く。値の無い秘密があれば pass ケースが 503 で落ちる（＝設定漏れを関門で検出）
+          # .dev.vars は設定ファイルと同じディレクトリに置く。
+          # Dependabot の PR には repo の secret が渡らない（GitHub の仕様）。その場合だけ Google の部分を「任意」にし（ダミー値で Worker を起動、
+          # pass ケースは Turnstile 照合と UI まで判定）、Google トークン取得は次の人の PR／main で判定する。人の PR で secret が無ければ従来どおり 503 で落ちる
+          if [ "$IS_BOT" = "true" ] && [ -z "$GMAIL_OAUTH_REFRESH_TOKEN" ]; then
+            GMAIL_OAUTH_CLIENT_ID=dependabot-no-secrets; GMAIL_OAUTH_CLIENT_SECRET=dependabot-no-secrets; GMAIL_OAUTH_REFRESH_TOKEN=dependabot-no-secrets
+            echo "e2e_google=optional" >> "$GITHUB_OUTPUT"; echo "::notice title=stack-e2e::Dependabot の PR: secret が無いため Google トークン取得の判定は任意（Turnstile・UI・Worker の受付は判定する）"
+          else
+            echo "e2e_google=required" >> "$GITHUB_OUTPUT"
+          fi
           {
             for k in GMAIL_OAUTH_CLIENT_ID GMAIL_OAUTH_CLIENT_SECRET GMAIL_OAUTH_REFRESH_TOKEN; do printf '%s=%s\n' "$k" "${!k}"; done
             printf 'TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA\n'
@@ -73,6 +83,7 @@ jobs:
           for i in $(seq 1 60); do sleep 1; curl -s -o /dev/null http://127.0.0.1:8787/api/contact && break; done
           curl -s -o /dev/null -w 'GET /api/contact -> %{http_code}\n' http://127.0.0.1:8787/api/contact
       - name: e2e — pass（合格 → 受付・Google アクセストークン取得）
+        env: { E2E_GOOGLE: "${{ steps.stack.outputs.e2e_google }}" }
         run: node qa/e2e_contact.js --mode ci --base http://127.0.0.1:8787 --case pass
       - name: e2e — fail-widget（ウィジェット失敗 → fail-open で未検証受付）
         run: node qa/e2e_contact.js --mode ci --base http://127.0.0.1:8787 --case fail-widget
