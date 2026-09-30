@@ -11,9 +11,12 @@ permissions:
   contents: read
   pages: write
   id-token: write
+# 同時実行の分離: main の配備は「pages」の 1 列（進行中は取り消さない。待ちは最新 1 件だけ残る＝GitHub の仕様）。
+# PR の検証は PR ごとの列（同じ PR への新しい push が古い検証を取り消す）。
+# 以前は workflow 全体が「pages」1 列だったため、PR の検証が main の配備の「待ち」を押し出して取り消した（2026-09-30、run 36683257447）。
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('verify-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   site-verify:
     runs-on: ubuntu-latest
@@ -35,16 +38,16 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with: { name: qa-report, path: qa/out, retention-days: 14 }
       - name: enable GitHub Pages (Actions source) if not yet enabled  # 権限が無い場合は失敗扱いにしない（設定画面で有効化）
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         continue-on-error: true
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         with: { enablement: true }
       - name: pages artifact
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with: { path: site }
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'   # 配備は main だけ（他ブランチでの手動実行は検証のみ）
     needs: site-verify
     runs-on: ubuntu-latest
     environment:

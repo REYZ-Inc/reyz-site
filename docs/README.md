@@ -47,8 +47,15 @@ GitHub Actions（.github/workflows/）
 | `turnstile-rotate` | 1・4・7・10 月 1 日 10:17 JST、手動 | Turnstile 秘密キーを API で回転 → Secret → 配備 | run が失敗（GitHub の通知） | issue「運用記録 — 認証情報」 |
 | `oauth-consent` | 手動（同意が要るときだけ） | 同意コードを検証 → Secret → 配備 → 旧トークン失効 | run が失敗し理由を表示（保存しない） | issue「運用記録 — 認証情報」 |
 | `contact-worker` | PR ごと（関門）、main の変更時 | 単体・CI 内フルスタック e2e → 配備 → secret 同期 → 疎通 | main が失敗したら Re-run failed jobs | run の annotation |
-| `verify-and-deploy` | PR ごと（関門）、main の変更時 | サイト全検証 → GitHub Pages へ配備 | — | run の Summary・artifact |
+| `verify-and-deploy` | PR ごと（関門）、main の変更時 | サイト全検証 → GitHub Pages へ配備 | main が失敗したら Re-run failed jobs。「cancelled」は、より新しい main の run に置き換えられた印（待ちは最新 1 件だけ残る）で、公開中のサイトは前回の配備のまま | run の Summary・artifact |
 | `docs-gate` | PR ごと | PR 本文に必須 6 見出しがあるか | PR がマージできない | — |
+| Dependabot | 毎週月曜 09:00 JST（actions）、毎月（npm） | 依存の更新 PR を開く（まとめて 1 本）。関門はそのまま通す（docs-gate は bot を免除） | 関門が赤なら人はマージしない。原因は AI が調べて修正 PR を出す（例: PR #27） | PR |
+
+予定（人の操作は不要。結果だけ確認）:
+
+| いつ | 何が起きるか | 確認すること |
+|---|---|---|
+| 2026-10-19 以降 | GitHub の `ubuntu-latest` が Ubuntu 26 へ移行（[runner-images#14748](https://github.com/actions/runner-images/issues/14748)） | 移行後最初の `verify-and-deploy` と `contact-worker` の run が緑か（Java・Playwright・Python を使うため） |
 
 ## 4. 人が行うこと（それ以外は機械）
 
