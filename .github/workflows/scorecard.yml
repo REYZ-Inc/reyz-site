@@ -1,0 +1,33 @@
+# OpenSSF Scorecard: リポジトリの供給網・運用の健全性を第三者の尺度（0〜10）で毎週採点し、結果を Code scanning と scorecard.dev に公開する。
+# docs/STANDARDS.md「第三者尺度での評価」。数値は README のバッジに出る。
+name: scorecard
+on:
+  schedule:
+    - cron: "23 1 * * 1"   # 毎週月曜 10:23 JST
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions: read-all
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write   # SARIF を Code scanning へ
+      id-token: write          # scorecard.dev への公開（publish_results）
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { persist-credentials: false }
+      - name: Scorecard
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - name: keep results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with: { name: scorecard-sarif, path: results.sarif, retention-days: 30 }
+      - name: upload to Code scanning
+        uses: github/codeql-action/upload-sarif@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3.38.2
+        with: { sarif_file: results.sarif }

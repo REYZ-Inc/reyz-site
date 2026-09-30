@@ -2,7 +2,7 @@
 //   ci   : CI 内で起動したフルスタック（サイト生成物 ＋ Worker、同一 origin）に対し、本物の Turnstile（公式テストキー）でフォーム UI を最後まで操作する。
 //          ケース: pass（合格→受付・Google トークン取得）/ fail-widget（ウィジェット失敗→fail-open で受付）/ interactive（対話式→送信ボタンが待つ）/
 //                  fail-secret（照合不合格→未検証で受付・codes に理由。Worker を「常に不合格」の秘密キーで起動して実行）
-//   prod : 公開サイトに対し、確認ページまで操作して Turnstile の状態を観測し、dry_run で Worker の照合まで確認する（自動操作ではトークンが出ないことがある）。
+//   prod : 公開サイトに対し、確認ページまで操作して Turnstile の状態を観測し、dry_run='token' で Worker の照合と Google トークン取得まで確認する（自動操作ではトークンが出ないことがある。Google トークンが取れなければ失敗）。
 // 使い方: node qa/e2e_contact.js --mode ci --base http://127.0.0.1:8787 --case pass
 //         node qa/e2e_contact.js --mode prod --base https://reyz.inc
 // 出力: JSON（fails / summary / out）。GitHub Actions では annotation と Step Summary にも出す。fails が 1 件でもあれば exit 1。
@@ -76,11 +76,13 @@ const OUT = process.env.QA_OUT || 'qa/out';
   } else {
     out.dry_run = await p.evaluate(async () => {
       const t = window.__reyzContact || {};
-      const body = { name: 'E2E 通し確認', person: '', email: 'e2e@example.com', type: 'その他', message: '自動確認（dry_run）', website: '', turnstile: t.token || '', client: { turnstile: t.token ? 'ok' : (t.state || 'none') }, dry_run: true };
+      // dry_run='token': 照合のあと Google のアクセストークン取得まで行い、送信はしない（本番の同意の生存を毎回・毎日確かめる。失効は送信前に検知）
+      const body = { name: 'E2E 通し確認', person: '', email: 'e2e@example.com', type: 'その他', message: '自動確認（dry_run）', website: '', turnstile: t.token || '', client: { turnstile: t.token ? 'ok' : (t.state || 'none') }, dry_run: 'token' };
       try { const res = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); let j = null; try { j = await res.json(); } catch (e) {} return { status: res.status, body: j }; }
       catch (e) { return { status: 0, error: String(e) }; }
     });
     if (!out.dry_run || out.dry_run.status !== 200 || !out.dry_run.body || out.dry_run.body.ok !== true) fails.push('worker dry_run: ' + JSON.stringify(out.dry_run));
+    else if (out.dry_run.body.google_token !== true) fails.push('google token: 本番 Worker が Google のアクセストークンを取得できない（同意の失効・クライアント不正・API 無効のいずれか。detail=' + (out.dry_run.body.detail || '-') + '）。workers/contact/README.md「認証情報の更新」');
     if (!ts) fails.push('turnstile: 状態が読めない（site.js が古い／__reyzContact なし）');
     else if (['blocked', 'error', 'render-error', 'unsupported'].includes(ts.state)) fails.push('turnstile: ' + ts.state + ' ' + (ts.error || ''));
     else if (ts.token && out.dry_run && out.dry_run.body && out.dry_run.body.verified === false) fails.push('turnstile: トークンはあるが siteverify 不合格 ' + JSON.stringify(out.dry_run.body.codes) + '（Worker の TURNSTILE_SECRET_KEY を確認）');

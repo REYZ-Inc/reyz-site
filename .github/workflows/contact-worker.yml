@@ -10,7 +10,7 @@ on:
   pull_request:   # すべての PR で実行（ブランチ保護の必須チェック `worker-tests` / `stack-e2e` が「未報告」で止まらないよう、パス絞り込みはしない）
   push:
     branches: [main]
-    paths: ['workers/contact/**', '.github/workflows/contact-worker.yml']
+    paths: ['workers/contact/**', 'infra/oauth/**', 'qa/e2e_contact.js', '.github/workflows/contact-worker.yml']   # 関門が読むものはすべて含める（含めないと、失敗した main run の修正で配備が再開しない）
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,8 +25,8 @@ jobs:
     timeout-minutes: 10
     defaults: { run: { working-directory: workers/contact } }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22 }
       - name: self-test（ネットワーク不要）
         run: node --test
@@ -43,10 +43,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22, cache: npm }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with: { python-version: "3.12" }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -92,7 +92,7 @@ jobs:
         run: pkill -f 'wrangler dev' || true; rm -f /tmp/ci-stack/.dev.vars
       - name: keep screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with: { name: contact-stack-e2e, path: qa/out/e2e_contact_ci_*.png, retention-days: 7, if-no-files-found: ignore }
 
   deploy:
@@ -102,11 +102,11 @@ jobs:
     timeout-minutes: 10
     environment: cloudflare
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22 }
       - name: deploy
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_WORKERS_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

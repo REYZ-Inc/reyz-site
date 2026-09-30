@@ -62,7 +62,7 @@ REYZ-Inc/<customer>-site（data-plane、顧客ごとに 1 repo。型から生成
 
 | 段階 | 内容 | 人の操作（1 回） | 完了判定 |
 |---|---|---|---|
-| 0（今週） | 強化: アクションの SHA 固定＋Dependabot、PKCE（貼る文字列に同梱）、本番トークンプローブ＋毎日実行、OpenSSF Scorecard 常設、Turnstile の作成・回転を API 化（秘密を人が見ない）、時刻依存テストの禁止を標準に追加 | PR のマージ | Scorecard が公開され、Turnstile の回転が無人で通る |
+| 0（今週） | 強化: アクションの SHA 固定＋Dependabot、PKCE（貼る文字列に同梱）、本番トークンプローブ＋毎日実行、OpenSSF Scorecard 常設、Turnstile の回転を API 化（秘密を人が見ない。作成の API 化は段階 1 の bootstrap）、時刻依存テストの禁止を標準に追加 — **実装済み（2026-09-30）** | PR のマージ、`CLOUDFLARE_TURNSTILE_TOKEN` の作成（1 回） | Scorecard が公開され、Turnstile の回転が無人で通る |
 | 1 | 型の分離: `site-template`（この repo から生成物・関門・文書の骨格を切り出し、内容は `site.json` と assets に）と `site-factory`（宣言＋bootstrap workflow）。REYZ の 2 つ目のドメインで bootstrap を実証 | App の組織インストール、Cloudflare アカウントトークン 1 回、宣言の承認 | 宣言 1 つから公開まで人の操作が「承認とネームサーバ」だけになる |
 | 2 | 顧客向け: 送信事業者 adapter（DNS 検証まで API）、顧客要件の入力様式（JSON Schema）→ AI がコンテンツ起草 → PR → 承認 | 事業者の契約 1 回、顧客ごとの承認 | 顧客サイト 1 件を型どおりに公開 |
 | 3 | 全サイトの監視集約、証跡の日次保管、AI 専用のコミット名義、Scorecard の全 repo 展開 | — | 標準表の GAP が 0 |
