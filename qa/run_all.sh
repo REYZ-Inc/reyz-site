@@ -17,7 +17,7 @@ echo "== 2/7 html-validate"
 npx html-validate site/*.html
 
 echo "== 3/7 W3C Nu checker（エラー 0・警告 0）"
-VNU="$(node -e "console.log(require('vnu-jar'))")"
+VNU="$(node -e "console.log(String(require('vnu-jar')))")"   # vnu-jar 26 以降は String オブジェクト（+vnu プロパティ）を返すので文字列化する
 java -jar "$VNU" --format json site/*.html 2>"$QA_OUT/nu.json" || true
 node -e '
 const fs = require("fs"); const raw = fs.readFileSync(process.argv[1], "utf8"); const i = raw.indexOf("{"); const r = JSON.parse(raw.slice(i));

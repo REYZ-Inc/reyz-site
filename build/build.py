@@ -328,7 +328,7 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
                   </select>
                 </div>
                 <input id="cDomainOther" name="email_domain_other" type="text" autocapitalize="off" spellcheck="false" autocomplete="off" aria-label="ドメインを入力" placeholder="example.co.jp" hidden>
-                <input id="cEmail" name="email" type="email" hidden tabindex="-1" aria-hidden="true">
+                <input id="cEmail" name="email" type="email" hidden tabindex="-1">
               </div>
               <label>ご用件
                 <select id="cType" name="type" required>
@@ -351,7 +351,7 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
                 </select>
               </label>
               <label>内容（ご要望・質問・相談等）<textarea id="cMsg" name="message" required></textarea></label>
-              <input id="cWebsite" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" hidden>
+              <input id="cWebsite" name="website" type="text" tabindex="-1" autocomplete="off" hidden>
               <div class="ctas tight">
                 <button class="btn primary" type="submit" id="confirmBtn">確認する</button>
               </div>
