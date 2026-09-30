@@ -39,8 +39,6 @@ jobs:
           GMAIL_OAUTH_CLIENT_ID: ${{ secrets.GMAIL_OAUTH_CLIENT_ID }}
           GMAIL_OAUTH_CLIENT_SECRET: ${{ secrets.GMAIL_OAUTH_CLIENT_SECRET }}
           GMAIL_OAUTH_REFRESH_TOKEN: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
-          GMAIL_SA_KEY: ${{ secrets.GMAIL_SA_KEY }}
-          GMAIL_SENDER_USER: ${{ secrets.GMAIL_SENDER_USER }}
           NOC_EMAIL: ${{ vars.NOC_EMAIL }}
           TARGET_URL: ${{ inputs.url || 'https://reyz.inc' }}
         run: |

@@ -4,7 +4,7 @@
 使い方: CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID を環境変数に置いて
   python3 infra/check/contact_logs.py --hours 24 [--service reyz-contact]
 
-Worker が console.log した JSON（{"event":"contact", ...}）だけを拾い、時刻（JST）・結果・検証状態・Gmail の受理 ID などを表にする。
+Worker が console.log した JSON（{"event":"contact", ...}）だけを拾い、時刻（JST）・結果・検証状態・Gmail の受理 ID・送信の認証方式（auth）などを表にする。
 本文・メールアドレス・氏名は Worker が記録していないので、ここにも出ない。
 GitHub Actions 上では ::notice annotation と Step Summary にも出す（AI が API 経由で読める）。
 API: POST /accounts/{account_id}/workers/observability/telemetry/query（token 権限: Workers の可観測性 › 編集）
@@ -80,7 +80,7 @@ def main():
         t = datetime.fromtimestamp(ts / 1000, JST).strftime('%m-%d %H:%M:%S') if ts else '-'
         outcome = ('OK' if d.get('ok') else 'NG') + (':' + str(d.get('error')) if d.get('error') else '') + (' honeypot-dropped' if d.get('dropped') else '')
         rows.append((ts, f"{t} | {outcome} | verified={d.get('verified', '-')} client={d.get('client', '-')} codes={','.join(d.get('codes') or []) or '-'} "
-                         f"| confirmation={d.get('confirmation', '-')} gmail_copy={d.get('gmail_copy', '-') or '-'} gmail_conf={d.get('gmail_confirmation', '-') or '-'} "
+                         f"| confirmation={d.get('confirmation', '-')} gmail_copy={d.get('gmail_copy', '-') or '-'} gmail_conf={d.get('gmail_confirmation', '-') or '-'} auth={d.get('auth') or '-'} "
                          f"| type={d.get('type', '-')} country={d.get('country', '-')} ray={d.get('ray', '-')}" + (f" | {d.get('stage') or 'detail'}: {d.get('detail')}" if d.get('detail') else '')))
     rows.sort(key=lambda r: r[0])
     lines = [r[1] for r in rows]
@@ -100,35 +100,23 @@ def main():
 
 
 def check(a, rows, events, lines):
-    """異常判定: エラー応答が 1 件以上 / 未検証受付が閾値以上 / サービスアカウント鍵の経過日数が上限以上。平常時は alert=false。"""
+    """異常判定: エラー応答が 1 件以上 / 未検証受付が閾値以上。平常時は alert=false。
+    送信の認証（no-reply@ の OAuth）の失効は Worker のエラー応答 send/token として現れ、ここで拾われる。"""
     parsed = [parse_event(e) for e in events]
     parsed = [d for d in parsed if d]
     errors = [d for d in parsed if not d.get('ok')]
     unverified = [d for d in parsed if d.get('ok') and d.get('verified') is False]
     honeypot = [d for d in parsed if d.get('dropped')]
     unverified_alert = int(os.environ.get('UNVERIFIED_ALERT', '10'))
-    key_max = int(os.environ.get('KEY_MAX_AGE_DAYS', '90'))
-    created = os.environ.get('GMAIL_SA_KEY_CREATED', '').strip()
-    key_age = None
-    if created:
-        try:
-            key_age = (datetime.now(timezone.utc).date() - datetime.strptime(created, '%Y-%m-%d').date()).days
-        except ValueError:
-            key_age = None
-    auth_mode = os.environ.get('AUTH_MODE', 'service-account')
+    auth_modes = sorted({str(d.get('auth')) for d in parsed if d.get('auth')})   # 送信まで到達した記録に Worker が書く認証方式（現在は oauth のみ）
     reasons = []
     if errors:
-        reasons.append(f'エラー応答 {len(errors)} 件（' + ', '.join(sorted({str(d.get("error")) for d in errors})) + '）')
+        reasons.append(f'エラー応答 {len(errors)} 件（' + ', '.join(sorted({str(d.get("error")) + ('/' + str(d.get('stage')) if d.get('stage') else '') for d in errors})) + '）')
     if len(unverified) >= unverified_alert:
         reasons.append(f'未検証受付 {len(unverified)} 件（閾値 {unverified_alert}）')
-    if auth_mode == 'service-account':   # OAuth（送信専用ユーザーの同意）では鍵の期限はない。失効は送信失敗（エラー応答）として検知される
-        if key_age is None:
-            reasons.append('鍵の作成日（変数 GMAIL_SA_KEY_CREATED, YYYY-MM-DD）が未設定')
-        elif key_age >= key_max - 10:
-            reasons.append(f'サービスアカウント鍵が {key_age} 日経過（上限 {key_max} 日。ローテーション手順: workers/contact/README.md）')
-    result = {'alert': bool(reasons), 'reasons': reasons, 'total': len(parsed), 'errors': len(errors), 'unverified': len(unverified), 'honeypot_dropped': len(honeypot), 'key_age_days': key_age, 'auth_mode': auth_mode, 'hours': a.hours}
+    result = {'alert': bool(reasons), 'reasons': reasons, 'total': len(parsed), 'errors': len(errors), 'unverified': len(unverified), 'honeypot_dropped': len(honeypot), 'auth_modes': auth_modes, 'hours': a.hours}
     title = '; '.join(reasons) if reasons else '異常なし'
-    report = [f'問い合わせ Worker（{a.service}）直近 {a.hours} 時間の集計', '', f'受付 {len(parsed)} 件 / エラー {len(errors)} 件 / 未検証受付 {len(unverified)} 件 / honeypot 破棄 {len(honeypot)} 件 / 認証 {auth_mode}' + (f' / 鍵の経過日数 {key_age if key_age is not None else "不明"}' if auth_mode == 'service-account' else ''), '',
+    report = [f'問い合わせ Worker（{a.service}）直近 {a.hours} 時間の集計', '', f'受付 {len(parsed)} 件 / エラー {len(errors)} 件 / 未検証受付 {len(unverified)} 件 / honeypot 破棄 {len(honeypot)} 件 / 送信の認証 {",".join(auth_modes) or "（送信なし）"}', '',
               '判定: ' + title, '', '記録（新しい順、最大 40 件）:'] + [l for l in reversed(lines[-40:])]
     print('check:', json.dumps(result, ensure_ascii=False))
     if a.check:
