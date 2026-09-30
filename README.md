@@ -17,6 +17,7 @@
 | `docs/adr/` | 決定記録（ADR、MADR 形式）。なぜそうなっているかの履歴 |
 | `docs/incidents/` | 事故記録（blameless ポストモーテム）。再発防止は PR 番号で追跡 |
 | `docs/contact-pipeline.md` | 問い合わせ受付の標準型 v2（設計書・正本）。要件・関門・未検証方針・秘密・役割アドレス・運用 |
+| `docs/site-factory.md` | サイト工場（型の量産と運用の自動化）設計書。手動作業の棚卸し、目標状態、control-plane / data-plane、段階計画、DECISION |
 | `.github/PULL_REQUEST_TEMPLATE.md` / `docs-gate.yml` | PR の必須見出し（目的・参照基準・一致と差分・検証・未確認・影響）と、その機械検査 |
 | `workers/contact/` | 問い合わせフォームの受付 Worker（`reyz.inc/api/contact`。Turnstile → Gmail API で控え＋確認メール）。実装と手順は [workers/contact/README.md](workers/contact/README.md) |
 | `.github/workflows/contact-worker.yml` | PR: 単体テスト ＋ CI 内フルスタック e2e（本物の Turnstile を公式テストキーで）。main: Cloudflare Workers へ配備 |
