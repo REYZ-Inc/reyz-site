@@ -7,7 +7,8 @@ const b64url = s => Buffer.from(s).toString('base64').replace(/\+/g, '-').replac
 const idToken = (claims) => `${b64url('{"alg":"RS256","kid":"x"}')}.${b64url(JSON.stringify(claims))}.sig`;
 const CLIENT = 'cid.apps.googleusercontent.com', SENDER = 'no-reply@reyz.inc';
 const now = Date.UTC(2026, 8, 30, 3, 0, 0);
-const claimsFor = (email, extra = {}) => ({ iss: 'https://accounts.google.com', aud: CLIENT, exp: Math.floor(now / 1000) + 3600, email, email_verified: true, hd: 'reyz.inc', ...extra });
+// exp は実時刻基準（verifyIdentity の既定 nowSec は実時刻。固定の `now` を基準にすると実時刻が進んだとき期限切れになる＝2026-09-30 の main で再現）
+const claimsFor = (email, extra = {}) => ({ iss: 'https://accounts.google.com', aud: CLIENT, exp: Math.floor(Date.now() / 1000) + 3600, email, email_verified: true, hd: 'reyz.inc', ...extra });
 
 function fakeFetch({ token = {}, revokeStatus = 200 } = {}) {
   const calls = [];
