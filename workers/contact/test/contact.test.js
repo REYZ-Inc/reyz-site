@@ -254,3 +254,22 @@ test('auth adapter: OAuth（送信専用ユーザーのリフレッシュトー�
   const r3 = await handle(post(good()), env(), deps(bad));
   assert.equal(r3.status, 502); assert.deepEqual(await r3.json(), { ok: false, error: 'send', stage: 'token', detail: 'invalid_grant' });
 });
+
+test('gmailSend: Gmail が 401 を返したら cache を捨てて 1 回だけ取り直す（ローテーション直後の失効に耐える）。2 回目も 401 なら 502', async () => {
+  resetTokenCache();
+  let gmailCalls = 0;
+  const f = fakeFetch({
+    [TOKEN_URL]: (init, calls) => Response.json({ access_token: 'at-' + calls.filter(c => c.url === TOKEN_URL).length, expires_in: 3600 }),
+    [GMAIL_URL]: (init) => { gmailCalls++; return init.headers.Authorization === 'Bearer at-1' ? new Response('{"error":{"code":401}}', { status: 401 }) : Response.json({ id: 'msg-ok' }); },
+  });
+  const r = await handle(post(good()), env(), deps(f));
+  assert.equal(r.status, 200); assert.deepEqual(await r.json(), { ok: true, verified: true, confirmation: true });
+  // 事前の token → 控え(401) → 取り直し → 控え(ok) → 確認メール(ok、cache)
+  assert.deepEqual(f.calls.map(c => c.url), [TURNSTILE_URL, TOKEN_URL, GMAIL_URL, TOKEN_URL, GMAIL_URL, GMAIL_URL]);
+  assert.equal(gmailCalls, 3);
+  resetTokenCache();
+  const always401 = fakeFetch({ [GMAIL_URL]: () => new Response('{"error":{"code":401,"message":"Invalid Credentials"}}', { status: 401 }) });
+  const r2 = await handle(post(good()), env(), deps(always401));
+  assert.equal(r2.status, 502); assert.deepEqual(await r2.json(), { ok: false, error: 'send', stage: 'copy', detail: 'Invalid Credentials' });
+  assert.equal(always401.calls.filter(c => c.url === GMAIL_URL).length, 2);   // 取り直しは 1 回だけ
+});
