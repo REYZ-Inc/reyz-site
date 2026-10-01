@@ -38,4 +38,8 @@ jobs:
             git push origin --delete "$b" && deleted="$deleted $b" || echo "::warning title=branch-cleanup::削除できない: $b"
           done
           n=$(echo $deleted | wc -w); echo "::notice title=branch-cleanup::$( [ "$DRY_RUN" = "true" ] && echo '削除対象（dry run）' || echo '削除' ) $n 本:$deleted${kept:+ / 開いている PR のため残す:$kept}"
-          { echo "## branch-cleanup$( [ "$DRY_RUN" = "true" ] && echo '（dry run）' )"; echo; echo "- $( [ "$DRY_RUN" = "true" ] && echo '削除対象' || echo '削除' ): $n 本"; for b in $deleted; do echo "  - \`$b\`"; done; [ -n "$kept" ] && { echo "- 開いている PR のため残す:"; for b in $kept; do echo "  - \`$b\`"; done; }; } >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## branch-cleanup$( [ "$DRY_RUN" = "true" ] && echo '（dry run）' )"; echo
+            echo "- $( [ "$DRY_RUN" = "true" ] && echo '削除対象' || echo '削除' ): $n 本"; for b in $deleted; do echo "  - \`$b\`"; done
+            if [ -n "$kept" ]; then echo "- 開いている PR のため残す:"; for b in $kept; do echo "  - \`$b\`"; done; fi
+          } >> "$GITHUB_STEP_SUMMARY"
