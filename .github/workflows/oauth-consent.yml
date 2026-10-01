@@ -4,7 +4,10 @@
 #              → この workflow を Run workflow（入力 code に貼る）。それだけ。
 # workflow がやること: コード → トークン交換 → ID トークンで「同意した口座 = 送信専用ユーザー」を検証（違えば新トークンを失効させて失敗）
 #              → GitHub Secret GMAIL_OAUTH_REFRESH_TOKEN を更新（GitHub App の権限）→ contact-worker を起動し配備完了を待つ
-#              → 古いリフレッシュトークンを失効 → 運用記録の issue にコメント → Summary。トークンの値はどこにも表示しない。
+#              → 運用記録の issue にコメント → Summary。トークンの値はどこにも表示しない。
+# 古いリフレッシュトークンは失効させない: Google の失効は「口座 × クライアント」のグラント単位で、古いトークンを失効させると
+#              同じ口座の新しいトークンも無効になる（2026-10-01 の初回実行で発生。docs/incidents/2026-10-01-oauth-consent-revoke.md）。
+#              古いトークンは Secret と Worker secret が上書きされた時点でどこにも残らず、6 か月未使用で自然失効する。
 # 前提（1 回）: GitHub App（vars.OPS_APP_ID / secrets.OPS_APP_PRIVATE_KEY。権限: Secrets 書き込み・Actions 書き込み・Issues 書き込み）、
 #              vars.MAIL_SENDER_USER（no-reply@reyz.inc）、OAuth クライアントのリダイレクト URI に https://reyz.inc/oauth/callback.html。
 #              手順: workers/contact/README.md
@@ -49,11 +52,6 @@ jobs:
         with:
           app-id: ${{ vars.OPS_APP_ID }}
           private-key: ${{ secrets.OPS_APP_PRIVATE_KEY }}
-      - name: 現在のリフレッシュトークンを退避（後で失効させる。値は表示しない）
-        env:
-          OLD: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
-        run: |
-          umask 077; printf '%s' "$OLD" > /tmp/old.rt
       - name: コードをトークンに交換し、同意した口座を検証
         env:
           CODE: ${{ inputs.code }}
@@ -77,14 +75,9 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: bash infra/ops/deploy_wait.sh
-      - name: 古いリフレッシュトークンを失効（新しいものと同じならスキップ）
-        env:
-          TOKEN_FILE: /tmp/old.rt
-          NEW_TOKEN_FILE: /tmp/new.rt
-        run: node infra/oauth/consent.mjs revoke
-      - name: 後始末（トークンの一時ファイルを削除）
+      - name: 後始末（トークンの一時ファイルを削除。古いトークンは失効させない＝冒頭の注記）
         if: always()
-        run: shred -u /tmp/old.rt /tmp/new.rt 2>/dev/null || rm -f /tmp/old.rt /tmp/new.rt
+        run: shred -u /tmp/new.rt 2>/dev/null || rm -f /tmp/new.rt
       - name: 運用記録（issue「運用記録 — 認証情報」にコメント。トークンは書かない）
         if: always()
         env:

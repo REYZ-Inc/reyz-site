@@ -63,7 +63,7 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 | `../../infra/check/contact_logs.py` + `../../.github/workflows/contact-logs.yml` | Worker の記録（結果・検証状態・Gmail 受理 ID・認証方式 `auth`）を Workers Logs API から一覧にする。手動起動、読み取りのみ |
 | `../../site/assets/site.js` | `CONFIG.formEndpoint='/api/contact'`、`CONFIG.turnstileSiteKey` で有効化（確認ページに Turnstile を描画） |
 | `../../site/oauth/callback.html` | 同意の受け取りページ（同意リンクの組み立てと同意コードの表示だけ。秘密なし、noindex、サイト導線から未リンク） |
-| `../../infra/oauth/consent.mjs` + `test/` | 同意コードの交換、ID トークンによる口座の検証（不一致なら失効して失敗）、古いトークンの失効 |
+| `../../infra/oauth/consent.mjs` + `test/` | 同意コードの交換、ID トークンによる口座の検証（別の口座なら、その口座のトークンを失効して失敗）。本人の古いトークンは失効させない |
 | `../../.github/workflows/oauth-consent.yml` | 同意コード（`コード~verifier`、PKCE）を 1 回貼ると、検証 → Secret 更新 → 配備 → 失効 → 記録まで行う（GitHub App の権限） |
 | `../../.github/workflows/turnstile-rotate.yml` | Turnstile 秘密キーの回転を無人で行う（Cloudflare API → Secret → 配備 → 記録） |
 | `../../infra/ops/deploy_wait.sh` / `record.sh` | 運用 workflow 共通: 配備の起動と完了待ち／運用記録 issue へのコメント |
@@ -101,7 +101,7 @@ GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のた�
 | 5 | 同 → Google Auth Platform → ブランディング／対象／データアクセス | 対象 **内部**、アプリ名 `REYZ Mail Sender`、サポートメールは Workspace のユーザーかグループ、**データアクセス**でスコープ `https://www.googleapis.com/auth/gmail.send` を追加 → 保存 |
 | 6 | 同 → クライアント → クライアントを作成 | 種類 **ウェブ アプリケーション**、名前 `reyz-mail-sender`、「承認済みのリダイレクト URI」（JavaScript 生成元ではない）に **`https://reyz.inc/oauth/callback.html`** → 作成 → **この画面で** クライアント ID を GitHub Secret `GMAIL_OAUTH_CLIENT_ID`、クライアント シークレットを `GMAIL_OAUTH_CLIENT_SECRET` に登録（閉じると末尾 4 文字しか見えない。見失ったら「シークレットを追加」で新しいものを作り、古いものは無効化 → 削除）。クライアント ID は `site/oauth/callback.html` の `CONFIG.clientId` にも書く（公開値） |
 | 7 | https://reyz.inc/oauth/callback.html | **「同意を開始する」** → Google のログインは `no-reply@reyz.inc`（リンクが口座を指定している。他の口座で許可しても 8 で拒否される）→ 許可 → ページに戻ると **同意コード**（`コード~verifier`。PKCE の verifier を含む 1 つの文字列）が表示される → 「コードをコピー」。同意を始めたのと同じブラウザで受け取る（verifier はそのブラウザにしかない） |
-| 8 | GitHub → Actions → **oauth-consent** → Run workflow | `code` に貼って実行。workflow が: 交換 → 同意した口座が no-reply@ か検証（違えば失効して失敗） → Secret `GMAIL_OAUTH_REFRESH_TOKEN` 更新 → `contact-worker` を起動して配備完了を待つ → 古いトークンを失効 → issue「運用記録 — 認証情報」にコメント。結果は run の Summary |
+| 8 | GitHub → Actions → **oauth-consent** → Run workflow | `code` に貼って実行。workflow が: 交換 → 同意した口座が no-reply@ か検証（違えば失効して失敗） → Secret `GMAIL_OAUTH_REFRESH_TOKEN` 更新 → `contact-worker` を起動して配備完了を待つ → issue「運用記録 — 認証情報」にコメント。結果は run の Summary。古いトークンは失効させない（Google の失効はグラント単位で、新しい鍵も消える。[事故記録](../../docs/incidents/2026-10-01-oauth-consent-revoke.md)） |
 | 9 | 実送信テスト | フォームから 1 件送る → 控え（contact@ 宛）と確認メールの **両方が `REYZ Inc. <no-reply@reyz.inc>` から届き、受信トレイに入る**ことを確認。`contact-logs` の記録は `verified=True confirmation=True auth=oauth` と Gmail 受理 ID 2 件 |
 
 ### 同意の自動化の前提（1 回。Owner 権限。ロウ）
@@ -125,7 +125,7 @@ GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のた�
 
 | 更新するもの | 手順 |
 |---|---|
-| リフレッシュトークン（失効: 取り消し・no-reply@ のパスワード変更・6 か月未使用。症状: 502 `send/token` `invalid_grant`、`contact-watch` が通知） | 上の 7 → 8（→ 9 で確認）。古いトークンは workflow が失効させる |
+| リフレッシュトークン（失効: 取り消し・no-reply@ のパスワード変更・6 か月未使用。症状: 502 `send/token` `invalid_grant`、`contact-watch` が通知） | 上の 7 → 8（→ 9 で確認）。古いトークンは失効させない（Secret と Worker secret の上書きでどこにも残らず、6 か月未使用で自然失効）。漏えい時だけ: Google アカウント（no-reply@）の「第三者アクセス」で REYZ Mail Sender を削除 → 7 → 8 |
 | クライアント シークレット（漏えい時） | GCP → クライアント → 「シークレットを追加」→ 新しい値を GitHub Secret `GMAIL_OAUTH_CLIENT_SECRET` に上書き → 7 → 8（リフレッシュトークンは新しいシークレットでも有効だが、漏えい時は一緒に取り直す）→ 古いシークレットを無効化 → 削除 |
 | Turnstile 秘密キー | **無人**: `turnstile-rotate` workflow（四半期ごとに自動。漏えい時は Run workflow）が Cloudflare API で回転 → Secret 更新 → 配備 → 記録。旧キーは Cloudflare の猶予期間（約 2 時間）のあと無効。前提は下の「Turnstile 秘密キーの回転」 |
 

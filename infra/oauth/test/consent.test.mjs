@@ -77,12 +77,15 @@ test('exchange: 別の口座（個人）で同意されたら、受け取った�
   assert.equal(f.calls[1].body.get('token'), 'rt-new');   // 誤った同意のトークンを残さない
 });
 
-test('exchange: refresh_token 無し / gmail.send 未許可 / token endpoint の失敗は理由付きで失敗', async () => {
+test('exchange: refresh_token 無し / gmail.send 未許可 / token endpoint の失敗は理由付きで失敗。本人の同意は失効させない（グラント単位の失効で稼働中のトークンを壊さない）', async () => {
   const noRt = fakeFetch({ token: { body: { access_token: 'at', id_token: idToken(claimsFor(SENDER)), scope: 'openid https://www.googleapis.com/auth/gmail.send' } } });
   assert.match((await exchange(deps(noRt), { code: 'c', clientId: CLIENT, clientSecret: 'sec', sender: SENDER })).reason, /refresh_token/);
   const noScope = fakeFetch({ token: { body: { access_token: 'at', refresh_token: 'rt', id_token: idToken(claimsFor(SENDER)), scope: 'openid email' } } });
   const r2 = await exchange(deps(noScope), { code: 'c', clientId: CLIENT, clientSecret: 'sec', sender: SENDER });
-  assert.equal(r2.ok, false); assert.match(r2.reason, /gmail\.send/); assert.equal(noScope.calls[1].url, REVOKE_URL);
+  assert.equal(r2.ok, false); assert.match(r2.reason, /gmail\.send/); assert.deepEqual(noScope.calls.map(c => c.url), [TOKEN_URL]);   // 本人のグラントは失効させない
+  const noId = fakeFetch({ token: { body: { access_token: 'at', refresh_token: 'rt', scope: 'https://www.googleapis.com/auth/gmail.send' } } });
+  const r2b = await exchange(deps(noId), { code: 'c', clientId: CLIENT, clientSecret: 'sec', sender: SENDER });
+  assert.equal(r2b.ok, false); assert.match(r2b.reason, /id_token/); assert.deepEqual(noId.calls.map(c => c.url), [TOKEN_URL]);   // 口座が分からなくても失効させない
   const bad = fakeFetch({ token: { body: { error: 'invalid_grant', error_description: 'Malformed auth code.' }, status: 400 } });
   const r3 = await exchange(deps(bad), { code: 'c', clientId: CLIENT, clientSecret: 'sec', sender: SENDER });
   assert.equal(r3.ok, false); assert.match(r3.reason, /invalid_grant/);
