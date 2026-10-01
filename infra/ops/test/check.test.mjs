@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, createVerify } from 'node:crypto';
-import { readSiteKey, appJwt, checkPresence, checkCloudflareToken, checkTurnstileSecret, checkOAuthClientAuthz, checkOAuthClientSecret, checkRefreshToken, checkGitHubApp, checkCallbackPage, runAll, REQUIRED_APP_PERMISSIONS } from '../check.mjs';
+import { readSiteKey, appJwt, decodeAuthError, checkPresence, checkCloudflareToken, checkTurnstileSecret, checkOAuthClientAuthz, checkOAuthClientSecret, checkRefreshToken, checkGitHubApp, checkCallbackPage, runAll, REQUIRED_APP_PERMISSIONS } from '../check.mjs';
 
 const CLIENT = 'cid.apps.googleusercontent.com', SENDER = 'no-reply@reyz.inc', REDIRECT = 'https://reyz.inc/oauth/callback.html';
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -74,15 +74,41 @@ test('C4: Turnstile 秘密キー。invalid-input-response は鍵が有効、inva
   assert.equal((await checkTurnstileSecret(deps(valid), { secret: '' })).status, 'SKIP');
 });
 
-test('C5: 認可 endpoint。redirect_uri_mismatch / invalid_client のページは FAIL、ログイン画面（200/302）は PASS。ログインはしない', async () => {
-  const mismatch = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => html('<html>Error 400: redirect_uri_mismatch</html>', 400) ]]);
+// Google の実際の挙動（2026-10-01 の実 run）: 未登録 URI は本文ではなく /signin/oauth/error?authError=<base64> への 302 で返る
+const authError = code => Buffer.from(`\n\r${code}\x12\x10dummy`, 'latin1').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const redirectTo = loc => new Response('', { status: 302, headers: { Location: loc } });
+test('C5: 認可 endpoint。エラーは転送先 URL（/signin/oauth/error の authError）で判定し、ログイン画面への転送は PASS。ログインはしない', async () => {
+  const errUrl = `https://accounts.google.com/signin/oauth/error/v2?authError=${authError('redirect_uri_mismatch')}&client_id=${CLIENT}`;
+  assert.equal(decodeAuthError(errUrl), 'redirect_uri_mismatch');
+  assert.equal(decodeAuthError('https://accounts.google.com/x?authError=%%%'), '');
+  const mismatch = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => redirectTo(errUrl) ]]);
   const r = await checkOAuthClientAuthz(deps(mismatch), { clientId: CLIENT, redirectUri: REDIRECT });
-  assert.equal(r.status, 'FAIL'); assert.match(r.detail, /redirect_uri_mismatch/); assert.match(r.next, /URI を追加/);
+  assert.equal(r.status, 'FAIL'); assert.match(r.detail, /redirect_uri_mismatch/); assert.match(r.next, /承認済みのリダイレクト URI に追加/);
+  assert.equal(mismatch.calls.length, 1);   // エラーページ自体は取得しない（転送先 URL だけで判定）
   const u = new URL(mismatch.calls[0].url); assert.equal(u.searchParams.get('client_id'), CLIENT); assert.equal(u.searchParams.get('redirect_uri'), REDIRECT); assert.equal(u.searchParams.get('scope'), 'openid');
-  const notFound = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => html('Error 401: invalid_client The OAuth client was not found.', 401) ]]);
-  assert.match((await checkOAuthClientAuthz(deps(notFound), { clientId: CLIENT, redirectUri: REDIRECT })).detail, /invalid_client/);
-  const login = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => new Response('', { status: 302, headers: { Location: 'https://accounts.google.com/signin' } }) ]]);
-  assert.equal((await checkOAuthClientAuthz(deps(login), { clientId: CLIENT, redirectUri: REDIRECT })).status, 'PASS');
+  // 本文にエラーが出る形（旧い形）も拒否
+  const bodyErr = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => html('<html>Error 400: redirect_uri_mismatch</html>', 400) ]]);
+  assert.equal((await checkOAuthClientAuthz(deps(bodyErr), { clientId: CLIENT, redirectUri: REDIRECT })).status, 'FAIL');
+  const notFound = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => redirectTo(`https://accounts.google.com/signin/oauth/error/v2?authError=${authError('invalid_client')}`) ]]);
+  const r2 = await checkOAuthClientAuthz(deps(notFound), { clientId: CLIENT, redirectUri: REDIRECT });
+  assert.equal(r2.status, 'FAIL'); assert.match(r2.detail, /invalid_client/);
+  const other = await checkOAuthClientAuthz(deps(fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => redirectTo(`https://accounts.google.com/signin/oauth/error/v2?authError=${authError('invalid_request')}`) ]])), { clientId: CLIENT, redirectUri: REDIRECT });
+  assert.equal(other.status, 'FAIL'); assert.match(other.detail, /invalid_request/);
+  // 登録済み: ログイン画面（identifier）へ転送 → PASS。2 段階の転送でも追う
+  const login = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => redirectTo('https://accounts.google.com/o/oauth2/auth/identifier?client_id=' + CLIENT) ]]);
+  const ok = await checkOAuthClientAuthz(deps(login), { clientId: CLIENT, redirectUri: REDIRECT });
+  assert.equal(ok.status, 'PASS'); assert.match(ok.detail, /accounts\.google\.com\/o\/oauth2\/auth\/identifier/);
+  const twoHops = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => redirectTo('https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?x=1') ],
+    [ 'https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount', () => redirectTo('https://accounts.google.com/v3/signin/identifier?flowName=GeneralOAuthFlow') ]]);
+  assert.equal((await checkOAuthClientAuthz(deps(twoHops), { clientId: CLIENT, redirectUri: REDIRECT })).status, 'PASS');
+  // 直接ログイン画面を 200 で返す形も PASS。知らないページに着いたら FAIL（判定できない）
+  const direct = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => html('<html><form id="identifierId">Sign in</form></html>') ]]);
+  assert.equal((await checkOAuthClientAuthz(deps(direct), { clientId: CLIENT, redirectUri: REDIRECT })).status, 'PASS');
+  const unknown = fakeFetch([[ 'https://accounts.google.com/o/oauth2/v2/auth', () => redirectTo('https://accounts.google.com/something/else') ], [ 'https://accounts.google.com/something/else', () => html('<html>?</html>') ]]);
+  const un = await checkOAuthClientAuthz(deps(unknown), { clientId: CLIENT, redirectUri: REDIRECT });
+  assert.equal(un.status, 'FAIL'); assert.match(un.detail, /判定できない/);
+  const loop = fakeFetch([[ 'https://accounts.google.com/', () => redirectTo('https://accounts.google.com/loop') ]]);
+  assert.match((await checkOAuthClientAuthz(deps(loop), { clientId: CLIENT, redirectUri: REDIRECT })).detail, /転送が多すぎる/);
   assert.equal((await checkOAuthClientAuthz(deps(login), { clientId: '', redirectUri: REDIRECT })).status, 'SKIP');
 });
 
@@ -159,7 +185,7 @@ test('runAll: 9 項目を返し、未設定は SKIP、FAIL が無ければ ok。
   const f = fakeFetch([[ 'https://api.cloudflare.com/client/v4/user/tokens/verify', () => json({ success: true, result: { status: 'active' } }) ],
     [ 'https://api.cloudflare.com/client/v4/accounts/', () => json({ success: true, result: { name: 'w', domains: ['reyz.inc'] } }) ],
     [ 'https://challenges.cloudflare.com/', () => json({ success: false, 'error-codes': ['invalid-input-response'] }) ],
-    [ 'https://accounts.google.com/', () => new Response('', { status: 302 }) ],
+    [ 'https://accounts.google.com/', () => redirectTo('https://accounts.google.com/o/oauth2/auth/identifier?x=1') ],
     [ 'https://oauth2.googleapis.com/token', (u, init) => new URLSearchParams(init.body).get('grant_type') === 'refresh_token' ? json({ access_token: 'at', scope: 'https://www.googleapis.com/auth/gmail.send' }) : json({ error: 'invalid_grant' }, 400) ],
     [ REDIRECT, () => html(`clientId: '${CLIENT}', sender: 'no-reply@reyz.inc', workflowUrl: 'https://github.com/REYZ-Inc/reyz-site/actions/workflows/oauth-consent.yml'`) ],
     ...ghRoutes()]);
@@ -174,7 +200,7 @@ test('runAll: 9 項目を返し、未設定は SKIP、FAIL が無ければ ok。
   assert.deepEqual(partial.items.slice(1, 8).map(i => i.status), ['SKIP', 'SKIP', 'SKIP', 'SKIP', 'SKIP', 'SKIP', 'SKIP']);
   assert.equal(partial.items[8].status, 'PASS');   // 受け取りページは Secret なしでも到達性と sender を見る
   // 反証モード: PROBE_REDIRECT_URI は C5 だけに効き、C6（token endpoint）と C9（ページ取得）の URI は変えない
-  const probeFetch = fakeFetch([[ 'https://accounts.google.com/', u => html(u.includes('ops-check-probe.html') ? 'Error 400: redirect_uri_mismatch' : '', u.includes('ops-check-probe.html') ? 400 : 302) ],
+  const probeFetch = fakeFetch([[ 'https://accounts.google.com/', u => u.includes('ops-check-probe.html') ? redirectTo(`https://accounts.google.com/signin/oauth/error/v2?authError=${authError('redirect_uri_mismatch')}`) : redirectTo('https://accounts.google.com/o/oauth2/auth/identifier?x=1') ],
     [ 'https://oauth2.googleapis.com/token', () => json({ error: 'invalid_grant' }, 400) ], [ REDIRECT, () => html(`clientId: '${CLIENT}', sender: 'no-reply@reyz.inc', workflowUrl: 'https://github.com/REYZ-Inc/reyz-site/actions/workflows/oauth-consent.yml'`) ],
     [ 'https://api.cloudflare.com/', () => json({ success: true, result: { status: 'active', name: 'w' } }) ], [ 'https://challenges.cloudflare.com/', () => json({ success: false, 'error-codes': ['invalid-input-response'] }) ], ...ghRoutes()]);
   const probed = await runAll(deps(probeFetch), { ...env, PROBE_REDIRECT_URI: 'https://reyz.inc/oauth/ops-check-probe.html' });

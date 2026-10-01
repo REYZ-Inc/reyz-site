@@ -6,7 +6,7 @@
 // 検査項目（番号は Summary と同じ）:
 //   C1 Secret / 変数の有無と形式             C2 Cloudflare トークン（Turnstile 回転用）の有効性と権限（ウィジェットを読めるか）
 //   C3 Cloudflare トークン（Workers 配備用）  C4 Turnstile 秘密キー（siteverify に偽トークンを送り、鍵が有効かだけ見る）
-//   C5 OAuth クライアントとリダイレクト URI（Google の認可 endpoint が受け付けるか。ログインは要らない。PROBE_REDIRECT_URI で反証: 未登録の URI なら FAIL になるのが正しい）
+//   C5 OAuth クライアントとリダイレクト URI（Google の認可 endpoint が受け付けるか。ログインは要らない。エラーは転送先 URL で判定。PROBE_REDIRECT_URI で反証: 未登録の URI なら FAIL になるのが正しい）
 //   C6 OAuth クライアント シークレット（token endpoint に偽コードを送る。invalid_grant なら認証は通っている）
 //   C7 リフレッシュトークン（refresh で access token が取れるか。openid を含む同意なら「同意した口座」も判定）
 //   C8 GitHub App「REYZ Ops」（秘密鍵と App ID の一致、インストール先の repo、権限 Actions/Secrets/Issues: write）
@@ -89,16 +89,58 @@ export async function checkTurnstileSecret(deps, { secret }) {
   return item(id, label, FAIL, `判定できない応答（HTTP ${res.status} ${short(JSON.stringify(j))}）`, '時間を置いて再実行。続くなら Cloudflare の状態を確認');
 }
 
+/** Google の認可 endpoint のエラーページ（/signin/oauth/error?authError=...）から error code を取り出す。authError は base64 のバイナリで、中に "redirect_uri_mismatch" 等の文字列を含む。 */
+export function decodeAuthError(url) {
+  try {
+    const e = new URL(url).searchParams.get('authError');
+    if (!e) return '';
+    const bin = Buffer.from(e.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('latin1');
+    const m = /[a-z][a-z_]{5,}/.exec(bin);
+    return m ? m[0] : '';
+  } catch { return ''; }
+}
+const pathOf = u => { try { const x = new URL(u); return x.host + x.pathname; } catch { return String(u).slice(0, 80); } };
+const SIGNIN_RE = /identifier|\/signin|ServiceLogin|accountchooser|oauthchooseaccount/i;
+const OAUTH_ERROR_RE = /\/signin\/oauth\/error|\/oauth\/error/i;
+
+/**
+ * C5: Google の認可 endpoint が「このクライアント ID ＋ このリダイレクト URI」を受け付けるか。ログインはしない。
+ * Google は未登録 URI などのエラーを、本文ではなく /signin/oauth/error への転送（302）で返す（2026-10-01 の実 run で確認。本文だけ見ると誤って PASS になる）。
+ * そのため転送先の URL を最大 5 回追い、エラーページなら FAIL、ログイン画面に着けば PASS、どちらでもなければ FAIL（判定できない）にする。
+ */
 export async function checkOAuthClientAuthz(deps, { clientId, redirectUri, probe = false }) {
   const id = 'C5', label = 'OAuth クライアントとリダイレクト URI' + (probe ? `（反証モード: ${redirectUri} で実行）` : '');
   if (!clientId) return item(id, label, SKIP, 'GMAIL_OAUTH_CLIENT_ID が未設定');
-  const u = `${GOOGLE_AUTH}?${new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, response_type: 'code', scope: 'openid' })}`;
-  const res = await deps.fetch(u, { redirect: 'manual' });
-  const text = await res.text().catch(() => '');
-  if (/redirect_uri_mismatch/i.test(text)) return item(id, label, FAIL, `Google が redirect_uri_mismatch: ${redirectUri} が「承認済みのリダイレクト URI」に無い`, 'GCP → Google Auth Platform → クライアント reyz-mail-sender → URI を追加 → 保存（README「同意の自動化の前提」1）');
-  if (/invalid_client/i.test(text)) return item(id, label, FAIL, 'Google が invalid_client: クライアント ID が見つからない', 'Secret GMAIL_OAUTH_CLIENT_ID と GCP のクライアント ID を照合');
-  if ([200, 302, 303].includes(res.status)) return item(id, label, PASS, `認可 endpoint が受け付けた（HTTP ${res.status}。リダイレクト URI ${redirectUri} は登録済み）`);
-  return item(id, label, FAIL, `判定できない応答（HTTP ${res.status}）`, '時間を置いて再実行');
+  const nextAction = 'GCP → Google Auth Platform → クライアント reyz-mail-sender → 承認済みのリダイレクト URI に追加 → 保存（反映に 5 分〜数時間。README「同意の自動化の前提」1）';
+  const judge = (url, text) => {
+    const code = OAUTH_ERROR_RE.test(url) ? (decodeAuthError(url) || 'unknown') : (/redirect_uri_mismatch/i.test(text) ? 'redirect_uri_mismatch' : /invalid_client/i.test(text) ? 'invalid_client' : '');
+    if (code === 'redirect_uri_mismatch') return item(id, label, FAIL, `Google が redirect_uri_mismatch: ${redirectUri} が「承認済みのリダイレクト URI」に無い`, nextAction);
+    if (code === 'invalid_client') return item(id, label, FAIL, 'Google が invalid_client: クライアント ID が見つからない', 'Secret GMAIL_OAUTH_CLIENT_ID と GCP のクライアント ID を照合');
+    if (code) return item(id, label, FAIL, `Google がエラーページへ転送（${code}）`, 'エラーの種類に応じて GCP のクライアント設定を確認');
+    return null;
+  };
+  let url = `${GOOGLE_AUTH}?${new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, response_type: 'code', scope: 'openid' })}`;
+  const hops = [];
+  for (let i = 0; i < 6; i++) {
+    const res = await deps.fetch(url, { redirect: 'manual', headers: { 'Accept-Language': 'ja,en' } });
+    const isRedirect = res.status >= 300 && res.status < 400;
+    const text = isRedirect ? '' : await res.text().catch(() => '');
+    hops.push(`${res.status} ${pathOf(url)}`);
+    const bad = judge(url, text);
+    if (bad) return bad;
+    if (isRedirect) {
+      const loc = res.headers.get('location');
+      if (!loc) return item(id, label, FAIL, `転送先が無い（HTTP ${res.status}）`, '時間を置いて再実行');
+      url = new URL(loc, url).toString();
+      const badLoc = judge(url, '');
+      if (badLoc) return badLoc;
+      if (SIGNIN_RE.test(url)) return item(id, label, PASS, `認可 endpoint が受け付け、ログイン画面へ転送（${pathOf(url)}）: リダイレクト URI ${redirectUri} は登録済み`);
+      continue;
+    }
+    if (res.ok && (SIGNIN_RE.test(url) || /identifier|ServiceLogin/i.test(text))) return item(id, label, PASS, `認可 endpoint が受け付け、ログイン画面を表示（${pathOf(url)}）: リダイレクト URI ${redirectUri} は登録済み`);
+    return item(id, label, FAIL, `判定できない応答（${hops.join(' → ')}）`, '時間を置いて再実行。続くなら IV が判定方法を見直す');
+  }
+  return item(id, label, FAIL, `転送が多すぎる（${hops.join(' → ')}）`, '時間を置いて再実行');
 }
 
 export async function checkOAuthClientSecret(deps, { clientId, clientSecret, redirectUri }) {
