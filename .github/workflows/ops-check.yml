@@ -5,6 +5,10 @@
 name: ops-check
 on:
   workflow_dispatch:
+    inputs:
+      probe_redirect_uri:
+        description: 反証用（任意）。C5 だけをこの URI で実行する。未登録の URI を入れれば FAIL（redirect_uri_mismatch）になるのが正しい
+        required: false
   schedule:
     - cron: "47 0 * * 1"   # 毎週月曜 09:47 JST
 permissions:
@@ -34,6 +38,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           NOC_EMAIL: ${{ vars.NOC_EMAIL }}
           OAUTH_REDIRECT_URI: ${{ vars.OAUTH_REDIRECT_URI }}
+          PROBE_REDIRECT_URI: ${{ inputs.probe_redirect_uri }}
           REPORT_FILE: /tmp/ops-check.txt
         run: node infra/ops/check.mjs
       - name: 定期実行で FAIL なら noc@ へ通知（送信の鍵が生きている場合だけ届く）
