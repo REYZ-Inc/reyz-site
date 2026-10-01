@@ -63,7 +63,7 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 | `../../infra/check/contact_logs.py` + `../../.github/workflows/contact-logs.yml` | Worker の記録（結果・検証状態・Gmail 受理 ID・認証方式 `auth`）を Workers Logs API から一覧にする。手動起動、読み取りのみ |
 | `../../site/assets/site.js` | `CONFIG.formEndpoint='/api/contact'`、`CONFIG.turnstileSiteKey` で有効化（確認ページに Turnstile を描画） |
 | `../../site/oauth/callback.html` | 同意の受け取りページ（同意リンクの組み立てと同意コードの表示だけ。秘密なし、noindex、サイト導線から未リンク） |
-| `../../infra/oauth/consent.mjs` + `test/` | 同意コードの交換、ID トークンによる口座の検証（不一致なら失効して失敗）、古いトークンの失効 |
+| `../../infra/oauth/consent.mjs` + `test/` | 同意コードの交換、ID トークンによる口座の検証（別の口座なら、その口座のトークンを失効して失敗）。本人の古いトークンは失効させない |
 | `../../.github/workflows/oauth-consent.yml` | 同意コード（`コード~verifier`、PKCE）を 1 回貼ると、検証 → Secret 更新 → 配備 → 失効 → 記録まで行う（GitHub App の権限） |
 | `../../.github/workflows/turnstile-rotate.yml` | Turnstile 秘密キーの回転を無人で行う（Cloudflare API → Secret → 配備 → 記録） |
 | `../../infra/ops/deploy_wait.sh` / `record.sh` | 運用 workflow 共通: 配備の起動と完了待ち／運用記録 issue へのコメント |
