@@ -50,6 +50,7 @@ GitHub Actions（.github/workflows/）
 | `contact-worker` | PR ごと（関門）、main の変更時 | 単体・CI 内フルスタック e2e → 配備 → secret 同期 → 疎通 | main が失敗したら Re-run failed jobs | run の annotation |
 | `verify-and-deploy` | PR ごと（関門）、main の変更時 | サイト全検証 → GitHub Pages へ配備 | main が失敗したら Re-run failed jobs。「cancelled」は、より新しい main の run に置き換えられた印（待ちは最新 1 件だけ残る）で、公開中のサイトは前回の配備のまま | run の Summary・artifact |
 | `docs-gate` | PR ごと | PR 本文に必須 6 見出しがあるか | PR がマージできない | — |
+| `branch-cleanup` | 毎月 1 日 09:57 JST、手動 | main にマージ済みのブランチを削除（開いている PR の head は残す） | — | run の annotation・Summary |
 | Dependabot | 毎週月曜 09:00 JST（actions）、毎月（npm） | 依存の更新 PR を開く（まとめて 1 本）。関門はそのまま通す（docs-gate は bot を免除） | 関門が赤なら人はマージしない。原因は AI が調べて修正 PR を出す（例: PR #27） | PR |
 
 予定（人の操作は不要。結果だけ確認）:
