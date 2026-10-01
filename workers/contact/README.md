@@ -74,7 +74,7 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 |---|---|---|---|
 | GitHub → Secrets | `GMAIL_OAUTH_CLIENT_ID` / `GMAIL_OAUTH_CLIENT_SECRET` | OAuth クライアント（内部アプリ、ウェブ アプリケーション、リダイレクト URI = `https://reyz.inc/oauth/callback.html`）。シークレットは作成時にしか全文が見えない（Google の仕様）ので、その場で登録する | GCP（組織 `reyz.inc` 配下のプロジェクト `reyz-mail`）→ Google Auth Platform → クライアント |
 | GitHub → Secrets | `GMAIL_OAUTH_REFRESH_TOKEN` | 送信専用ユーザー `no-reply@reyz.inc` **本人**が同意して得たリフレッシュトークン（scope gmail.send）。人は貼らない: `oauth-consent` workflow が検証して登録する | 下の「設定手順」7〜8 |
-| GitHub → Secrets / Variables | `OPS_APP_PRIVATE_KEY` / `OPS_APP_ID` | 運用 workflow の主体となる GitHub App「REYZ Ops」の秘密鍵と App ID（Secret 更新・配備起動・記録に使う。ADR-0008） | 下の「GitHub App（1 回）」 |
+| GitHub → Secrets / Variables | `OPS_APP_PRIVATE_KEY` / `OPS_APP_ID` / `OPS_APP_CLIENT_ID` | 運用 workflow の主体となる GitHub App「REYZ Ops」の秘密鍵・App ID（数字）・Client ID（`Iv…`。公開値）。Secret 更新・配備起動・記録に使う（ADR-0008） | 下の「GitHub App（1 回）」 |
 | GitHub → Variables | `MAIL_SENDER_USER` | 送信専用ユーザーのアドレス `no-reply@reyz.inc`（同意した口座の検証に使う） | — |
 | GitHub → Secrets | `TURNSTILE_SECRET_KEY` | Turnstile ウィジェットの Secret Key。初回は作成画面で登録、以後の回転は `turnstile-rotate` workflow が API で行い人は値を見ない | Cloudflare → Turnstile → ウィジェット（hostname: reyz.inc, www.reyz.inc） |
 | GitHub → Secrets | `CLOUDFLARE_TURNSTILE_TOKEN` | Turnstile の回転用トークン（アカウント単位、権限は **Turnstile: 編集** のみ） | Cloudflare → プロフィール → API トークン → カスタム トークン |
@@ -117,7 +117,7 @@ GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のた�
 | 1 | GitHub → 組織 REYZ-Inc → Settings → Developer settings → GitHub Apps → **New GitHub App** | GitHub App name `REYZ Ops`、Homepage URL `https://reyz.inc`、**Webhook の Active のチェックを外す** |
 | 2 | 同画面 Permissions → Repository permissions | **Actions: Read and write** / **Secrets: Read and write** / **Issues: Read and write**（Metadata: Read-only は自動）。他は No access |
 | 3 | 同画面 Where can this GitHub App be installed? | **Only on this account** → Create GitHub App |
-| 4 | 作成後の画面 | **App ID** の数字を控える → GitHub → repo `reyz-site` → Settings → Secrets and variables → Actions → **Variables** → New repository variable `OPS_APP_ID` = その数字。あわせて `MAIL_SENDER_USER` = `no-reply@reyz.inc` も作る |
+| 4 | 作成後の画面 | **App ID**（数字）と **Client ID**（`Iv…`）を控える → GitHub → repo `reyz-site` → Settings → Secrets and variables → Actions → **Variables** → New repository variable `OPS_APP_ID` = 数字、`OPS_APP_CLIENT_ID` = Client ID。あわせて `MAIL_SENDER_USER` = `no-reply@reyz.inc` も作る |
 | 5 | 同画面の下 Private keys → **Generate a private key** | `.pem` がダウンロードされる → メモ帳で開いて **全文**（`-----BEGIN RSA PRIVATE KEY-----` から `-----END RSA PRIVATE KEY-----` まで）をコピー → repo の **Secrets** → New repository secret `OPS_APP_PRIVATE_KEY` に貼る → 保存後、`.pem` ファイルは削除 |
 | 6 | 左メニュー Install App → REYZ-Inc の **Install** | **Only select repositories** → `reyz-site` → Install |
 
@@ -139,6 +139,8 @@ GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のた�
 
 main の `contact-worker` が失敗したとき、修正が起動条件（`workers/contact/**`、`infra/oauth/**`、`qa/e2e_contact.js`、workflow 自体）に当たらないファイルだけなら配備は再開しない。その場合は Actions → 失敗した run → **Re-run failed jobs**（または `contact-worker` の Run workflow）。
 
+**関門が本番の鍵に依存して赤いとき**（鍵が無効で `stack-e2e` が通らず、鍵を直す修正 PR がマージできない）: Actions → 該当 workflow → Run workflow の小窓で **「Use workflow from」を修正 PR のブランチに切り替えて実行**する（GitHub は選んだブランチの定義で動く。main に同名の workflow があれば選べる）。2026-10-01 の復旧で使用。
+
 ### 旧方式（サービスアカウント＋ドメイン全体の委任）の後片付け — 2026-09-30
 
 | 項目 | 状態 |
@@ -151,6 +153,16 @@ main の `contact-worker` が失敗したとき、修正が起動条件（`worke
 | horiuchi@ に誤って与えた「REYZ Mail Sender」のアクセス権を削除 | 済（2026-09-30） |
 | 古いクライアント シークレットの無効化・削除 | 済（2026-09-30。1 件のみを確認） |
 | no-reply@ の 2 段階認証を登録し、登録期間を「なし」に戻す | 済（2026-09-30。認証システム アプリ） |
+
+### 同意の自動化の初回実行の後片付け — 2026-10-01
+
+| 項目 | 状態 |
+|---|---|
+| GCP → Google Auth Platform → クライアント `reyz-mail-sender` → 承認済みのリダイレクト URI から `https://developers.google.com/oauthplayground` を削除（Playground は使わない。受け取りページだけを残す） | 未（ロウ） |
+| App「REYZ Ops」の秘密鍵 `.pem` をダウンロード フォルダから削除（ゴミ箱も空に） | 未確認（ロウ） |
+| ダウンロード フォルダが Google Drive にバックアップされる設定なら、App の設定画面で **Generate a private key**（新しい鍵）→ Secret `OPS_APP_PRIVATE_KEY` を上書き → 古い鍵を **Delete**（鍵がクラウドに写った可能性を潰す） | 未確認（ロウ。バックアップ設定でなければ不要） |
+| 変数 `OPS_APP_CLIENT_ID` = App の Client ID（`Iv…`。App の設定画面の About に表示。公開値） | 未（ロウ。`create-github-app-token` の `app-id` 非推奨対応） |
+| 停止時間（17:38〜18:11 JST）中の受付: `contact-logs` で確認 → 実受付 0 件（記録 1 件は本番 e2e の探り） | 済（2026-10-01） |
 
 ## 切替手順（新規サイトで最初に有効にするとき）
 

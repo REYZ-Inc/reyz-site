@@ -8,7 +8,7 @@
 # 古いリフレッシュトークンは失効させない: Google の失効は「口座 × クライアント」のグラント単位で、古いトークンを失効させると
 #              同じ口座の新しいトークンも無効になる（2026-10-01 の初回実行で発生。docs/incidents/2026-10-01-oauth-consent-revoke.md）。
 #              古いトークンは Secret と Worker secret が上書きされた時点でどこにも残らず、6 か月未使用で自然失効する。
-# 前提（1 回）: GitHub App（vars.OPS_APP_ID / secrets.OPS_APP_PRIVATE_KEY。権限: Secrets 書き込み・Actions 書き込み・Issues 書き込み）、
+# 前提（1 回）: GitHub App（vars.OPS_APP_ID / vars.OPS_APP_CLIENT_ID / secrets.OPS_APP_PRIVATE_KEY。権限: Secrets 書き込み・Actions 書き込み・Issues 書き込み）、
 #              vars.MAIL_SENDER_USER（no-reply@reyz.inc）、OAuth クライアントのリダイレクト URI に https://reyz.inc/oauth/callback.html。
 #              手順: workers/contact/README.md
 name: oauth-consent
@@ -36,12 +36,14 @@ jobs:
       - name: 前提の確認（App・送信専用ユーザーの設定があるか）
         env:
           OPS_APP_ID: ${{ vars.OPS_APP_ID }}
+          OPS_APP_CLIENT_ID: ${{ vars.OPS_APP_CLIENT_ID }}
           HAS_KEY: ${{ secrets.OPS_APP_PRIVATE_KEY != '' }}
           MAIL_SENDER_USER: ${{ vars.MAIL_SENDER_USER }}
           HAS_CLIENT: ${{ secrets.GMAIL_OAUTH_CLIENT_ID != '' && secrets.GMAIL_OAUTH_CLIENT_SECRET != '' }}
         run: |
           missing=""
           [ -n "$OPS_APP_ID" ] || missing="$missing vars.OPS_APP_ID"
+          [ -n "$OPS_APP_CLIENT_ID" ] || missing="$missing vars.OPS_APP_CLIENT_ID"
           [ "$HAS_KEY" = "true" ] || missing="$missing secrets.OPS_APP_PRIVATE_KEY"
           [ -n "$MAIL_SENDER_USER" ] || missing="$missing vars.MAIL_SENDER_USER"
           [ "$HAS_CLIENT" = "true" ] || missing="$missing secrets.GMAIL_OAUTH_CLIENT_ID/GMAIL_OAUTH_CLIENT_SECRET"
@@ -50,7 +52,7 @@ jobs:
         id: app
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ vars.OPS_APP_ID }}
+          client-id: ${{ vars.OPS_APP_CLIENT_ID }}   # App の Client ID（Iv…。app-id は非推奨）
           private-key: ${{ secrets.OPS_APP_PRIVATE_KEY }}
       - name: コードをトークンに交換し、同意した口座を検証
         env:
@@ -102,6 +104,6 @@ jobs:
             echo "## oauth-consent: ${RESULT}"
             echo
             echo "- 同意の検証: $(python3 -c "import json;d=json.load(open('/tmp/exchange.json'));print((d.get('email','-')+' / '+d.get('scope','-')) if d.get('ok') else ('拒否: '+d.get('reason','-')))" 2>/dev/null || echo '（結果なし。上のエラーを参照）')"
-            echo "- 配備（contact-worker）: ${DEPLOY_RUN:+run $DEPLOY_RUN}${DEPLOY_RUN:-未起動}"
+            echo "- 配備（contact-worker）: ${DEPLOY_RUN:-未起動}"
             echo "- 次に人がやること: なし（フォームから 1 件テスト送信して受信トレイを見ると確実）"
           } >> "$GITHUB_STEP_SUMMARY"

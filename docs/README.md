@@ -43,7 +43,7 @@ GitHub Actions（.github/workflows/）
 | `contact-e2e` | Worker／サイトの配備後、毎日 09:07 JST | 本番のフォームを実ブラウザで操作し、Worker が Google のトークンを取れるまで確認（メールは送らない） | noc@ へメール | run の Summary |
 | `contact-watch` | 毎日 09:37 JST | 直近 24 時間の受付・エラー・未検証を集計。異常だけ通知 | noc@ へメール（run も失敗にする） | run の Summary、通知メール |
 | `contact-logs` | 手動 | 記録の一覧（結果・検証状態・Gmail 受理 ID・認証方式） | — | run の Summary |
-| `scorecard` | 毎週月曜 10:23 JST、main 更新時 | OpenSSF Scorecard で採点 | — | Code scanning、README のバッジ |
+| `scorecard` | 毎週月曜 10:23 JST、main 更新時 | OpenSSF Scorecard で採点。点数（総合・項目別）を run に書き出す | — | run の annotation「scorecard score」・Summary、Code scanning、README のバッジ |
 | `turnstile-rotate` | 1・4・7・10 月 1 日 10:17 JST、手動 | Turnstile 秘密キーを API で回転 → Secret → 配備 | run が失敗（GitHub の通知） | issue「運用記録 — 認証情報」 |
 | `ops-check` | 毎週月曜 09:47 JST、手動（1 回設定の完了確認） | 前提（Secret・変数・Cloudflare トークンの権限・OAuth クライアント・リフレッシュトークン・GitHub App・受け取りページ）を何も変更せずに判定 | Summary の「次にやること」に従う（定期実行の FAIL は noc@ へメール） | run の Summary（表）・annotation |
 | `oauth-consent` | 手動（同意が要るときだけ） | 同意コードを検証 → Secret → 配備（旧トークンは失効させない: Google の失効はグラント単位で新しい鍵も消えるため） | run が失敗し理由を表示（保存しない） | issue「運用記録 — 認証情報」 |

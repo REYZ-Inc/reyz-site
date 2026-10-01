@@ -1,5 +1,5 @@
 # OpenSSF Scorecard: リポジトリの供給網・運用の健全性を第三者の尺度（0〜10）で毎週採点し、結果を Code scanning と scorecard.dev に公開する。
-# docs/STANDARDS.md「第三者尺度での評価」。数値は README のバッジに出る。
+# docs/STANDARDS.md「第三者尺度での評価」。数値は README のバッジと、この run の annotation「scorecard score」・Summary に出る。
 name: scorecard
 on:
   schedule:
@@ -31,3 +31,25 @@ jobs:
       - name: upload to Code scanning
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with: { sarif_file: results.sarif }
+      - name: 点数を記録（scorecard.dev の公開 API を読み、annotation と Summary に出す。IV が API で読める）
+        if: always()
+        continue-on-error: true
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          sleep 20   # 公開（publish_results）の反映待ち。間に合わなければ前回の結果が出る（date で分かる）
+          curl -sS --max-time 30 -o /tmp/score.json "https://api.scorecard.dev/projects/github.com/$REPO" || { echo "::warning title=scorecard::点数の取得に失敗（API 到達不可）"; exit 0; }
+          python3 - <<'PY'
+          import json, os
+          d = json.load(open('/tmp/score.json'))
+          checks = sorted(d.get('checks', []), key=lambda c: (c.get('score', -1) if isinstance(c.get('score'), (int, float)) else -2))
+          low = [f"{c['name']}={c.get('score', '-')}" for c in checks if isinstance(c.get('score'), (int, float)) and 0 <= c['score'] < 10]
+          na = [c['name'] for c in checks if not isinstance(c.get('score'), (int, float)) or c['score'] < 0]
+          head = f"総合 {d.get('score', '-')} / 10（{d.get('date', '-')}、commit {str(d.get('repo', {}).get('commit', ''))[:7]}）"
+          print(f"::notice title=scorecard score::{head} 低い項目: {', '.join(low) or 'なし'}" + (f" 対象外: {', '.join(na)}" if na else ''))
+          summ = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summ:
+              with open(summ, 'a') as f:
+                  f.write(f"## OpenSSF Scorecard: {head}\n\n| 項目 | 点 | 理由 |\n|---|---|---|\n")
+                  for c in checks: f.write(f"| {c['name']} | {c.get('score', '-')} | {str(c.get('reason', '')).replace('|', '/')[:120]} |\n")
+          PY
