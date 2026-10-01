@@ -1,0 +1,41 @@
+# main にマージ済みのブランチを削除する（残骸を溜めない。人が 1 本ずつ消す作業を無くす）。
+# 対象: origin/main に完全に含まれる（merged）ブランチのうち、main と開いている PR の head を除くもの。保護されている main は ruleset で削除不可。
+# 起動: 手動（Run workflow。dry_run=true で削除せず一覧だけ）と、毎月 1 日 09:57 JST。
+# 以後の新しいブランチは、repo の Settings → General → Pull Requests「Automatically delete head branches」を有効にすればマージ時に自動で消える。
+name: branch-cleanup
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: true なら削除せず一覧だけ出す
+        default: "false"
+        required: false
+  schedule:
+    - cron: "57 0 1 * *"   # 毎月 1 日 09:57 JST
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0 }
+      - name: マージ済みブランチを削除（開いている PR の head と main は除く）
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
+          open_heads=$(gh pr list --repo "$REPO" --state open --json headRefName -q '.[].headRefName' | sort -u)
+          merged=$(git branch -r --merged origin/main | sed 's#^ *origin/##' | grep -v -E '^(HEAD|main)( |$)' | sort -u)
+          deleted=""; kept=""
+          for b in $merged; do
+            if echo "$open_heads" | grep -qx "$b"; then kept="$kept $b"; continue; fi
+            if [ "$DRY_RUN" = "true" ]; then echo "would delete: $b"; deleted="$deleted $b"; continue; fi
+            git push origin --delete "$b" && deleted="$deleted $b" || echo "::warning title=branch-cleanup::削除できない: $b"
+          done
+          n=$(echo $deleted | wc -w); echo "::notice title=branch-cleanup::$( [ "$DRY_RUN" = "true" ] && echo '削除対象（dry run）' || echo '削除' ) $n 本:$deleted${kept:+ / 開いている PR のため残す:$kept}"
+          { echo "## branch-cleanup$( [ "$DRY_RUN" = "true" ] && echo '（dry run）' )"; echo; echo "- $( [ "$DRY_RUN" = "true" ] && echo '削除対象' || echo '削除' ): $n 本"; for b in $deleted; do echo "  - \`$b\`"; done; [ -n "$kept" ] && { echo "- 開いている PR のため残す:"; for b in $kept; do echo "  - \`$b\`"; done; }; } >> "$GITHUB_STEP_SUMMARY"
