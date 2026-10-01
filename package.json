@@ -8,8 +8,8 @@
     "test:worker": "cd workers/contact && node --test"
   },
   "devDependencies": {
-    "html-validate": "^11.16.0",
+    "html-validate": "^11.16.1",
     "playwright": "1.63.0",
-    "vnu-jar": "^26.9.16"
+    "vnu-jar": "^26.9.27"
   }
 }
