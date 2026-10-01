@@ -3,7 +3,8 @@
 //
 //   node infra/oauth/consent.mjs exchange   同意コード（`code~verifier`。PKCE）→ トークン。ID トークンで「誰が同意したか」を検証し、送信専用ユーザー本人でなければ
 //                                          その場で新トークンを失効させて失敗（exit 3）。合格なら OUT_FILE にリフレッシュトークンを書く（値は表示しない）
-//   node infra/oauth/consent.mjs revoke     TOKEN_FILE のリフレッシュトークンを失効させる（古いトークンの後始末。失効済みなら成功扱い）
+//   node infra/oauth/consent.mjs revoke     TOKEN_FILE のリフレッシュトークンを失効させる（失効済みなら成功扱い）。注意: Google の失効は口座 × クライアントの
+//                                          グラント単位で、同じ口座の他のトークン（新しいものも）が無効になる。通常の同意更新では使わない（漏えい時に全失効 → 再同意、の用途）
 //   node infra/oauth/consent.mjs auth-url   同意 URL を組み立てて表示（受け取りページと同じ規則。手元確認用）
 //
 // 環境変数: GMAIL_OAUTH_CLIENT_ID, GMAIL_OAUTH_CLIENT_SECRET, MAIL_SENDER_USER（例 no-reply@reyz.inc）, OAUTH_REDIRECT_URI, CODE, OUT_FILE, TOKEN_FILE
@@ -73,7 +74,7 @@ export async function revoke(deps, token) {
 
 /**
  * 同意コードをトークンに交換し、口座を検証する。
- * 返り値: { ok, email, hd, scope, expires_in, refreshToken? , reason? }。不一致のときは受け取ったリフレッシュトークンを失効させてから返す。
+ * 返り値: { ok, email, hd, scope, expires_in, refreshToken? , reason? }。別の口座が同意したときだけ、受け取ったトークンを失効させてから返す（その口座のグラントのみ）。
  */
 export async function exchange(deps, { code, clientId, clientSecret, sender, redirectUri = DEFAULT_REDIRECT }) {
   const { code: c, verifier } = splitCode(code);
@@ -84,12 +85,18 @@ export async function exchange(deps, { code, clientId, clientSecret, sender, red
   const j = await res.json().catch(() => ({}));
   if (!res.ok) return { ok: false, reason: `token endpoint ${res.status}: ${j.error || ''} ${j.error_description || ''}`.trim() };
   if (!j.refresh_token) return { ok: false, reason: 'refresh_token が返らなかった（prompt=consent と access_type=offline の同意 URL から始めること）' };
-  const scopes = String(j.scope || '').split(/\s+/);
-  if (!scopes.includes('https://www.googleapis.com/auth/gmail.send')) { await revoke(deps, j.refresh_token); return { ok: false, reason: `gmail.send が許可されていない（許可された scope: ${j.scope || '-'}）` }; }
+  // 失効は「別の口座が同意した」ときだけ行う。Google の失効は口座 × クライアントのグラント単位なので、送信専用ユーザー本人のトークンを
+  // 失効させると稼働中のトークンまで無効になる（2026-10-01 の事故）。口座が分からない・scope が足りないだけの場合は、保存せずに終える（トークンは残らない）
   let claims;
-  try { claims = decodeIdToken(j.id_token); } catch (err) { await revoke(deps, j.refresh_token); return { ok: false, reason: String(err.message) }; }
+  try { claims = decodeIdToken(j.id_token); } catch (err) { return { ok: false, reason: String(err.message) + '（口座を特定できないため失効はしない）' }; }
   const v = verifyIdentity(claims, { clientId, sender, nowSec: Math.floor(deps.now() / 1000) });
-  if (!v.ok) { const r = await revoke(deps, j.refresh_token); return { ok: false, reason: v.reason, email: v.email || '', revoked: r.ok }; }
+  if (!v.ok) {
+    const other = v.email && v.email !== String(sender).toLowerCase();   // 別の口座 → その口座のグラントを失効（本人のグラントには影響しない）
+    const r = other ? await revoke(deps, j.refresh_token) : { ok: false };
+    return { ok: false, reason: v.reason, email: v.email || '', revoked: other ? r.ok : false };
+  }
+  const scopes = String(j.scope || '').split(/\s+/);
+  if (!scopes.includes('https://www.googleapis.com/auth/gmail.send')) return { ok: false, reason: `gmail.send が許可されていない（許可された scope: ${j.scope || '-'}）。同意画面で Gmail の送信にチェックを入れてやり直す（失効はしない）` };
   return { ok: true, email: v.email, hd: v.hd, scope: j.scope || '', expires_in: j.expires_in, refreshToken: j.refresh_token };
 }
 
@@ -117,7 +124,7 @@ async function main() {
     const info = { ok: r.ok, email: r.email || '', hd: r.hd || '', scope: r.scope || '', expires_in: r.expires_in, reason: r.reason || '', revoked: r.revoked };
     if (env.RESULT_JSON) writeFileSync(env.RESULT_JSON, JSON.stringify(info));
     console.log(JSON.stringify(info));
-    if (!r.ok) fail('oauth-consent: 同意を保存しませんでした', r.reason + (r.email ? `\n受け取ったトークンは失効させました（${r.revoked ? '成功' : '失効に失敗'}）。${env.MAIL_SENDER_USER} でログインし直して同意してください` : ''), 3);
+    if (!r.ok) fail('oauth-consent: 同意を保存しませんでした', r.reason + (r.revoked ? `\n別の口座のトークンは失効させました。${env.MAIL_SENDER_USER} でログインし直して同意してください` : ''), 3);
     if (!env.OUT_FILE) fail('oauth-consent', 'OUT_FILE が未設定', 2);
     writeFileSync(env.OUT_FILE, r.refreshToken, { mode: 0o600 }); chmodSync(env.OUT_FILE, 0o600);
     notice('oauth-consent', `同意した口座: ${r.email}（hd=${r.hd}） scope=${r.scope}`);

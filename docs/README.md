@@ -46,7 +46,7 @@ GitHub Actions（.github/workflows/）
 | `scorecard` | 毎週月曜 10:23 JST、main 更新時 | OpenSSF Scorecard で採点 | — | Code scanning、README のバッジ |
 | `turnstile-rotate` | 1・4・7・10 月 1 日 10:17 JST、手動 | Turnstile 秘密キーを API で回転 → Secret → 配備 | run が失敗（GitHub の通知） | issue「運用記録 — 認証情報」 |
 | `ops-check` | 毎週月曜 09:47 JST、手動（1 回設定の完了確認） | 前提（Secret・変数・Cloudflare トークンの権限・OAuth クライアント・リフレッシュトークン・GitHub App・受け取りページ）を何も変更せずに判定 | Summary の「次にやること」に従う（定期実行の FAIL は noc@ へメール） | run の Summary（表）・annotation |
-| `oauth-consent` | 手動（同意が要るときだけ） | 同意コードを検証 → Secret → 配備 → 旧トークン失効 | run が失敗し理由を表示（保存しない） | issue「運用記録 — 認証情報」 |
+| `oauth-consent` | 手動（同意が要るときだけ） | 同意コードを検証 → Secret → 配備（旧トークンは失効させない: Google の失効はグラント単位で新しい鍵も消えるため） | run が失敗し理由を表示（保存しない） | issue「運用記録 — 認証情報」 |
 | `contact-worker` | PR ごと（関門）、main の変更時 | 単体・CI 内フルスタック e2e → 配備 → secret 同期 → 疎通 | main が失敗したら Re-run failed jobs | run の annotation |
 | `verify-and-deploy` | PR ごと（関門）、main の変更時 | サイト全検証 → GitHub Pages へ配備 | main が失敗したら Re-run failed jobs。「cancelled」は、より新しい main の run に置き換えられた印（待ちは最新 1 件だけ残る）で、公開中のサイトは前回の配備のまま | run の Summary・artifact |
 | `docs-gate` | PR ごと | PR 本文に必須 6 見出しがあるか | PR がマージできない | — |

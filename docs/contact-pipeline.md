@@ -1,7 +1,7 @@
 # 問い合わせ受付の標準型 v2（設計書・正本）
 
 対象: reyz.inc の問い合わせフォーム（受付・ボット対策・メール送信・検証・運用）。今後の顧客サイトにそのまま複製する「型」。
-更新日: 2026-09-30（v2.4: 前提の検査 ops-check を追加。v2.3: 段階 0 の強化 — PKCE、本番トークンプローブの毎日実行、Turnstile 回転の無人化、アクションの SHA 固定、Scorecard）。変更はこの文書を PR で更新してから実装する。
+更新日: 2026-10-01（v2.5: 旧トークンの失効を削除。v2.4: 前提の検査 ops-check を追加。v2.3: 段階 0 の強化 — PKCE、本番トークンプローブの毎日実行、Turnstile 回転の無人化、アクションの SHA 固定、Scorecard）。変更はこの文書を PR で更新してから実装する。
 
 ## 1. 目的と要件
 
@@ -29,7 +29,7 @@ Cloudflare Worker reyz-contact
    → 構造化ログ（結果・検証状態・Gmail 受理 ID・種別・国・Ray。本文・氏名・メールアドレスは記録しない）
 ```
 
-同意の更新（運用）: `reyz.inc/oauth/callback.html`（静的・秘密なし。PKCE S256）→ Google の同意 → 表示された `コード~verifier` を Actions `oauth-consent` に貼る → workflow が交換・口座検証・Secret 更新・配備・失効・記録（ADR-0008）。
+同意の更新（運用）: `reyz.inc/oauth/callback.html`（静的・秘密なし。PKCE S256）→ Google の同意 → 表示された `コード~verifier` を Actions `oauth-consent` に貼る → workflow が交換・口座検証・Secret 更新・配備・記録（ADR-0008。古いトークンは失効させない: Google の失効はグラント単位）。
 
 送信者に見える挙動: 「送信しました。」。未検証で受け付けた場合は「確認メールの自動送信は行われませんでしたが、内容は届いています。」を追記。送れなかった場合は文面コピー ＋「メールアプリで送る」（contact@reyz.inc）を必ず表示。
 
@@ -61,7 +61,7 @@ CI 用設定の差分（`workers/contact/ci/make_ci_config.py` が生成。手�
 | 秘密 | 置き場 | 権限 | 寿命 |
 |---|---|---|---|
 | OAuth クライアント `GMAIL_OAUTH_CLIENT_ID` / `GMAIL_OAUTH_CLIENT_SECRET` | GitHub Secrets → Worker secret / CI の一時ファイル | 内部アプリ（reyz.inc のユーザーのみ同意可） | 漏えい時に「シークレットを追加」で再発行し古いものを削除（クライアント作成は Google の API では不可＝コンソールのみ） |
-| リフレッシュトークン `GMAIL_OAUTH_REFRESH_TOKEN`（no-reply@ 本人の同意） | 同上。**人は貼らない**: `oauth-consent` workflow が交換・口座検証・登録・旧トークンの失効まで行う | scope `gmail.send` のみ（ID トークン用に `openid email` を併せて許可）。影響範囲は no-reply@ の送信だけ | 失効条件: 取り消し／no-reply のパスワード変更／6 か月未使用。失効は送信失敗として `contact-watch` と `stack-e2e` が検知。取り直しは受け取りページ → workflow（ADR-0008） |
+| リフレッシュトークン `GMAIL_OAUTH_REFRESH_TOKEN`（no-reply@ 本人の同意） | 同上。**人は貼らない**: `oauth-consent` workflow が交換・口座検証・登録まで行う（旧トークンは失効させない。失効は口座 × クライアントのグラント単位で、新しい鍵も消えるため） | scope `gmail.send` のみ（ID トークン用に `openid email` を併せて許可）。影響範囲は no-reply@ の送信だけ | 失効条件: 取り消し／no-reply のパスワード変更／6 か月未使用。失効は送信失敗として `contact-watch` と `stack-e2e` が検知。取り直しは受け取りページ → workflow（ADR-0008） |
 | GitHub App「REYZ Ops」の秘密鍵 `OPS_APP_PRIVATE_KEY`（ID は変数 `OPS_APP_ID`） | GitHub Secrets | この repo のみ。Secrets 書き込み・Actions 書き込み・Issues 書き込み | 漏えい時は App の鍵を再生成して差し替え |
 | Turnstile 秘密キー | 同上。回転は `turnstile-rotate` が API で行い人は値を見ない | — | 四半期ごとに自動回転。漏えい時は Run workflow（2026-09-29 の露出事故はこの無人化で再発防止） |
 | Cloudflare トークン `CLOUDFLARE_WORKERS_TOKEN` | GitHub Secrets | Workers スクリプト編集・ルート編集（reyz.inc 限定）・可観測性 | 必要時に再発行 |
@@ -100,7 +100,7 @@ AI は秘密の値を持たない。読むのは配備結果・記録・e2e の�
 |---|---|
 | 状態を知る | Actions → `contact-logs` → Run workflow（直近 N 時間）。AI が起動して読む |
 | 異常通知が来た | 本文の記録を見る → `contact-logs` で詳細 → 必要なら `UNVERIFIED_POLICY` 変更や鍵の再発行（PR） |
-| 送信の認証情報を更新 | https://reyz.inc/oauth/callback.html → 「同意を開始する」→ no-reply@ で許可 → 表示された同意コードを Actions `oauth-consent` に貼って実行（検証・Secret 更新・配備・旧トークン失効・記録は workflow）。詳細は `workers/contact/README.md` の「認証情報の更新」 |
+| 送信の認証情報を更新 | https://reyz.inc/oauth/callback.html → 「同意を開始する」→ no-reply@ で許可 → 表示された同意コードを Actions `oauth-consent` に貼って実行（検証・Secret 更新・配備・記録は workflow）。詳細は `workers/contact/README.md` の「認証情報の更新」 |
 | 型を新規サイトに設定（1 回） | `workers/contact/README.md` の「設定手順」。各設定の完了確認は Actions → `ops-check` → Run workflow（変更なし。Summary の表で PASS / FAIL と「次にやること」） |
 | Turnstile 秘密キーをローテーション | Actions → `turnstile-rotate` → Run workflow（無人。四半期ごとは自動） |
 | 型を別サイトへ複製 | `workers/contact/` と `qa/e2e_contact.js`、workflow 3 本をコピーし、vars（origin・宛先）と secrets を差し替える |
@@ -113,6 +113,7 @@ ADR-0001（Cloudflare 出口）、0003（プロビジョニング層）、0004�
 - 2026-09-29 v1: 初版。障害（`#turnstile` id 衝突、`turnstile.ready()`）を機に、PR 関門を CI 内フルスタック化。
 - 2026-09-29 v2: 送信主体を `no-reply@` 実ユーザーに分離し、ドメイン全体の委任を OAuth 同意に置き換え（ADR-0007）。Worker の secret を GitHub Secrets から宣言的に同期。段階 2（MTA-STS / TLS-RPT / Postmaster Tools / security.txt）と段階 3（証跡の日次保管、AI 専用 GitHub App）は次版。
 - 2026-09-30 v2.1: OAuth へ切替完了（実送信で差出人・受信トレイ・記録を確認）。サービスアカウント経路を Worker・workflow から削除。secret 同期を完全宣言型（管理対象外の削除）に。記録に認証方式 `auth`。同意を個人口座で行った事故（`docs/incidents/2026-09-30-…`）の再発防止として同意の自動化を ADR-0008 で扱う。
+- 2026-10-01 v2.5: 同意の自動化から「旧トークンの失効」を削除（Google の失効はグラント単位で、初回実行で新しい鍵まで無効になった。[事故記録](incidents/2026-10-01-oauth-consent-revoke.md)）。失効は別の口座が同意したときだけ。
 - 2026-09-30 v2.4: 前提の検査 `ops-check`（`infra/ops/check.mjs`）: 1 回設定の完了確認と週 1 の定期確認を、何も変更しない検査で機械化（Cloudflare トークンの権限、Turnstile 秘密キー、OAuth クライアント・リダイレクト URI・シークレット、リフレッシュトークンと同意した口座、GitHub App の鍵・権限・インストール先、受け取りページの公開値）。
 - 2026-09-30 v2.3: 段階 0 の強化（ADR-0009 段階 0）: PKCE（RFC 9700 の推奨。貼る文字列に verifier を同梱し手順は不変）、本番 e2e を `dry_run='token'` にして毎日実行（同意の失効を送信前に検知）、Turnstile 回転の無人化（`turnstile-rotate`）、全アクションの SHA 固定＋Dependabot、OpenSSF Scorecard の常設、`contact-worker` の起動条件に関門が読む全ファイルを追加、運用 workflow 共通スクリプト `infra/ops/`。
 - 2026-09-30 v2.2: 同意の自動化（ADR-0008）: 受け取りページ `site/oauth/callback.html`、`infra/oauth/consent.mjs`、workflow `oauth-consent`（口座の機械検証・Secret 更新・配備・旧トークン失効・issue への記録）、GitHub App「REYZ Ops」。Worker は Gmail の 401 で 1 回だけ取り直す。要件 R8 を追加。
