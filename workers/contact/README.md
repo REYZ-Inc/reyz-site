@@ -158,11 +158,12 @@ main の `contact-worker` が失敗したとき、修正が起動条件（`worke
 
 | 項目 | 状態 |
 |---|---|
-| GCP → Google Auth Platform → クライアント `reyz-mail-sender` → 承認済みのリダイレクト URI から `https://developers.google.com/oauthplayground` を削除（Playground は使わない。受け取りページだけを残す） | 未（ロウ） |
-| App「REYZ Ops」の秘密鍵 `.pem` をダウンロード フォルダから削除（ゴミ箱も空に） | 未確認（ロウ） |
-| ダウンロード フォルダが Google Drive にバックアップされる設定なら、App の設定画面で **Generate a private key**（新しい鍵）→ Secret `OPS_APP_PRIVATE_KEY` を上書き → 古い鍵を **Delete**（鍵がクラウドに写った可能性を潰す） | 未確認（ロウ。バックアップ設定でなければ不要） |
-| 変数 `OPS_APP_CLIENT_ID` = App の Client ID（`Iv…`。App の設定画面の About に表示。公開値） | 未（ロウ。`create-github-app-token` の `app-id` 非推奨対応） |
+| GCP → Google Auth Platform → クライアント `reyz-mail-sender` → 承認済みのリダイレクト URI から `https://developers.google.com/oauthplayground` を削除（Playground は使わない。受け取りページだけを残す） | 済（2026-10-01。`ops-check` 反証モードで Playground URI が redirect_uri_mismatch になることを確認） |
+| App「REYZ Ops」の秘密鍵 `.pem` をダウンロード フォルダから削除（ゴミ箱も空に） | 済（2026-10-01） |
+| ダウンロード フォルダが Google Drive にバックアップされる設定なら、App の設定画面で **Generate a private key**（新しい鍵）→ Secret `OPS_APP_PRIVATE_KEY` を上書き → 古い鍵を **Delete**（鍵がクラウドに写った可能性を潰す） | 不要と確認（2026-10-01。Drive アプリの口座の Drive を検索し、鍵ファイルもバックアップ フォルダも無し。クリップボード履歴ツールも未使用） |
+| 変数 `OPS_APP_CLIENT_ID` = App の Client ID（`Iv…`。App の設定画面の About に表示。公開値） | 済（2026-10-01。`ops-check` C1/C8 PASS） |
 | 停止時間（17:38〜18:11 JST）中の受付: `contact-logs` で確認 → 実受付 0 件（記録 1 件は本番 e2e の探り） | 済（2026-10-01） |
+| main にマージ済みのブランチ 31 本の削除と、以後の自動削除（Automatically delete head branches） | 済（2026-10-01。`branch-cleanup` run で 31 本削除、残りは main のみ。自動削除を有効化） |
 
 ## 切替手順（新規サイトで最初に有効にするとき）
 
