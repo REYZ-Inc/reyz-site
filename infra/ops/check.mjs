@@ -6,7 +6,7 @@
 // 検査項目（番号は Summary と同じ）:
 //   C1 Secret / 変数の有無と形式             C2 Cloudflare トークン（Turnstile 回転用）の有効性と権限（ウィジェットを読めるか）
 //   C3 Cloudflare トークン（Workers 配備用）  C4 Turnstile 秘密キー（siteverify に偽トークンを送り、鍵が有効かだけ見る）
-//   C5 OAuth クライアントとリダイレクト URI（Google の認可 endpoint が受け付けるか。ログインは要らない）
+//   C5 OAuth クライアントとリダイレクト URI（Google の認可 endpoint が受け付けるか。ログインは要らない。PROBE_REDIRECT_URI で反証: 未登録の URI なら FAIL になるのが正しい）
 //   C6 OAuth クライアント シークレット（token endpoint に偽コードを送る。invalid_grant なら認証は通っている）
 //   C7 リフレッシュトークン（refresh で access token が取れるか。openid を含む同意なら「同意した口座」も判定）
 //   C8 GitHub App「REYZ Ops」（秘密鍵と App ID の一致、インストール先の repo、権限 Actions/Secrets/Issues: write）
@@ -89,8 +89,8 @@ export async function checkTurnstileSecret(deps, { secret }) {
   return item(id, label, FAIL, `判定できない応答（HTTP ${res.status} ${short(JSON.stringify(j))}）`, '時間を置いて再実行。続くなら Cloudflare の状態を確認');
 }
 
-export async function checkOAuthClientAuthz(deps, { clientId, redirectUri }) {
-  const id = 'C5', label = 'OAuth クライアントとリダイレクト URI';
+export async function checkOAuthClientAuthz(deps, { clientId, redirectUri, probe = false }) {
+  const id = 'C5', label = 'OAuth クライアントとリダイレクト URI' + (probe ? `（反証モード: ${redirectUri} で実行）` : '');
   if (!clientId) return item(id, label, SKIP, 'GMAIL_OAUTH_CLIENT_ID が未設定');
   const u = `${GOOGLE_AUTH}?${new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, response_type: 'code', scope: 'openid' })}`;
   const res = await deps.fetch(u, { redirect: 'manual' });
@@ -186,7 +186,7 @@ export async function runAll(deps, env) {
   await run(checkCloudflareToken(deps, { id: 'C2', label: 'Cloudflare トークン（Turnstile 回転用）', token: env.CLOUDFLARE_TURNSTILE_TOKEN, accountId: env.CLOUDFLARE_ACCOUNT_ID, siteKey, needWidget: true }));
   await run(checkCloudflareToken(deps, { id: 'C3', label: 'Cloudflare トークン（Workers 配備用）', token: env.CLOUDFLARE_WORKERS_TOKEN, needWidget: false }));
   await run(checkTurnstileSecret(deps, { secret: env.TURNSTILE_SECRET_KEY }));
-  await run(checkOAuthClientAuthz(deps, { clientId: env.GMAIL_OAUTH_CLIENT_ID, redirectUri }));
+  await run(checkOAuthClientAuthz(deps, { clientId: env.GMAIL_OAUTH_CLIENT_ID, redirectUri: env.PROBE_REDIRECT_URI || redirectUri, probe: !!env.PROBE_REDIRECT_URI }));   // PROBE_REDIRECT_URI: 反証用（C5 だけ差し替える）
   await run(checkOAuthClientSecret(deps, { clientId: env.GMAIL_OAUTH_CLIENT_ID, clientSecret: env.GMAIL_OAUTH_CLIENT_SECRET, redirectUri }));
   await run(checkRefreshToken(deps, { clientId: env.GMAIL_OAUTH_CLIENT_ID, clientSecret: env.GMAIL_OAUTH_CLIENT_SECRET, refreshToken: env.GMAIL_OAUTH_REFRESH_TOKEN, sender: env.MAIL_SENDER_USER }));
   await run(checkGitHubApp(deps, { appId: env.OPS_APP_ID, pem: env.OPS_APP_PRIVATE_KEY, owner, repo, nowSec: Math.floor(deps.now() / 1000) }));

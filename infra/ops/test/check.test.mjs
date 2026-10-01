@@ -173,4 +173,12 @@ test('runAll: 9 項目を返し、未設定は SKIP、FAIL が無ければ ok。
   assert.equal(partial.ok, false); assert.equal(partial.items[0].status, 'FAIL');
   assert.deepEqual(partial.items.slice(1, 8).map(i => i.status), ['SKIP', 'SKIP', 'SKIP', 'SKIP', 'SKIP', 'SKIP', 'SKIP']);
   assert.equal(partial.items[8].status, 'PASS');   // 受け取りページは Secret なしでも到達性と sender を見る
+  // 反証モード: PROBE_REDIRECT_URI は C5 だけに効き、C6（token endpoint）と C9（ページ取得）の URI は変えない
+  const probeFetch = fakeFetch([[ 'https://accounts.google.com/', u => html(u.includes('ops-check-probe.html') ? 'Error 400: redirect_uri_mismatch' : '', u.includes('ops-check-probe.html') ? 400 : 302) ],
+    [ 'https://oauth2.googleapis.com/token', () => json({ error: 'invalid_grant' }, 400) ], [ REDIRECT, () => html(`clientId: '${CLIENT}', sender: 'no-reply@reyz.inc', workflowUrl: 'https://github.com/REYZ-Inc/reyz-site/actions/workflows/oauth-consent.yml'`) ],
+    [ 'https://api.cloudflare.com/', () => json({ success: true, result: { status: 'active', name: 'w' } }) ], [ 'https://challenges.cloudflare.com/', () => json({ success: false, 'error-codes': ['invalid-input-response'] }) ], ...ghRoutes()]);
+  const probed = await runAll(deps(probeFetch), { ...env, PROBE_REDIRECT_URI: 'https://reyz.inc/oauth/ops-check-probe.html' });
+  assert.equal(probed.items[4].status, 'FAIL'); assert.match(probed.items[4].name, /反証モード/); assert.match(probed.items[4].detail, /redirect_uri_mismatch/);
+  assert.equal(probed.items[5].status, 'PASS'); assert.equal(probed.items[8].status, 'PASS');
+  assert.equal(new URLSearchParams(probeFetch.calls.find(c => c.url.startsWith('https://oauth2.googleapis.com/token') && c.body.includes('authorization_code')).body).get('redirect_uri'), REDIRECT);
 });
