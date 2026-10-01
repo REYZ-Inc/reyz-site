@@ -10,7 +10,7 @@ on:
   pull_request:   # すべての PR で実行（ブランチ保護の必須チェック `worker-tests` / `stack-e2e` が「未報告」で止まらないよう、パス絞り込みはしない）
   push:
     branches: [main]
-    paths: ['workers/contact/**', 'infra/oauth/**', 'qa/e2e_contact.js', '.github/workflows/contact-worker.yml']   # 関門が読むものはすべて含める（含めないと、失敗した main run の修正で配備が再開しない）
+    paths: ['workers/contact/**', 'infra/oauth/**', 'infra/ops/**', 'qa/e2e_contact.js', '.github/workflows/contact-worker.yml']   # 関門が読むものはすべて含める（含めないと、失敗した main run の修正で配備が再開しない）
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,9 +30,9 @@ jobs:
         with: { node-version: 22 }
       - name: self-test（ネットワーク不要）
         run: node --test
-      - name: 同意処理の self-test（infra/oauth、ネットワーク不要）
+      - name: 同意処理・前提検査の self-test（infra/oauth・infra/ops、ネットワーク不要）
         working-directory: ${{ github.workspace }}
-        run: node --test infra/oauth/test/*.test.mjs
+        run: node --test infra/oauth/test/*.test.mjs infra/ops/test/*.test.mjs
       - name: wrangler config / bundle check（dry-run、認証不要）
         run: npx --yes wrangler@${WRANGLER_VERSION} deploy --dry-run --outdir /tmp/wr-out
         env: { WRANGLER_SEND_METRICS: "false" }

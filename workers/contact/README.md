@@ -85,6 +85,8 @@ honeypot（`website`）に値があるものは、Turnstile 検証済み（＝�
 
 GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のたびに、管理対象 4 件は値があれば設定・空なら削除され、管理対象外（Worker にだけある名前）は削除される。手で `wrangler secret put` した値は次の配備で消える。
 
+**完了確認（各行を登録したら）**: Actions → **`ops-check`** → Run workflow（何も変更しない）。Summary の表に C1〜C9 の PASS / FAIL / SKIP と「次にやること」が出る（C1 有無と形式、C2 Turnstile 回転用トークンの権限、C3 Workers 配備用トークン、C4 Turnstile 秘密キー、C5 OAuth クライアントとリダイレクト URI、C6 クライアント シークレット、C7 リフレッシュトークンと同意した口座、C8 GitHub App の鍵・権限・インストール先、C9 受け取りページの公開値）。IV は API で起動して結果を読めるので、人は画面を送らなくてよい。毎週月曜にも自動で走る。
+
 ## 設定手順（送信専用ユーザーと OAuth。ADR-0007 / 0008。初回と、型を別サイトへ複製するとき。ロウ）
 
 秘密の値が表示される画面（クライアント シークレット、リフレッシュトークン、バックアップコード）は **スクリーンショットを送らない**。
@@ -104,7 +106,7 @@ GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のた�
 
 ### 同意の自動化の前提（1 回。Owner 権限。ロウ）
 
-`oauth-consent` workflow が動くために、次の 3 つが要る（無ければ workflow が最初の段で「未設定」を出して止まる）。
+`oauth-consent` workflow が動くために、次の 3 つが要る（無ければ workflow が最初の段で「未設定」を出して止まる）。それぞれ `ops-check` の C5 / C1 / C8 で確認できる。
 
 1. OAuth クライアント `reyz-mail-sender` の「承認済みのリダイレクト URI」に `https://reyz.inc/oauth/callback.html` があること（GCP → Google Auth Platform → クライアント → URI を追加 → 保存。Playground の URI は不要になったら削除）
 2. GitHub の変数 `MAIL_SENDER_USER` = `no-reply@reyz.inc`
@@ -129,8 +131,8 @@ GitHub Secrets が Worker secret の正本。配備（`contact-worker`）のた�
 
 ### Turnstile 秘密キーの回転（1 回の準備。Owner 権限。ロウ）
 
-1. Cloudflare → 右上プロフィール → **API トークン** → **トークンを作成** → **カスタム トークン**: 名前 `reyz-turnstile-rotate`、権限 **アカウント | Turnstile | 編集** だけ、アカウント リソース = REYZ のアカウント → 作成
-2. 表示されたトークンを GitHub Secret `CLOUDFLARE_TURNSTILE_TOKEN` に登録（画面のスクリーンショットは送らない）
+1. Cloudflare → 右上プロフィール → **API トークン**（ユーザー API トークン。画面が推奨する「アカウント API トークン」は **Turnstile 未対応**なので使えない） → **トークンを作成** → **カスタム トークン**: 名前 `reyz-turnstile-rotate`、権限 **アカウント | Turnstile | 編集** だけ、アカウント リソース = REYZ のアカウント、TTL なし → 作成
+2. 表示されたトークンを GitHub Secret `CLOUDFLARE_TURNSTILE_TOKEN` に登録（画面のスクリーンショットは送らない）→ 確認: `ops-check` の C2 が PASS（トークンが有効で、ウィジェットを読める）
 3. 以後は `turnstile-rotate` が四半期ごと（1・4・7・10 月 1 日 10:17 JST）に自動で回転する。漏えい時は Actions → `turnstile-rotate` → Run workflow
 
 ### 失敗した main の run を再開する
