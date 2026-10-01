@@ -1,7 +1,7 @@
 # Turnstile 秘密キーの回転を無人で行う（docs/site-factory.md 段階 0、ADR-0009）。人は秘密を見ない。
 #   Cloudflare API rotate_secret（旧キーは猶予期間のあと無効）→ 新しい秘密を GitHub Secret TURNSTILE_SECRET_KEY へ（App 権限）
 #   → contact-worker を起動して配備完了を待つ → 運用記録の issue にコメント → Summary
-# 前提（1 回）: secrets.CLOUDFLARE_TURNSTILE_TOKEN（アカウント単位、権限は Turnstile: 編集 のみ）、GitHub App（vars.OPS_APP_ID / secrets.OPS_APP_PRIVATE_KEY）
+# 前提（1 回）: secrets.CLOUDFLARE_TURNSTILE_TOKEN（アカウント単位、権限は Turnstile: 編集 のみ）、GitHub App（vars.OPS_APP_ID / vars.OPS_APP_CLIENT_ID / secrets.OPS_APP_PRIVATE_KEY）
 # サイトキーは公開値で、site/assets/site.js の CONFIG.turnstileSiteKey を正本として読む。
 name: turnstile-rotate
 on:
@@ -25,12 +25,14 @@ jobs:
         env:
           HAS_CF: ${{ secrets.CLOUDFLARE_TURNSTILE_TOKEN != '' }}
           OPS_APP_ID: ${{ vars.OPS_APP_ID }}
+          OPS_APP_CLIENT_ID: ${{ vars.OPS_APP_CLIENT_ID }}
           HAS_KEY: ${{ secrets.OPS_APP_PRIVATE_KEY != '' }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           missing=""
           [ "$HAS_CF" = "true" ] || missing="$missing secrets.CLOUDFLARE_TURNSTILE_TOKEN"
           [ -n "$OPS_APP_ID" ] || missing="$missing vars.OPS_APP_ID"
+          [ -n "$OPS_APP_CLIENT_ID" ] || missing="$missing vars.OPS_APP_CLIENT_ID"
           [ "$HAS_KEY" = "true" ] || missing="$missing secrets.OPS_APP_PRIVATE_KEY"
           [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing="$missing vars.CLOUDFLARE_ACCOUNT_ID"
           if [ -n "$missing" ]; then echo "::error title=turnstile-rotate::未設定:$missing（workers/contact/README.md「Turnstile 秘密キーの回転」）"; exit 1; fi
@@ -38,7 +40,7 @@ jobs:
         id: app
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ vars.OPS_APP_ID }}
+          client-id: ${{ vars.OPS_APP_CLIENT_ID }}   # App の Client ID（Iv…。app-id は非推奨）
           private-key: ${{ secrets.OPS_APP_PRIVATE_KEY }}
       - name: サイトキーを site.js から読む（公開値）
         id: sitekey
@@ -102,5 +104,5 @@ jobs:
             echo "## turnstile-rotate: ${RESULT}"
             echo
             echo "- 旧キーは Cloudflare の猶予期間のあと無効（invalidate_immediately=false）"
-            echo "- 配備（contact-worker）: ${DEPLOY_RUN:+run $DEPLOY_RUN}${DEPLOY_RUN:-未起動}"
+            echo "- 配備（contact-worker）: ${DEPLOY_RUN:-未起動}"
           } >> "$GITHUB_STEP_SUMMARY"

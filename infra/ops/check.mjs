@@ -9,7 +9,7 @@
 //   C5 OAuth クライアントとリダイレクト URI（Google の認可 endpoint が受け付けるか。ログインは要らない。エラーは転送先 URL で判定。PROBE_REDIRECT_URI で反証: 未登録の URI なら FAIL になるのが正しい）
 //   C6 OAuth クライアント シークレット（token endpoint に偽コードを送る。invalid_grant なら認証は通っている）
 //   C7 リフレッシュトークン（refresh で access token が取れるか。openid を含む同意なら「同意した口座」も判定）
-//   C8 GitHub App「REYZ Ops」（秘密鍵と App ID の一致、インストール先の repo、権限 Actions/Secrets/Issues: write）
+//   C8 GitHub App「REYZ Ops」（秘密鍵と App ID の一致、Client ID の一致、インストール先の repo、権限 Actions/Secrets/Issues: write）
 //   C9 受け取りページ https://reyz.inc/oauth/callback.html（公開の clientId / sender が Secret・変数と一致するか）
 // 秘密の値は一切出力しない（判定と、公開値だけ）。偽コード・偽トークンを送る検査は、相手側に何も作らない。
 import { readFileSync, appendFileSync, writeFileSync } from 'node:fs';
@@ -47,7 +47,7 @@ export function appJwt(appId, pem, nowSec = Math.floor(Date.now() / 1000)) {
 
 export async function checkPresence(env) {
   const secrets = ['CLOUDFLARE_TURNSTILE_TOKEN', 'CLOUDFLARE_WORKERS_TOKEN', 'TURNSTILE_SECRET_KEY', 'GMAIL_OAUTH_CLIENT_ID', 'GMAIL_OAUTH_CLIENT_SECRET', 'GMAIL_OAUTH_REFRESH_TOKEN', 'OPS_APP_PRIVATE_KEY'];
-  const vars = { OPS_APP_ID: /^\d+$/, MAIL_SENDER_USER: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, CLOUDFLARE_ACCOUNT_ID: /^[0-9a-f]{32}$/, NOC_EMAIL: /^[^@\s]+@[^@\s]+\.[^@\s]+$/ };
+  const vars = { OPS_APP_ID: /^\d+$/, OPS_APP_CLIENT_ID: /^Iv[0-9A-Za-z.]{6,}$/, MAIL_SENDER_USER: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, CLOUDFLARE_ACCOUNT_ID: /^[0-9a-f]{32}$/, NOC_EMAIL: /^[^@\s]+@[^@\s]+\.[^@\s]+$/ };
   const missing = secrets.filter(k => !env[k]);
   const bad = [];
   for (const [k, re] of Object.entries(vars)) { if (!env[k]) missing.push(`vars.${k}`); else if (!re.test(env[k])) bad.push(`vars.${k}=${env[k]}`); }
@@ -175,7 +175,7 @@ export async function checkRefreshToken(deps, { clientId, clientSecret, refreshT
   return item(id, label, PASS, `有効（scope: ${scopes.map(s => s.replace('https://www.googleapis.com/auth/', '')).join(' ')}）。${who}`);
 }
 
-export async function checkGitHubApp(deps, { appId, pem, owner, repo, nowSec }) {
+export async function checkGitHubApp(deps, { appId, clientId = '', pem, owner, repo, nowSec }) {
   const id = 'C8', label = 'GitHub App「REYZ Ops」';
   if (!appId || !pem) return item(id, label, SKIP, 'vars.OPS_APP_ID / secrets.OPS_APP_PRIVATE_KEY が未設定', 'README「同意の自動化の前提」の GitHub App の表');
   let jwt;
@@ -184,6 +184,7 @@ export async function checkGitHubApp(deps, { appId, pem, owner, repo, nowSec }) 
   const app = await deps.fetch(`${GH}/app`, { headers: H });
   const aj = await safeJson(app);
   if (!app.ok) return item(id, label, FAIL, `App の認証に失敗（HTTP ${app.status} ${short(aj.message)}）: App ID と秘密鍵が一致しない`, 'App の設定画面の App ID を vars.OPS_APP_ID に、Generate a private key で作った .pem を Secret に（古い鍵は削除）');
+  if (clientId && aj.client_id && aj.client_id !== clientId) return item(id, label, FAIL, `vars.OPS_APP_CLIENT_ID（${clientId}）が App「${aj.slug || aj.name}」の Client ID（${aj.client_id}）と一致しない`, 'App の設定画面の Client ID を vars.OPS_APP_CLIENT_ID に設定');
   const inst = await deps.fetch(`${GH}/app/installations`, { headers: H });
   const list = await safeJson(inst);
   const mine = Array.isArray(list) ? list.find(i => String(i.account?.login || '').toLowerCase() === owner.toLowerCase()) : null;
@@ -231,7 +232,7 @@ export async function runAll(deps, env) {
   await run(checkOAuthClientAuthz(deps, { clientId: env.GMAIL_OAUTH_CLIENT_ID, redirectUri: env.PROBE_REDIRECT_URI || redirectUri, probe: !!env.PROBE_REDIRECT_URI }));   // PROBE_REDIRECT_URI: 反証用（C5 だけ差し替える）
   await run(checkOAuthClientSecret(deps, { clientId: env.GMAIL_OAUTH_CLIENT_ID, clientSecret: env.GMAIL_OAUTH_CLIENT_SECRET, redirectUri }));
   await run(checkRefreshToken(deps, { clientId: env.GMAIL_OAUTH_CLIENT_ID, clientSecret: env.GMAIL_OAUTH_CLIENT_SECRET, refreshToken: env.GMAIL_OAUTH_REFRESH_TOKEN, sender: env.MAIL_SENDER_USER }));
-  await run(checkGitHubApp(deps, { appId: env.OPS_APP_ID, pem: env.OPS_APP_PRIVATE_KEY, owner, repo, nowSec: Math.floor(deps.now() / 1000) }));
+  await run(checkGitHubApp(deps, { appId: env.OPS_APP_ID, clientId: env.OPS_APP_CLIENT_ID || '', pem: env.OPS_APP_PRIVATE_KEY, owner, repo, nowSec: Math.floor(deps.now() / 1000) }));
   await run(checkCallbackPage(deps, { url: redirectUri, clientId: env.GMAIL_OAUTH_CLIENT_ID, sender: env.MAIL_SENDER_USER, repository: `${owner}/${repo}` }));
   const count = s => items.filter(i => i.status === s).length;
   return { items, pass: count(PASS), fail: count(FAIL), skip: count(SKIP), ok: count(FAIL) === 0 };

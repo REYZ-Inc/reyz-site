@@ -36,7 +36,7 @@ test('readSiteKey / appJwt（RS256 の署名が検証できる）', () => {
 });
 
 test('C1: 有無と形式。未設定と形式不正を列挙し、値は公開の変数だけ出す', async () => {
-  const full = { CLOUDFLARE_TURNSTILE_TOKEN: 't', CLOUDFLARE_WORKERS_TOKEN: 't', TURNSTILE_SECRET_KEY: 's', GMAIL_OAUTH_CLIENT_ID: CLIENT, GMAIL_OAUTH_CLIENT_SECRET: 'x', GMAIL_OAUTH_REFRESH_TOKEN: 'r', OPS_APP_PRIVATE_KEY: PEM, OPS_APP_ID: '12', MAIL_SENDER_USER: SENDER, CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32), NOC_EMAIL: 'noc@reyz.inc' };
+  const full = { CLOUDFLARE_TURNSTILE_TOKEN: 't', CLOUDFLARE_WORKERS_TOKEN: 't', TURNSTILE_SECRET_KEY: 's', GMAIL_OAUTH_CLIENT_ID: CLIENT, GMAIL_OAUTH_CLIENT_SECRET: 'x', GMAIL_OAUTH_REFRESH_TOKEN: 'r', OPS_APP_PRIVATE_KEY: PEM, OPS_APP_ID: '12', OPS_APP_CLIENT_ID: 'Iv23abcdefgh', MAIL_SENDER_USER: SENDER, CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32), NOC_EMAIL: 'noc@reyz.inc' };
   const ok = await checkPresence(full);
   assert.equal(ok.status, 'PASS'); assert.match(ok.detail, /MAIL_SENDER_USER=no-reply@reyz\.inc/); assert.doesNotMatch(ok.detail, /'x'|rt|PRIVATE/);
   const r = await checkPresence({ ...full, CLOUDFLARE_TURNSTILE_TOKEN: '', OPS_APP_ID: 'abc', MAIL_SENDER_USER: '' });
@@ -144,7 +144,7 @@ function ghRoutes({ appOk = true, installed = true, perms = { actions: 'write', 
   return [
     [ 'https://api.github.com/app/installations/77/access_tokens', () => json({ token: 'ghs_x' }, 201) ],
     [ 'https://api.github.com/app/installations', () => json(installed ? [{ id: 77, account: { login: 'reyz-inc' }, permissions: perms, repository_selection: selection }] : []) ],
-    [ 'https://api.github.com/app', () => appOk ? json({ id: 12345, slug: 'reyz-ops', name: 'REYZ Ops' }) : json({ message: 'A JSON web token could not be decoded' }, 401) ],
+    [ 'https://api.github.com/app', () => appOk ? json({ id: 12345, slug: 'reyz-ops', name: 'REYZ Ops', client_id: 'Iv23abcdefgh' }) : json({ message: 'A JSON web token could not be decoded' }, 401) ],
     [ 'https://api.github.com/installation/repositories', () => json({ total_count: repos.length, repositories: repos.map(full_name => ({ full_name })) }) ],
   ];
 }
@@ -164,6 +164,9 @@ test('C8: GitHub App。鍵と ID の一致 → インストール → 権限 →
   const otherRepo = await checkGitHubApp(deps(fakeFetch(ghRoutes({ repos: ['REYZ-Inc/other'] }))), { appId: '12345', pem: PEM, owner: 'REYZ-Inc', repo: 'reyz-site' });
   assert.equal(otherRepo.status, 'FAIL'); assert.match(otherRepo.detail, /reyz-site が無い/);
   assert.equal((await checkGitHubApp(deps(fakeFetch(ghRoutes({ selection: 'all', repos: [] }))), { appId: '12345', pem: PEM, owner: 'REYZ-Inc', repo: 'reyz-site' })).status, 'PASS');
+  const wrongClient = await checkGitHubApp(deps(fakeFetch(ghRoutes())), { appId: '12345', clientId: 'Iv23zzzzzzzz', pem: PEM, owner: 'REYZ-Inc', repo: 'reyz-site' });
+  assert.equal(wrongClient.status, 'FAIL'); assert.match(wrongClient.detail, /Client ID/);
+  assert.equal((await checkGitHubApp(deps(fakeFetch(ghRoutes())), { appId: '12345', clientId: 'Iv23abcdefgh', pem: PEM, owner: 'REYZ-Inc', repo: 'reyz-site' })).status, 'PASS');
   const garbage = await checkGitHubApp(deps(fakeFetch(ghRoutes())), { appId: '12345', pem: 'not a key', owner: 'REYZ-Inc', repo: 'reyz-site' });
   assert.equal(garbage.status, 'FAIL'); assert.match(garbage.detail, /秘密鍵を読めない/);
   assert.equal((await checkGitHubApp(deps(fakeFetch(ghRoutes())), { appId: '', pem: PEM, owner: 'REYZ-Inc', repo: 'reyz-site' })).status, 'SKIP');
@@ -189,7 +192,7 @@ test('runAll: 9 項目を返し、未設定は SKIP、FAIL が無ければ ok。
     [ 'https://oauth2.googleapis.com/token', (u, init) => new URLSearchParams(init.body).get('grant_type') === 'refresh_token' ? json({ access_token: 'at', scope: 'https://www.googleapis.com/auth/gmail.send' }) : json({ error: 'invalid_grant' }, 400) ],
     [ REDIRECT, () => html(`clientId: '${CLIENT}', sender: 'no-reply@reyz.inc', workflowUrl: 'https://github.com/REYZ-Inc/reyz-site/actions/workflows/oauth-consent.yml'`) ],
     ...ghRoutes()]);
-  const env = { GITHUB_REPOSITORY: 'REYZ-Inc/reyz-site', CLOUDFLARE_TURNSTILE_TOKEN: 'cf-secret-1', CLOUDFLARE_WORKERS_TOKEN: 'cf-secret-2', TURNSTILE_SECRET_KEY: 'ts-secret', GMAIL_OAUTH_CLIENT_ID: CLIENT, GMAIL_OAUTH_CLIENT_SECRET: 'gcs-secret', GMAIL_OAUTH_REFRESH_TOKEN: 'rt-secret', OPS_APP_PRIVATE_KEY: PEM, OPS_APP_ID: '12345', MAIL_SENDER_USER: SENDER, CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32), NOC_EMAIL: 'noc@reyz.inc' };
+  const env = { GITHUB_REPOSITORY: 'REYZ-Inc/reyz-site', CLOUDFLARE_TURNSTILE_TOKEN: 'cf-secret-1', CLOUDFLARE_WORKERS_TOKEN: 'cf-secret-2', TURNSTILE_SECRET_KEY: 'ts-secret', GMAIL_OAUTH_CLIENT_ID: CLIENT, GMAIL_OAUTH_CLIENT_SECRET: 'gcs-secret', GMAIL_OAUTH_REFRESH_TOKEN: 'rt-secret', OPS_APP_PRIVATE_KEY: PEM, OPS_APP_ID: '12345', OPS_APP_CLIENT_ID: 'Iv23abcdefgh', MAIL_SENDER_USER: SENDER, CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32), NOC_EMAIL: 'noc@reyz.inc' };
   const r = await runAll(deps(f), env);
   assert.deepEqual(r.items.map(i => i.id), ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9']);
   assert.equal(r.ok, true); assert.equal(r.pass, 9); assert.equal(r.fail, 0);

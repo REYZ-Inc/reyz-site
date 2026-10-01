@@ -34,6 +34,7 @@ jobs:
           GMAIL_OAUTH_REFRESH_TOKEN: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
           OPS_APP_PRIVATE_KEY: ${{ secrets.OPS_APP_PRIVATE_KEY }}
           OPS_APP_ID: ${{ vars.OPS_APP_ID }}
+          OPS_APP_CLIENT_ID: ${{ vars.OPS_APP_CLIENT_ID }}
           MAIL_SENDER_USER: ${{ vars.MAIL_SENDER_USER }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           NOC_EMAIL: ${{ vars.NOC_EMAIL }}
