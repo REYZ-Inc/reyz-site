@@ -9,6 +9,16 @@ NAV = [('creator.html', 'Creator'), ('creative.html', 'Creative'), ('ai.html', '
 ADDRESS = '東京都渋谷区恵比寿1丁目19-19 恵比寿ビジネスタワー10階'
 ICON = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23060609'/%3E%3Cpath%20d='M18%2032c0-6%204-9%208-9s6%203%208%209%204%209%208%209%208-3%208-9-4-9-8-9-6%203-8%209-4%209-8%209-8-3-8-9z'%20fill='none'%20stroke='%23F715AC'%20stroke-width='2.4'%20stroke-linecap='round'/%3E%3C/svg%3E"
 
+def clean(fname):
+    """公開 URL の表記（2026-10-03 CEO 決定）: 拡張子 .html を付けない。index.html は ''（= /）。
+    ファイル自体は x.html のまま出力する（GitHub Pages は /x で x.html を返す。旧 URL /x.html も引き続き開ける）。"""
+    return '' if fname == 'index.html' else re.sub(r'\.html$', '', fname)
+_PAGE_RE = r'(?:creator|creative|ai|contact|legal|works)'
+def clean_links(doc):
+    """ページ内リンクを .html なしの表記へ（index.html → ./ 、x.html → x。#以降は保つ）。本文は x.html で書き、出力時に一括変換する。"""
+    doc = re.sub(r'href="index\.html(#[^"]*)?"', lambda m: 'href="./' + (m.group(1) or '') + '"', doc)
+    return re.sub(r'href="(' + _PAGE_RE + r')\.html(#[^"]*)?"', lambda m: 'href="' + m.group(1) + (m.group(2) or '') + '"', doc)
+
 def head(title, desc, fname='index.html'):
     return f'''<!DOCTYPE html>
 <html lang="ja" class="no-js">
@@ -22,12 +32,12 @@ def head(title, desc, fname='index.html'):
   <meta property="og:description" content="{html.escape(desc)}">
   <meta property="og:site_name" content="REYZ Inc.">
   <meta property="og:locale" content="ja_JP">
-  <meta property="og:url" content="{SITE_URL}/{'' if fname == 'index.html' else fname}">
+  <meta property="og:url" content="{SITE_URL}/{clean(fname)}">
   <meta property="og:image" content="{SITE_URL}/assets/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="canonical" href="{SITE_URL}/{'' if fname == 'index.html' else fname}">
+  <link rel="canonical" href="{SITE_URL}/{clean(fname)}">
   <meta name="theme-color" content="#060609">
   <link rel="icon" href="{ICON}">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
@@ -87,7 +97,7 @@ def page(fname, title, desc, col_text, current=None):
 {col_text}  </main>
 
 ''' + FOOTER
-    with open(os.path.join(ROOT, fname), 'w', encoding='utf-8') as f: f.write(doc)
+    with open(os.path.join(ROOT, fname), 'w', encoding='utf-8') as f: f.write(clean_links(doc))
 
 def slot(word, halo=False):
     return f'<div class="slot" data-word="{word}" aria-hidden="true">' + ('<div class="halo"></div>' if halo else '') + '</div>'
@@ -485,14 +495,14 @@ PAGES.remove('404.html')
 # 404 はどの階層の URL でも配信されるため、相対パスを絶対パスに書き換える（assets／各ページへのリンク）
 _p404 = os.path.join(ROOT, '404.html'); _d = open(_p404, encoding='utf-8').read()
 _d = re.sub(r'(href|src)="assets/', r'\1="/assets/', _d)
-_d = re.sub(r'href="index\.html(#[^"]*)?"', lambda m: 'href="/' + (m.group(1) or '') + '"', _d)
-_d = re.sub(r'href="((?:creator|creative|ai|contact|legal|works)\.html)"', r'href="/\1"', _d)
+_d = re.sub(r'href="\./(#[^"]*)?"', lambda m: 'href="/' + (m.group(1) or '') + '"', _d)
+_d = re.sub(r'href="(' + _PAGE_RE + r')"', r'href="/\1"', _d)
 open(_p404, 'w', encoding='utf-8').write(_d)
 with open(os.path.join(ROOT, 'robots.txt'), 'w', encoding='utf-8') as f:
     f.write(f'User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n')
 with open(os.path.join(ROOT, 'sitemap.xml'), 'w', encoding='utf-8') as f:
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-            ''.join(f'  <url><loc>{SITE_URL}/{"" if p == "index.html" else p}</loc></url>\n' for p in PAGES) + '</urlset>\n')
+            ''.join(f'  <url><loc>{SITE_URL}/{clean(p)}</loc></url>\n' for p in PAGES) + '</urlset>\n')
 # Cloudflare Pages / Netlify が読む付属設定（他のホスティングでは無視される）
 host = SITE_URL.split('//', 1)[1]
 with open(os.path.join(ROOT, '_headers'), 'w', encoding='utf-8') as f:
