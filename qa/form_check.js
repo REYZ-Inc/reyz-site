@@ -15,12 +15,12 @@ const server = http.createServer((req, res) => { const u = decodeURIComponent(re
   F('no old lead', !(await p.evaluate(() => document.body.innerText.includes('窓口はひとつ'))));
   // validation: empty submit stays on form
   await p.click('#confirmBtn'); await p.waitForTimeout(300); F('empty submit stays', await p.evaluate(() => !document.getElementById('stepForm').hidden && document.getElementById('stepConfirm').hidden));
-  await p.fill('#cName', '株式会社テスト'); await p.fill('#cPerson', '山田'); await p.selectOption('#cType', { label: 'AI基盤「Z」・SaaS導入' }); await p.fill('#cMsg', '導入の相談です。\n2行目');
+  await p.fill('#cName', '株式会社テスト'); await p.fill('#cPerson', '山田'); await p.selectOption('#cType', { label: 'AI基盤「Z-PLATFORM」・SaaS導入' }); await p.fill('#cMsg', '導入の相談です。\n2行目');
   await p.click('#confirmBtn'); await p.waitForTimeout(300); F('missing email blocks', await p.evaluate(() => document.getElementById('stepConfirm').hidden));
   await p.fill('#cLocal', 'taro'); await p.selectOption('#cDomain', 'gmail.com');
   await p.click('#confirmBtn'); await p.waitForTimeout(700);
   out.confirm = await p.evaluate(() => ({ formHidden: document.getElementById('stepForm').hidden, confirmShown: !document.getElementById('stepConfirm').hidden, rows: Array.from(document.querySelectorAll('#confirmList div')).map(d => [d.querySelector('dt').textContent, d.querySelector('dd').textContent]), hash: location.hash, focused: document.activeElement && document.activeElement.id, top: Math.round(document.getElementById('contactForm').getBoundingClientRect().top) }));
-  F('confirm view', out.confirm.formHidden && out.confirm.confirmShown && out.confirm.hash === '#confirm'); F('confirm rows', JSON.stringify(out.confirm.rows) === JSON.stringify([['お名前', '株式会社テスト'], ['ご担当者様', '山田'], ['メールアドレス', 'taro@gmail.com'], ['ご用件', 'AI基盤「Z」・SaaS導入'], ['内容', '導入の相談です。\n2行目']])); F('focus on confirm title', out.confirm.focused === 'confirmTitle'); F('scrolled to form', out.confirm.top >= 0 && out.confirm.top < 420);
+  F('confirm view', out.confirm.formHidden && out.confirm.confirmShown && out.confirm.hash === '#confirm'); F('confirm rows', JSON.stringify(out.confirm.rows) === JSON.stringify([['お名前', '株式会社テスト'], ['ご担当者様', '山田'], ['メールアドレス', 'taro@gmail.com'], ['ご用件', 'AI基盤「Z-PLATFORM」・SaaS導入'], ['内容', '導入の相談です。\n2行目']])); F('focus on confirm title', out.confirm.focused === 'confirmTitle'); F('scrolled to form', out.confirm.top >= 0 && out.confirm.top < 420);
   await p.screenshot({ path: path.join(process.env.QA_OUT || path.dirname(process.argv[1]), 'form_confirm_390.png') });
   // back via 修正する (history.back) keeps values
   await p.click('#backBtn'); await p.waitForTimeout(500);
@@ -29,8 +29,8 @@ const server = http.createServer((req, res) => { const u = decodeURIComponent(re
   // confirm again and send
   await p.click('#confirmBtn'); await p.waitForTimeout(500); await p.click('#sendBtn'); await p.waitForTimeout(800);
   out.send = await p.evaluate(() => ({ done: !document.getElementById('stepDone').hidden, status: document.getElementById('sendStatus').textContent, copyShown: !document.getElementById('copyLabel').hidden, copyText: document.getElementById('copyArea').value, hash: location.hash, disabled: document.getElementById('sendBtn').disabled }));
-  if (ENDPOINT) { F('endpoint: done view', out.send.done && out.send.hash === '#sent'); F('endpoint: payload', posted && posted.name === '株式会社テスト' && posted.person === '山田' && posted.email === 'taro@gmail.com' && posted._replyto === 'taro@gmail.com' && posted.type === 'AI基盤「Z」・SaaS導入' && posted.message.startsWith('導入') && posted.website === '' && posted.turnstile === ''); }
-  else { F('fallback: copy text shown', out.send.copyShown && out.send.copyText.includes('ご用件: AI基盤「Z」・SaaS導入') && out.send.copyText.includes('ご担当者様: 山田') && out.send.copyText.includes('メール: taro@gmail.com') && /準備中/.test(out.send.status) && !out.send.done); }
+  if (ENDPOINT) { F('endpoint: done view', out.send.done && out.send.hash === '#sent'); F('endpoint: payload', posted && posted.name === '株式会社テスト' && posted.person === '山田' && posted.email === 'taro@gmail.com' && posted._replyto === 'taro@gmail.com' && posted.type === 'AI基盤「Z-PLATFORM」・SaaS導入' && posted.message.startsWith('導入') && posted.website === '' && posted.turnstile === ''); }
+  else { F('fallback: copy text shown', out.send.copyShown && out.send.copyText.includes('ご用件: AI基盤「Z-PLATFORM」・SaaS導入') && out.send.copyText.includes('ご担当者様: 山田') && out.send.copyText.includes('メール: taro@gmail.com') && /準備中/.test(out.send.status) && !out.send.done); }
   await p.screenshot({ path: path.join(process.env.QA_OUT || path.dirname(process.argv[1]), `form_sent_390_${ENDPOINT ? 'endpoint' : 'fallback'}.png`) });
   // email variants: その他 (custom domain), pasted full address, invalid custom domain
   await p.goto(base + 'contact.html', { waitUntil: 'load' }); await p.waitForTimeout(1900);

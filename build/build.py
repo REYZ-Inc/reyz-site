@@ -147,7 +147,7 @@ BIZ = (
     '              <li><span class="k">エンタープライズ事業</span><span class="v">' + jp('''戦略・ブランド・マーケティングを、[AIとデータで|企業の成長設計へ統合する。]
 表現と広告の適法性検証まで、|一貫して担う。''') + '</span></li>\n'
     '              <li><span class="k">AIプラットフォーム事業</span><span class="v">' + jp('''複数のAIエージェントを[クリエイターエコノミーと|統合運用する]
-自社AI基盤「Z」の開発・提供。
+自社AI基盤「Z-PLATFORM」の開発・提供。
 業務の設計から実装、|検証・運用までを、|AIと共に。
 複数のAIによる|相互検証と記録を標準とし、
 監査可能なAI運用を|設計段階から組み込む。''') + '</span></li>\n'
@@ -274,7 +274,7 @@ section('services', 'Services', '提供すること', '',
                ('ブランドと制作', jp('ブランド戦略、|企業・専門家のブランディング、|サイト・映像・SNSの制作と運用。')),
                ('クリエイターとの販売設計', jp('クリエイターと連動した|販売の設計と運用。|国内からアジアへの越境販売まで。')),
                ('表現と広告の検証', jp('ステマ規制、景品表示法、|医療広告ガイドライン、薬機法に照らし、|公開前に表現を検証します。')),
-               ('AI導入', jp('業務の設計から実装、|検証・運用までをAIと共に進める体制を、|自社AI基盤「Z」で構築します。'), 'ai.html', 'Zについて')])) + \
+               ('AI導入', jp('業務の設計から実装、|検証・運用までをAIと共に進める体制を、|自社AI基盤「Z-PLATFORM」で構築します。'), 'ai.html', 'Z-PLATFORMについて')])) + \
 section('how', 'How it works', '進め方', '',
         steps([('01', '診断', jp('事業・ブランド・表現の現状を、|データで確認します。')),
                ('02', '設計と検証', jp('戦略・チャネル・表現を設計し、|公開前に法令への適合を検証します。')),
@@ -282,23 +282,30 @@ section('how', 'How it works', '進め方', '',
 page('creative.html', 'Creative — REYZ Inc.', 'REYZの企業向けサービス。戦略・ブランド・マーケティングをAIとデータで成長設計へ統合し、表現と広告の適法性検証まで一貫して担います。', creative)
 
 # ------------------------------------------------------------------ AI (Z)（AIプラットフォーム事業）
-# 事業内容: 複数のAIエージェントをクリエイターエコノミーと統合運用する自社AI基盤「Z」の開発・提供。
+# 事業内容: 複数のAIエージェントをクリエイターエコノミーと統合運用する自社AI基盤「Z-PLATFORM」の開発・提供。
 #           業務の設計から実装、検証・運用までを、AIと共に。複数のAIによる相互検証と記録を標準とし、監査可能なAI運用を設計段階から組み込む。
+# 名称（2026-10-03 CEO 決定）: 「Z-PLATFORM」= REYZ の AI 製品を集約するプラットフォームの名称。個別の柱の名前ではない。
+# 表示の規律: 製品は開発中。稼働・実績を示す表現（「日々稼働しています」等）は、根拠を併記できるまで書かない（legal.html「表示に関する方針」）。
 ai_products = ('<div class="items reveal">\n'
-    '            <div class="item"><span class="n">01</span><span class="kw">つなぐ<small>Z-PLATFORM</small></span><p>' + jp('複数のAIエージェントを、|事業の実行と統制のもとで|統合運用する基盤。\nクリエイターエコノミーの現場で、|日々稼働しています。') + '</p></div>\n'
-    '            <div class="item"><span class="n">02</span><span class="kw">つくる<small>Z-DEVELOPER</small></span><p>' + jp('開発経験がなくても、|自分の言葉で伝えることから|本番公開と運用まで進められる開発OS。') + '</p></div>\n'
-    '            <div class="item"><span class="n">03</span><span class="kw">確かめ、進める<small>Cross-AI Flow</small></span><p>' + jp('複数のAIが互いに検証し、|合意した事実だけを次へ進める|意思決定の流れ。\nすべての判断に、|確認できる記録が残ります。') + '</p></div>\n'
+    '            <div class="item"><span class="n">01</span><span class="kw">つなぐ<small>AI Orchestration</small></span><p>' + jp('複数のAIエージェントを、|ひとつの統制のもとで運用するための層。\n提供元の異なるAIを組み合わせ、|特定のAIに依存しない構成にします。') + '</p></div>\n'
+    '            <div class="item"><span class="n">02</span><span class="kw">つくる<small>Z-DEVELOPER</small></span><p>' + jp('開発経験がなくても、|自分の言葉で伝えることから|始められる開発OS。\n公開して終わりではなく、|その後の運用と改善までを|対象にします。') + '</p></div>\n'
+    '            <div class="item"><span class="n">03</span><span class="kw">確かめ、進める<small>Cross-AI Flow</small></span><p>' + jp('提供元の異なる複数のAIが、|同じ内容を互いに検証し、|合意したものだけを次へ進めます。\n重要な変更には人の承認を必須とし、|すべての判断に、|確認できる記録を残します。') + '</p></div>\n'
     '          </div>')
 ai = title_chapter('AI', 'Z · AI Infrastructure', 'AIが支える。',
-                   jp('複数のAIエージェントを統合運用する|AI基盤「Z」。')) + \
-section('products', 'Products', 'Zの三つの柱', '', ai_products) + \
-section('enterprise', 'For Enterprise', '企業向け提供', jp('業務の設計から実装、検証・運用までを、|AIと共に。'),
-        steps([('01', '設計', jp('業務と判断の流れを、|AIと人の役割に分けて設計します。')),
-               ('02', '実装', jp('Zの上にエージェントを構成し、|既存の業務・データと接続します。')),
-               ('03', '検証・運用', jp('複数のAIによる相互検証と記録を標準に、|監査可能な状態で運用します。'))], cls='list') + more('contact.html', '相談する')) + \
+                   jp('複数のAIエージェントを統合運用する|AI基盤「Z-PLATFORM」。')) + \
+section('products', 'Products', 'Z-PLATFORM', jp('REYZのAI製品を、|ひとつに集約するプラットフォーム。\n開発を進めながら、|順次提供します。'), ai_products) + \
+section('enterprise', 'For Enterprise', '企業向け提供', jp('AIに任せた判断を、|あとから説明できる状態に。\n監査できるAI運用の基盤を、|企業向けに提供します。'),
+        items([('相互検証', jp('提供元の異なる複数のAIが、|同じ内容をそれぞれ検証します。\n一致しないものは、|先へ進めません。')),
+               ('人の承認', jp('重要な変更は、|責任者の承認を経てから実行します。\nAIだけの判断で、|本番は変わりません。')),
+               ('検証できる記録', jp('入力、根拠、判定、承認を記録し、|第三者があとから|同じ判断をたどれるようにします。')),
+               ('特定のAIに依存しない構成', jp('複数の提供元を前提に構成します。\nモデルの世代交代や価格の変化に、|構成を変えて対応できます。'))])) + \
+section('enterprise-how', 'How it works', '進め方', '',
+        steps([('01', '現状の確認', jp('どの業務で、|AIが何を判断しているか。\n判断の重さと、|現在の確認方法を整理します。')),
+               ('02', '統制の設計と導入', jp('検証の規則、|人が承認する範囲、|記録の形式を決め、\n既存の業務に組み込みます。')),
+               ('03', '運用と報告', jp('AIと共に運用し、|判断の記録を定期的に報告します。\n結果をもとに、|規則を見直します。'))], cls='list') + more('contact.html', '先行導入を相談する')) + \
 section('principles', 'Principles', '原則', '',
         items([('Fail-Closed', jp('不確実なときは、|安全側で止まる。')), ('Fact-First', jp('事実・推論・仮説を|分けて扱う。')), ('Auditable', jp('すべての判断に、|確認できる記録を残す。|監査可能な運用を、|設計段階から。'))]))
-page('ai.html', 'AI — REYZ Inc.', '複数のAIエージェントを統合運用する自社AI基盤「Z」。Z-PLATFORM、Z-DEVELOPER、Cross-AI Flow を柱に、監査可能なAI運用を企業向けに提供します。', ai)
+page('ai.html', 'AI — REYZ Inc.', 'REYZのAI製品を集約するプラットフォーム「Z-PLATFORM」。複数のAIによる相互検証、人の承認、検証できる記録を備えた、監査できるAI運用の基盤を企業向けに提供します。', ai)
 
 # ------------------------------------------------------------------ CONTACT
 # ご用件は事業内容（3事業）と各ページの導線に対応: クリエイターの方（Creator）／企業の方（Creative・AI）／その他
@@ -342,7 +349,7 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
                     <option>ブランディング・制作</option>
                     <option>クリエイターとの販売設計</option>
                     <option>表現・広告の適法性検証</option>
-                    <option>AI基盤「Z」・SaaS導入</option>
+                    <option>AI基盤「Z-PLATFORM」・SaaS導入</option>
                   </optgroup>
                   <optgroup label="その他">
                     <option>取材・提携</option>
