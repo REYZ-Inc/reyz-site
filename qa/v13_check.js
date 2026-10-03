@@ -32,7 +32,7 @@ const PINK = 'rgb(247, 21, 172)', SHEET = 'rgb(28, 28, 28)';
     F('company labels', JSON.stringify(got.labels) === JSON.stringify(['クリエイターエコノミー事業', 'エンタープライズ事業', 'AIプラットフォーム事業']));
     F('company item 1', got.items[0] === '個人の創造性と影響力を、持続する経済価値へ。\n発掘から育成、収益化までを一体で設計・運営する。');
     F('company item 2', got.items[1] === '戦略・ブランド・マーケティングを、AIとデータで企業の成長設計へ統合する。\n表現と広告の適法性検証まで、一貫して担う。');
-    F('company item 3', got.items[2] === '複数のAIエージェントをクリエイターエコノミーと統合運用する\n自社AI基盤「Z」の開発・提供。\n業務の設計から実装、検証・運用までを、AIと共に。\n複数のAIによる相互検証と記録を標準とし、\n監査可能なAI運用を設計段階から組み込む。');
+    F('company item 3', got.items[2] === '複数のAIエージェントをクリエイターエコノミーと統合運用する\n自社AI基盤「Z-PLATFORM」の開発・提供。\n業務の設計から実装、検証・運用までを、AIと共に。\n複数のAIによる相互検証と記録を標準とし、\n監査可能なAI運用を設計段階から組み込む。');
     F('no visible h2 in company', got.visibleH2 === 0); F('no service names / excluded businesses in company', !/ライブ配信|映像制作|不動産|リユース|TikTok|クリエイター起点/.test(got.text));
     await ctx0.close(); }
   // 2) runtime, mobile
