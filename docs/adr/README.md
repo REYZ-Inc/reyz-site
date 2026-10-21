@@ -13,3 +13,4 @@
 | [0007](0007-system-sender-identity-oauth.md) | システムメールの送信主体を `no-reply@` 実ユーザーにし、ドメイン全体の委任を OAuth 同意に置き換える | 実施済み（2026-09-30） |
 | [0008](0008-oauth-consent-automation.md) | 送信専用ユーザーの OAuth 同意を自動化し、人の操作を「許可」と「コードを 1 回貼る」だけにする | 採用（初回実行で確定） |
 | [0009](0009-site-factory-declarative-provisioning.md) | サイトの制作・運用は宣言と workflow で行い、人の操作は承認・本人確認・支払い・契約に限定する | 提案（D1〜D5 の決定で採用） |
+| [0010](0010-reyz-consensus-page-and-naming.md) | REYZ CONSENSUS の公開ページ `/consensus` を設け、サイト上の製品名を NAMING-001 に合わせる | 提案（PR のマージで採用） |
