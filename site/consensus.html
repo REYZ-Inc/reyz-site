@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>REYZ CONSENSUS — REYZ Inc.</title>
+  <meta name="description" content="REYZ CONSENSUS — 提供元の異なる複数のAIが互いに検証し、合意したものだけを次へ進める。後戻りできない決定は人が行い、すべてに確認できる記録を残す、REYZ PLATFORMのAI運用の仕組み。">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="REYZ CONSENSUS — REYZ Inc.">
+  <meta property="og:description" content="REYZ CONSENSUS — 提供元の異なる複数のAIが互いに検証し、合意したものだけを次へ進める。後戻りできない決定は人が行い、すべてに確認できる記録を残す、REYZ PLATFORMのAI運用の仕組み。">
+  <meta property="og:site_name" content="REYZ Inc.">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:url" content="https://reyz.inc/consensus">
+  <meta property="og:image" content="https://reyz.inc/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://reyz.inc/consensus">
+  <meta name="theme-color" content="#060609">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23060609'/%3E%3Cpath%20d='M18%2032c0-6%204-9%208-9s6%203%208%209%204%209%208%209%208-3%208-9-4-9-8-9-6%203-8%209-4%209-8%209-8-3-8-9z'%20fill='none'%20stroke='%23F715AC'%20stroke-width='2.4'%20stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">本文へ移動</a>
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header" id="siteHeader">
+    <a class="brand" href="./" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+    <nav class="nav" aria-label="Main">
+      <a href="creator">Creator</a>
+      <a href="creative">Creative</a>
+      <a href="ai">AI</a>
+      <a href="./#reyz">Company</a>
+      <a href="contact">Contact</a>
+    </nav>
+    <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="sheet" aria-label="メニューを開く"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+  </header>
+  <nav class="sheet" id="sheet" aria-label="Main (mobile)" hidden>
+    <a href="creator">Creator</a>
+    <a href="creative">Creative</a>
+    <a href="ai">AI</a>
+    <a href="./#reyz">Company</a>
+    <a href="contact">Contact</a>
+  </nav>
+
+  <main id="main">
+    <section class="chapter page-head" id="top">
+      <div class="wrap chapter-stack">
+        <div class="slot" data-word="Consensus" aria-hidden="true"><div class="halo"></div></div>
+        <div class="head copy"><p class="eyebrow">REYZ CONSENSUS</p><h1 class="page-title"><span class="ph">確かめてから、</span><span class="ph">進める。</span></h1><p class="lead"><span class="ph">提供元の異なる複数のAIが互いに検証し、</span><span class="ph">合意したものだけを次へ進める。</span><br><span class="ph">後戻りできない決定は人が行い、</span><span class="ph">すべてに確認できる記録を残す。</span><br><span class="ph">REYZ PLATFORMのAI運用の仕組みです。</span></p></div>
+      </div>
+    </section>
+    <section class="section" id="what">
+      <div class="wrap"><div class="section-text">
+          <div class="head reveal"><p class="eyebrow">What it is</p><h2>仕組み</h2><p class="lead"><span class="ph">AIに任せた判断を、</span><span class="ph">あとから誰にでも説明できる状態に。</span></p></div>
+          <div class="items reveal">
+            <div class="item"><h3>相互検証</h3><p><span class="ph">提供元の異なる複数のAIが、</span><span class="ph">同じ内容をそれぞれ検証します。</span><br><span class="ph">一致しないものは、</span><span class="ph">先へ進めません。</span></p></div>
+            <div class="item"><h3>独立した検証</h3><p><span class="ph">作る側と確かめる側を分けます。</span><br><span class="ph">記録の同一性と根拠を、</span><span class="ph">機械と第三者が確かめます。</span></p></div>
+            <div class="item"><h3>人の決定</h3><p><span class="ph">後戻りできない変更だけを、</span><span class="ph">責任者が「はい」「いいえ」で決めます。</span><br><span class="ph">技術の知識は要りません。</span></p></div>
+            <div class="item"><h3>検証できる記録</h3><p><span class="ph">入力、</span><span class="ph">根拠、</span><span class="ph">判定、</span><span class="ph">承認を記録し、</span><span class="ph">第三者があとから</span><span class="ph">同じ判断をたどれるようにします。</span></p></div>
+          </div>
+      </div></div>
+    </section>
+    <section class="section" id="how">
+      <div class="wrap"><div class="section-text">
+          <div class="head reveal"><p class="eyebrow">How it works</p><h2>進め方</h2></div>
+          <div class="steps list reveal">
+            <div class="step"><span class="n">01</span><h3>伝える</h3><p><span class="ph">やりたいことを、</span><span class="ph">自分の言葉で伝えます。</span></p></div>
+            <div class="step"><span class="n">02</span><h3>作り、確かめる</h3><p><span class="ph">複数のAIが作り、</span><span class="ph">互いに検証し、</span><span class="ph">記録を残します。</span><br><span class="ph">不確実なときは、</span><span class="ph">安全側で止まります。</span></p></div>
+            <div class="step"><span class="n">03</span><h3>決めて、反映する</h3><p><span class="ph">責任者が決め、</span><span class="ph">承認を経たものだけが反映されます。</span><br><span class="ph">AIだけの判断で、</span><span class="ph">本番は変わりません。</span></p></div>
+          </div>
+      </div></div>
+    </section>
+    <section class="section" id="offer">
+      <div class="wrap"><div class="section-text">
+          <div class="head reveal"><p class="eyebrow">Offering</p><h2>提供の形</h2><p class="lead"><span class="ph">現在開発中です。</span><span class="ph">先行導入のご相談を受け付けています。</span></p></div>
+          <div class="items reveal">
+            <div class="item"><h3>企業向け</h3><p><span class="ph">自社のAI運用に、</span><span class="ph">検証と承認と記録の統制を組み込みます。</span></p></div>
+            <div class="item"><h3>自社ブランドでの提供</h3><p><span class="ph">表示名・配色・ロゴを変えて、</span><span class="ph">自社の製品として提供できます。</span><br><span class="ph">判断の規則と記録の形式は、</span><span class="ph">変わりません。</span></p></div>
+            <div class="item"><h3>特定のAIに依存しない構成</h3><p><span class="ph">複数の提供元を前提に構成します。</span><br><span class="ph">モデルの世代交代や価格の変化に、</span><span class="ph">構成を変えて対応できます。</span></p></div>
+          </div>
+          <p class="more reveal"><a class="go" href="contact">先行導入を相談する</a></p>
+          <p class="more reveal"><a class="go" href="ai">REYZ PLATFORMについて</a></p>
+      </div></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="foot-top">
+        <a class="brand" href="./" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+        <nav class="foot-nav" aria-label="Footer">
+          <a href="contact">Contact</a>
+          <a href="legal">Privacy &amp; Legal</a>
+        </nav>
+      </div>
+      <div class="foot-slot" data-word="loop" aria-hidden="true"></div>
+      <p class="foot-contact" id="contactLine" hidden></p>
+    </div>
+  </footer>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>
