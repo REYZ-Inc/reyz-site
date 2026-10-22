@@ -187,7 +187,7 @@ home = f'''    <section class="chapter" id="infinity">
         {slot('seed')}
         <div class="head copy">
           <h2>ひとつの意志から。</h2>
-          <p class="lead">REYZは、クリエイターエコノミーとAIを接続し、<br>クリエイター及び、企業の活動を支援します。</p>
+          <p class="lead">REYZは、クリエイターエコノミーとAIを接続し、<br>クリエイターおよび企業の活動を支援します。</p>
         </div>
       </div>
     </section>
@@ -215,7 +215,7 @@ home = f'''    <section class="chapter" id="infinity">
       <div class="wrap chapter-stack">
         {slot('AI')}
         <a class="gate copy" href="ai.html">
-          <p class="eyebrow">Z · AI Infrastructure</p>
+          <p class="eyebrow">REYZ PLATFORM · AI Infrastructure</p>
           <h2>AIが支える。</h2>
           <p class="lead">考える人、つくる人、動かす人を。</p>
           <span class="go">AI</span>
@@ -299,7 +299,7 @@ page('creative.html', 'Creative — REYZ Inc.', 'REYZの企業向けサービス
 # 表示の規律: 製品は開発中。稼働・実績を示す表現（「日々稼働しています」等）は、根拠を併記できるまで書かない（legal.html「表示に関する方針」）。
 ai_products = ('<div class="items reveal">\n'
     '            <div class="item"><span class="n">01</span><span class="kw">つなぐ<small>AI Orchestration</small></span><p>' + jp('複数のAIエージェントを、|ひとつの統制のもとで運用するための層。\n提供元の異なるAIを組み合わせ、|特定のAIに依存しない構成にします。') + '</p></div>\n'
-    '            <div class="item"><span class="n">02</span><span class="kw">つくる<small>REYZ DEVELOPER</small></span><p>' + jp('開発経験がなくても、|自分の言葉で伝えることから|始められる開発OS。\n公開して終わりではなく、|その後の運用と改善までを|対象にします。') + '</p></div>\n'
+    '            <div class="item"><span class="n">02</span><span class="kw">つくる<small>REYZ DEVELOPER</small></span><p>' + jp('開発経験がなくても、|自分の言葉で伝えることから|始められる開発・運用システム。\n公開して終わりではなく、|その後の運用と改善までを|対象にします。') + '</p></div>\n'
     '            <div class="item"><span class="n">03</span><span class="kw">確かめ、進める<small>REYZ CONSENSUS</small></span><p>' + jp('提供元の異なる複数のAIが、|同じ内容を互いに検証し、|合意したものだけを次へ進めます。\n重要な変更には人の承認を必須とし、|すべての判断に、|確認できる記録を残します。') + '</p><a class="go" href="consensus.html">REYZ CONSENSUSについて</a></div>\n'
     '          </div>')
 ai = title_chapter('AI', 'REYZ PLATFORM · AI Infrastructure', 'AIが支える。',
@@ -325,8 +325,8 @@ consensus = title_chapter('Consensus', 'REYZ CONSENSUS', jp('確かめてから�
                           jp('提供元の異なる複数のAIが互いに検証し、|合意したものだけを次へ進める。\n後戻りできない決定は人が行い、|すべてに確認できる記録を残す。\nREYZ PLATFORMのAI運用の仕組みです。')) + \
 section('what', 'What it is', '仕組み', jp('AIに任せた判断を、|あとから誰にでも説明できる状態に。'),
         items([('相互検証', jp('提供元の異なる複数のAIが、|同じ内容をそれぞれ検証します。\n一致しないものは、|先へ進めません。')),
-               ('独立した検証', jp('作る側と確かめる側を分けます。\n記録の同一性と根拠を、|機械と第三者が確かめます。')),
-               ('人の決定', jp('後戻りできない変更だけを、|責任者が「はい」「いいえ」で決めます。\n技術の知識は要りません。')),
+               ('独立した検証', jp('作る側と確かめる側を分けます。\n記録の同一性と根拠を、|機械と、作る側から独立した検証者が確かめます。')),
+               ('人の承認', jp('後戻りできない変更だけを、|責任者が「はい」「いいえ」で決めます。\n技術の知識を前提にしない設計です。')),
                ('検証できる記録', jp('入力、根拠、判定、承認を記録し、|第三者があとから|同じ判断をたどれるようにします。'))])) + \
 section('how', 'How it works', '進め方', '',
         steps([('01', '伝える', jp('やりたいことを、|自分の言葉で伝えます。')),
