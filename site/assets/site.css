@@ -272,3 +272,74 @@ html.no-js .reveal { animation: none; }
   .btn, .gate, .gate .go::after, .item .go, .item .go::after, .more .go, .more .go::after, .menu-btn .bar, .work .yt img, .work .play { transition: none; }
   .btn:hover { transform: none; }
 }
+/* ---------- 2026-10-23 読者向けの新部品（困りごと／構成予告／映像の枠／続け方／一枚／仕事の移し方） ---------- */
+.pains { list-style: none; margin: 2.2rem 0 0; padding: 0; display: grid; gap: 0.7rem; max-width: 40rem; }
+.pains li { display: grid; grid-template-columns: auto 1fr; gap: 0.9rem; align-items: start; padding: 1rem 1.1rem; border-left: 2px solid var(--accent); background: rgba(255, 255, 255, 0.03); }
+.pains .n { font-family: var(--font-en); font-size: 0.7rem; letter-spacing: 0.24em; color: var(--text-3); padding-top: 0.35em; font-variant-numeric: tabular-nums; }
+.pains p { color: var(--text); font-size: 0.96em; line-height: 1.85; }
+.stages { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; max-width: 40rem; }
+.stages li { display: grid; gap: 0.25rem; padding: 0.9rem 0.9rem 1rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); }
+.stages .n { font-family: var(--font-en); font-size: 0.68rem; letter-spacing: 0.24em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.stages strong { font-weight: 500; font-size: 0.92rem; letter-spacing: 0.03em; line-height: 1.5; }
+.stages span:last-child { color: var(--text-3); font-size: 0.8rem; line-height: 1.6; }
+@media (max-width: 720px) { .stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.showcase { display: grid; grid-template-columns: 1fr; gap: 0.8rem; margin-top: 2.4rem; max-width: 40rem; }
+.frame { position: relative; margin: 0; overflow: hidden; border: 1px solid var(--line-2); background:
+    radial-gradient(circle at 22% 30%, rgba(247, 21, 172, 0.22), transparent 55%),
+    radial-gradient(circle at 80% 72%, rgba(247, 21, 172, 0.08), transparent 50%),
+    linear-gradient(135deg, #0a0a0f 0%, #15151c 55%, #0a0a0f 100%); display: flex; align-items: flex-end; }
+.frame::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 28px 28px; }
+.frame.wide { aspect-ratio: 16 / 9; }
+.frame.tall { aspect-ratio: 9 / 16; border-radius: 14px; }
+.frame figcaption { position: relative; z-index: 1; display: grid; gap: 0.3rem; padding: 1rem 1.1rem; text-align: left; background: linear-gradient(180deg, transparent, rgba(6, 6, 9, 0.85) 45%); width: 100%; }
+.frame .tag { font-family: var(--font-en); font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.frame strong { font-weight: 500; font-size: 0.98rem; letter-spacing: 0.04em; line-height: 1.5; }
+.frame figcaption > span:last-child { color: var(--text-2); font-size: 0.82rem; line-height: 1.65; }
+.frame.tall figcaption { padding: 0.8rem 0.75rem; }
+.frame.tall strong { font-size: 0.86rem; }
+.frame.tall figcaption > span:last-child { font-size: 0.74rem; }
+.phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; align-content: start; }
+@media (max-width: 720px) { .frame.tall { aspect-ratio: auto; min-height: 14rem; } .frame.tall figcaption { padding: 0.7rem 0.6rem; } }
+.cycle { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; max-width: 40rem; counter-reset: c; }
+.cycle li { position: relative; display: grid; gap: 0.3rem; padding: 0.9rem 0.8rem 1rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); }
+.cycle li:not(:last-child)::after { content: "\2192"; position: absolute; right: -0.65rem; top: 0.85rem; color: var(--accent); font-size: 0.8rem; }
+.cycle .n { font-family: var(--font-en); font-size: 0.66rem; letter-spacing: 0.24em; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.cycle strong { font-weight: 500; font-size: 0.86rem; letter-spacing: 0.02em; line-height: 1.5; }
+.cycle li > span:last-child { color: var(--text-3); font-size: 0.78rem; line-height: 1.6; }
+.cycle li.loop { border-color: rgba(247, 21, 172, 0.5); }
+@media (max-width: 720px) { .cycle { grid-template-columns: 1fr; } .cycle li:not(:last-child)::after { content: "\2193"; right: auto; left: 0.9rem; top: auto; bottom: -1.05rem; } .cycle { gap: 1.1rem; } }
+.onesheet { margin-top: 2.4rem; max-width: 40rem; padding: 1.5rem 1.4rem 1.4rem; border: 1px solid var(--line-2); background: #0c0c12; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); text-align: left; }
+.onesheet .sheet-head { display: grid; gap: 0.3rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
+.onesheet h3 { font-size: 1.1rem; font-weight: 500; letter-spacing: 0.05em; }
+.onesheet .cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; margin-top: 1rem; }
+.onesheet .cell { display: grid; gap: 0.35rem; padding: 0.9rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.025); align-content: start; }
+.onesheet .cell .n { font-family: var(--font-en); font-size: 0.66rem; letter-spacing: 0.24em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.onesheet h4 { font-size: 0.92rem; font-weight: 500; letter-spacing: 0.04em; line-height: 1.5; }
+.onesheet .cell p { color: var(--text-2); font-size: 0.84rem; line-height: 1.7; }
+.onesheet .decide { display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem 1rem; margin-top: 1rem; padding: 1rem 1.1rem; border: 1px solid rgba(247, 21, 172, 0.4); background: rgba(247, 21, 172, 0.07); }
+.onesheet .decide p { flex: 1 1 12em; font-size: 0.92rem; color: var(--text); }
+.onesheet .pill { display: inline-flex; align-items: center; min-height: 40px; padding: 0 1rem; font-size: 0.84rem; letter-spacing: 0.03em; border: 1px solid var(--line-2); color: var(--text-2); }
+.onesheet .pill.yes { background: var(--accent); border-color: transparent; color: #fff; }
+@media (max-width: 720px) { .onesheet .cells { grid-template-columns: 1fr; } }
+.shift { display: grid; gap: 0.7rem; margin-top: 2rem; max-width: 40rem; }
+.shift .row { display: grid; grid-template-columns: 5.5em 1fr; gap: 0.8rem; align-items: center; }
+.shift .k { font-size: 0.78rem; letter-spacing: 0.12em; color: var(--text-3); }
+.shift .bars { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.shift .bar { display: inline-flex; align-items: center; min-height: 38px; padding: 0.3rem 0.9rem; font-size: 0.84rem; line-height: 1.5; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); color: var(--text-2); }
+.shift .bar.ai { border-color: rgba(247, 21, 172, 0.5); color: var(--text); }
+.shift .bar.human { background: var(--accent); border-color: transparent; color: #fff; }
+.section-text .sub { margin-top: 2.6rem; font-size: 1.05rem; font-weight: 500; letter-spacing: 0.06em; }
+.section-text .sub + p.lead { margin-top: 0.6rem; }
+
+/* ---------- 所在地（本社 東京・札幌・福岡） ---------- */
+.offices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem 1.6rem; margin-top: 0.2rem; }
+.office { display: grid; gap: 0.35rem; align-content: start; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+.office .city { display: flex; align-items: baseline; gap: 0.55em; flex-wrap: wrap; }
+.office .city .en { font-family: var(--font-en); font-weight: 300; font-size: 1.35rem; letter-spacing: 0.12em; color: var(--text); }
+.office .city .jp { font-size: 0.78rem; letter-spacing: 0.18em; color: var(--text-3); }
+.office .city .hq { font-size: 0.66rem; letter-spacing: 0.2em; color: var(--accent); border: 1px solid rgba(247, 21, 172, 0.55); padding: 0.1em 0.55em; margin-left: 0.2em; }
+.office.is-hq { border-top-color: rgba(247, 21, 172, 0.5); }
+.office address { font-style: normal; font-size: 0.88rem; line-height: 1.75; color: var(--text-2); }
+.office .maplink { margin-top: 0; }
+@media (max-width: 720px) { .offices { grid-template-columns: 1fr; gap: 0.9rem; } }

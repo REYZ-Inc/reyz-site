@@ -137,6 +137,22 @@ def section(id_, eyebrow, h2, lead, body):
       </div></div>
     </section>
 '''
+def pains(lst):
+    """こんな困りごとに — 読者の言葉で。番号つき。.item ではない（creator の受入検証は .item p の順序を固定しているため）"""
+    return '<ol class="pains reveal">\n' + '\n'.join(f'            <li><span class="n">{n:02d}</span><p>{t}</p></li>' for n, t in enumerate(lst, 1)) + '\n          </ol>'
+def stages(lst):
+    """ページ冒頭の構成予告（01 誰のため … 04 任せ方）"""
+    return '<ol class="stages reveal">\n' + '\n'.join(f'            <li><span class="n">{n:02d}</span><strong>{t}</strong><span>{p}</span></li>' for n, (t, p) in enumerate(lst, 1)) + '\n          </ol>'
+def cycle(lst):
+    """続け方（把握→設計→制作・投稿→一枚で報告→目標が変わったら組み直す）。最後の項目は輪を閉じる"""
+    out = []
+    for n, (t, p) in enumerate(lst, 1):
+        cls = ' class="loop"' if n == len(lst) else ''
+        out.append(f'            <li{cls}><span class="n">{n:02d}</span><strong>{t}</strong><span>{p}</span></li>')
+    return '<ol class="cycle reveal">\n' + '\n'.join(out) + '\n          </ol>'
+def sub(h3, lead=''):
+    """セクション内の小見出し＋導入文"""
+    return f'\n          <h3 class="sub reveal">{h3}</h3>' + (f'\n          <p class="lead reveal">{lead}</p>' if lead else '')
 def title_chapter(word, eyebrow, h1, lead, lead_cls='lead'):
     return f'''    <section class="chapter page-head" id="top">
       <div class="wrap chapter-stack">
@@ -154,20 +170,25 @@ BIZ = (
     '            <ul class="biz">\n'
     '              <li><span class="k">クリエイターエコノミー事業</span><span class="v">' + jp('''個人の創造性と影響力を、|持続する経済価値へ。
 発掘から育成、収益化までを|一体で設計・運営する。''') + '</span></li>\n'
-    '              <li><span class="k">エンタープライズ事業</span><span class="v">' + jp('''戦略・ブランド・マーケティングを、[AIとデータで|企業の成長設計へ統合する。]
-表現と広告の適法性検証まで、|一貫して担う。''') + '</span></li>\n'
-    '              <li><span class="k">AIプラットフォーム事業</span><span class="v">' + jp('''複数のAIエージェントを[クリエイターエコノミーと|統合運用する]
-自社AI基盤「REYZ PLATFORM」の開発・提供。
-業務の設計から実装、|検証・運用までを、|AIと共に。
-複数のAIによる|相互検証と記録を標準とし、
-監査可能なAI運用を|設計段階から組み込む。''') + '</span></li>\n'
+    '              <li><span class="k">エンタープライズ事業</span><span class="v">' + jp('''企業のサイト、ブランド、映像、|SNSの発信と運用、|仕事の仕組みづくり。
+伝え方の設計から、|表現と広告の確認まで|一貫して担う。''') + '</span></li>\n'
+    '              <li><span class="k">AIプラットフォーム事業</span><span class="v">' + jp('''AIを安心して仕事に使うための|自社の仕組み「REYZ PLATFORM」を提供する。
+複数のAIを組み合わせ、|確かめ、人が決め、
+あとから見返せる形で|仕事を進める。''') + '</span></li>\n'
     '            </ul>')
+ADDR_TOKYO = jp('〒150-0013\n東京都渋谷区|恵比寿1丁目19-19\n恵比寿ビジネスタワー10階')
+ADDR_SAPPORO = jp('〒060-0042\n北海道札幌市中央区|大通西11丁目4番19号\n大通藤井ビル10F')
+ADDR_FUKUOKA = jp('〒812-0018\n福岡県福岡市博多区|住吉2丁目16-28\nサヴィルロウ博多2F')
 PROFILE = f'''<dl class="profile">
             <div class="row"><dt>社名</dt><dd>株式会社レイズ <span class="en">REYZ Inc.</span></dd></div>
             <div class="row"><dt>代表取締役</dt><dd>堀内智一</dd></div>
             <div class="row"><dt>創業</dt><dd>2022年1月</dd></div>
             <div class="row"><dt>資本金</dt><dd>1,000万円</dd></div>
-            <div class="row wide"><dt>所在地</dt><dd><address>〒150-0013<br>東京都渋谷区恵比寿1丁目19-19<br>恵比寿ビジネスタワー10階</address><a class="maplink" href="https://www.google.com/maps/search/?api=1&amp;query=%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%B8%8B%E8%B0%B7%E5%8C%BA%E6%81%B5%E6%AF%94%E5%AF%BF1%E4%B8%81%E7%9B%AE19-19%20%E6%81%B5%E6%AF%94%E5%AF%BF%E3%83%93%E3%82%B8%E3%83%8D%E3%82%B9%E3%82%BF%E3%83%AF%E3%83%BC" target="_blank" rel="noopener">地図で開く</a></dd></div>
+            <div class="row wide"><dt>所在地</dt><dd><div class="offices">
+              <div class="office is-hq"><span class="city"><span class="en">Tokyo</span><span class="jp">東京</span><span class="hq">本社</span></span><address>{ADDR_TOKYO}</address><a class="maplink" href="https://www.google.com/maps/search/?api=1&amp;query=%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%B8%8B%E8%B0%B7%E5%8C%BA%E6%81%B5%E6%AF%94%E5%AF%BF1%E4%B8%81%E7%9B%AE19-19%20%E6%81%B5%E6%AF%94%E5%AF%BF%E3%83%93%E3%82%B8%E3%83%8D%E3%82%B9%E3%82%BF%E3%83%AF%E3%83%BC" target="_blank" rel="noopener">地図で開く</a></div>
+              <div class="office"><span class="city"><span class="en">Sapporo</span><span class="jp">札幌</span></span><address>{ADDR_SAPPORO}</address><a class="maplink" href="https://www.google.com/maps/search/?api=1&amp;query=%E5%8C%97%E6%B5%B7%E9%81%93%E6%9C%AD%E5%B9%8C%E5%B8%82%E4%B8%AD%E5%A4%AE%E5%8C%BA%E5%A4%A7%E9%80%9A%E8%A5%BF11%E4%B8%81%E7%9B%AE4%E7%95%AA19%E5%8F%B7%20%E5%A4%A7%E9%80%9A%E8%97%A4%E4%BA%95%E3%83%93%E3%83%AB" target="_blank" rel="noopener">地図で開く</a></div>
+              <div class="office"><span class="city"><span class="en">Fukuoka</span><span class="jp">福岡</span></span><address>{ADDR_FUKUOKA}</address><a class="maplink" href="https://www.google.com/maps/search/?api=1&amp;query=%E7%A6%8F%E5%B2%A1%E7%9C%8C%E7%A6%8F%E5%B2%A1%E5%B8%82%E5%8D%9A%E5%A4%9A%E5%8C%BA%E4%BD%8F%E5%90%892%E4%B8%81%E7%9B%AE16-28%20%E3%82%B5%E3%83%B4%E3%82%A3%E3%83%AB%E3%83%AD%E3%82%A6%E5%8D%9A%E5%A4%9A" target="_blank" rel="noopener">地図で開く</a></div>
+            </div></dd></div>
             <div class="row wide"><dt>事業内容</dt><dd>{BIZ}</dd></div>
             <div class="row wide"><dt>許認可</dt><dd><span class="lic"><span>宅地建物取引業免許</span>東京都知事（1）第110185</span><span class="lic"><span>古物商許可</span>東京都公安委員会 第303312620413</span></dd></div>
           </dl>'''
@@ -187,7 +208,9 @@ home = f'''    <section class="chapter" id="infinity">
         {slot('seed')}
         <div class="head copy">
           <h2>ひとつの意志から。</h2>
-          <p class="lead">REYZは、クリエイターエコノミーとAIを接続し、<br>クリエイターおよび企業の活動を支援します。</p>
+          <p class="lead">REYZは、クリエイターと企業の「やりたい」を、<br>かたちにします。</p>
+          <p class="lead">映像制作、SNSアカウントの運用、<br>仕事の仕組みづくり、判断の支え。</p>
+          <div class="ctas"><a class="btn primary" href="creative.html">企業の方へ</a><a class="btn" href="creator.html">クリエイターの方へ</a></div>
         </div>
       </div>
     </section>
@@ -217,9 +240,18 @@ home = f'''    <section class="chapter" id="infinity">
         <a class="gate copy" href="ai.html">
           <p class="eyebrow">REYZ PLATFORM · AI Infrastructure</p>
           <h2>AIが支える。</h2>
-          <p class="lead">考える人、つくる人、動かす人を。</p>
+          <p class="lead">AIに任せた判断を、あとから説明できる状態に。</p>
           <span class="go">AI</span>
         </a>
+      </div>
+    </section>
+    <section class="chapter" id="continue">
+      <div class="wrap chapter-stack">
+        {slot('Continue')}
+        <div class="head copy">
+          <h2>目的が変わっても、続く。</h2>
+          <p class="lead">人の目的は変わります。<br>REYZは、変わる前提で進め方をつくり、<br>変わったら組み直して続けます。<br>やり直しではなく、続きから。<br>クリエイターにも、企業にも。</p>
+        </div>
       </div>
     </section>
     <section class="chapter" id="reyz">
@@ -235,7 +267,7 @@ home = f'''    <section class="chapter" id="infinity">
       </div>
     </section>
 '''
-page('index.html', 'REYZ Inc. — 無限の可能性を かたちに', '株式会社レイズ（REYZ Inc.）— Creator Economy × AI。クリエイターと企業の活動を、AIとともに設計する会社です。', home, current='index.html')
+page('index.html', 'REYZ Inc. — 無限の可能性を かたちに', '株式会社レイズ（REYZ Inc.）— Creator Economy × AI。クリエイターの活動と企業の成長を支え、AIを安心して仕事に使える仕組みを提供する会社です。', home, current='index.html')
 
 # ------------------------------------------------------------------ CREATOR
 # 本文の改行は本人指定（2026-09-27）。'|' は画面幅が足りない時だけ使う折返し点
@@ -250,7 +282,17 @@ VD_P = jp('''インフルエンス力向上、ブランド化、リブランデ�
 それぞれが抱える|現状の課題や目的を明確にし、
 その目的を実現させるための企画、撮影、編集までを、
 自社ですべて行います。''')
+# 2026-10-23 CEO 指示: 読者はクリエイター本人。困りごと→提供すること→約束→はじめ方。既決の文（TikTok・映像制作・はじめ方 3 段）は変更しない
+PROMISE = items([('目的を、先に言葉にします。', jp('最初の相談で、|あなたの目的と今いる場所、|最初の進め方を一枚にして返します。\n合わなければ、始めません。')),
+                 ('迷わない進め方を、渡します。', jp('どの場所で、いつ、何を、どうやるか。|次の一手が|いつも決まっている状態を|つくります。')),
+                 ('目的が変わっても、続きます。', jp('目的は変わるものです。|変わったら、進め方を組み直して続けます。\nやり直しではなく、続きから。')),
+                 ('決めるのは、あなたです。', jp('人が決めるべきことを、|AIに決めさせません。\n判断の材料を|「はい」か「いいえ」で|答えられる形にして出します。')),
+                 ('任せきりにしません。', jp('進み具合と、なぜそうしたかを、|いつでも見られる形で残します。\n担当が変わっても、目標が変わっても、|続きから再開できます。'))])
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。') + \
+section('pain', 'For you', 'こんな困りごとに', '',
+        pains([jp('自分に合うSNSはどれか。|いつ、何を、どう出せば|目標に近づくのか、迷う。'),
+               jp('企画、撮影、編集、毎日の投稿。|ひとりで抱えきれず、|活動のペースと質が落ちる。'),
+               jp('目指すものや暮らしが変わったとき、|活動を何から変えればいいか|分からない。')])) + \
 section('services', 'Services', '提供すること', '',
         '<div class="items reveal">\n'
         '            <div class="item">\n'
@@ -264,7 +306,20 @@ section('services', 'Services', '提供すること', '',
         f'              <p>{VD_P}</p>\n'
         '              <a class="go" href="works.html">作品例</a>\n'
         '            </div>\n'
+        '            <div class="item"><h3>あなたを知るところから</h3><p>' + jp('''得意なこと、今のフォロワー、|生活のリズム、目指す収入。
+まずあなたを正確に知り、|目的をあなたの言葉で確かめます。''') + '</p></div>\n'
+        '            <div class="item"><h3>合う場所と、順番を決める</h3><p>' + jp('''TikTok、YouTube、Instagram、ライブ配信。
+あなたに合う場所と、|いつ、何を、どう出すかを決めて渡します。
+迷う時間をなくします。''') + '</p></div>\n'
+        '            <div class="item"><h3>目標が変わっても、続ける</h3><p>' + jp('''伸びているかを一緒に見て、|次の一手を決めます。
+目標が変わったら、|進め方を組み直して続けます。
+これまでのファンと作品を活かして、|続きから。''') + '</p></div>\n'
+        '            <div class="item"><h3>SNSアカウントの運用支援</h3><p>' + jp('''投稿の計画、制作、分析、改善。
+ライブ配信の企画と継続まで、|あなたの活動に合わせて、|続けられる形で支えます。''') + '</p></div>\n'
+        '            <div class="item"><h3>表現と案件・広告の確認</h3><p>' + jp('''発信の内容や、タイアップ・広告の表現に|問題がないかを公開前に確かめます。
+長く安心して活動できる土台を守ります。''') + '</p></div>\n'
         '          </div>') + \
+section('promise', 'Our promise', 'REYZの約束', '', PROMISE) + \
 section('how', 'How it works', 'はじめ方', '',
         steps([('01', '相談', jp('''まずは現在の状況を伺います。
 その上で、その人に合った|活動方法を共に考えます。''')),
@@ -273,30 +328,79 @@ section('how', 'How it works', 'はじめ方', '',
 様々な視点から、戦略や計画を設計します。''')),
                ('03', '伴走', jp('''状況や状態を確認しながら、
 目的実現に向けて|共に進んでいきます。'''))], cls='list') + more('contact.html', '相談する'))
-page('creator.html', 'Creator — REYZ Inc.', 'REYZのクリエイター向けサービス。TikTok LIVEエージェンシー、動画・映像制作。あなたの活動を収入に変える設計を。', creator)
+page('creator.html', 'Creator — REYZ Inc.', 'REYZのクリエイター向けサービス。あなたに合う場所と順番を決め、TikTok LIVEエージェンシー、動画・映像制作、SNSアカウントの運用支援で、活動を収入に変える。目標が変わっても、続きます。', creator)
 
 # ------------------------------------------------------------------ CREATIVE（エンタープライズ事業）
-# 事業内容: 戦略・ブランド・マーケティングを、AIとデータで企業の成長設計へ統合する。表現と広告の適法性検証まで、一貫して担う。
+# 2026-10-23 CEO 指示: 読者は開発者ではない。「誰のため／こんな困りごとに／REYZがすること／REYZの約束／進め方／やらないこと」の順。
+# 映像制作・SNSアカウント運用支援・業務効率化・意思決定支援を統合（既決は変更せず追加）。実績・数字・顧客名は置かない。
+SHOWCASE = ('<div class="showcase reveal">\n'
+    '            <figure class="frame wide"><figcaption><span class="tag">Brand movie · PR · Recruit</span><strong>' + jp('企業の目的を、|見る人の行動を変える映像に。') + '</strong><span>' + jp('企画、脚本、撮影、編集、|広告表現の確認まで、一貫して。') + '</span></figcaption></figure>\n'
+    '            <div class="phones">\n'
+    '              <figure class="frame tall"><figcaption><span class="tag">認知</span><strong>企画型</strong><span>' + jp('最初の2秒で引き込み、|伝えたいことへつなぐ。') + '</span></figcaption></figure>\n'
+    '              <figure class="frame tall"><figcaption><span class="tag">信頼</span><strong>裏側ドキュメント型</strong><span>' + jp('商品、サービス、働く人の魅力を、|事実のまま見せる。') + '</span></figcaption></figure>\n'
+    '              <figure class="frame tall"><figcaption><span class="tag">行動</span><strong>導線直結型</strong><span>' + jp('相談、購買、応募へ、|迷わず進める。') + '</span></figcaption></figure>\n'
+    '            </div>\n'
+    '          </div>')
+SHEET = ('<div class="onesheet reveal">\n'
+    '            <div class="sheet-head"><p class="eyebrow">The first sheet</p><h3>' + jp('最初の相談で返す、一枚。') + '</h3></div>\n'
+    '            <div class="cells">\n'
+    '              <div class="cell"><span class="n">01</span><h4>' + jp('あなたの目的と、|今いる場所') + '</h4><p>' + jp('何のために。|今、どこまで来ているか。\nあなたの言葉で、|ここに入ります。') + '</p></div>\n'
+    '              <div class="cell"><span class="n">02</span><h4>' + jp('いつ、何を、|どう進めるか') + '</h4><p>' + jp('次の一手を、理由つきで。\nREYZが案を書きます。') + '</p></div>\n'
+    '              <div class="cell"><span class="n">03</span><h4>' + jp('確認したこと') + '</h4><p>' + jp('表現と広告のきまりに照らした結果を、|ここに書きます。') + '</p></div>\n'
+    '            </div>\n'
+    '            <div class="decide"><p>' + jp('決めるのは、あなたです。|会議でゼロから悩む必要はありません。') + '</p><span class="pill yes">はい：この内容で進める</span><span class="pill">いいえ：条件を変えて、組み直す</span></div>\n'
+    '          </div>')
+SHIFT = ('<div class="shift reveal">\n'
+    '            <div class="row"><span class="k">今</span><div class="bars"><span class="bar">調査</span><span class="bar">台本</span><span class="bar">編集</span><span class="bar">確認</span><span class="bar">集計</span><span class="bar">進行管理</span><span class="bar">決める・伝える</span></div></div>\n'
+    '            <div class="row"><span class="k">REYZと</span><div class="bars"><span class="bar ai">人がやらなくていい仕事は、AIと仕組みへ</span><span class="bar human">人は、決めることと伝えることに</span></div></div>\n'
+    '          </div>')
 creative = title_chapter('Creative', 'For Enterprise', '「伝わる」を設計する。',
-                         jp('戦略・ブランド・マーケティングを、|AIとデータで|ひとつの成長設計に。\n表現と広告の適法性検証まで、|一貫して担います。')) + \
-section('services', 'Services', '提供すること', '',
-        items([('成長設計', jp('事業・ブランド・マーケティングの戦略を、|AIとデータで統合し、|ひとつの成長設計として構築します。')),
-               ('ブランドと制作', jp('ブランド戦略、|企業・専門家のブランディング、|サイト・映像・SNSの制作と運用。')),
+                         jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。')) + \
+section('pain', 'For you', 'こんな困りごとに', '',
+        stages([('誰のため', '目的を最短で実現し、利益を増やしたい企業の方へ'),
+                ('こんな困りごとに', '映像、SNS、仕事の流れ、判断の迷い'),
+                ('REYZがすること', '進め方の設計、映像制作、SNS運用、仕組みづくり、判断の支え'),
+                ('任せ方', '最初の相談で、一枚を返します')]) +
+        pains([jp('映像制作やSNSの運用を始めたい、見直したい。|でも、いつ、何を、どう進めれば|目的につながるのか、迷っている。'),
+               jp('人を増やさずに、利益を増やしたい。|でも、制作、確認、運用に時間を取られ、|本来の仕事に集中できていない。'),
+               jp('提案や選択肢が多すぎて、|会議のたびに「結局どちらに進むか」を|決めきれず、速度が落ちている。')])) + \
+section('show', 'Video × SNS', '映像とSNSの、かたち。', jp('「きれい」で終わらせない。|誰に、何を届け、どう動いてもらうか。|目的から逆算してつくります。'),
+        SHOWCASE +
+        sub(jp('横の映像と、縦の映像を、|ひとつの設計で。'), jp('ブランド映像、商品・サービスの紹介、採用の映像。|TikTok、Instagram Reels、YouTube Shorts向けの縦型まで。|SNSの3つの型は、見る人の段階に合わせて使い分けます。')) +
+        sub(jp('つくって終わりにしない。|続け方。')) +
+        cycle([('目的と相手を知る', '何のために、誰に。'),
+               ('いつ、何を、どう', '進め方を決めて渡す。'),
+               ('制作と投稿', '映像をつくり、出す。'),
+               ('一枚で報告', '何が効いたかを、事実で。'),
+               ('目標が変わったら', '組み直して、続きから。')])) + \
+section('services', 'Services', 'REYZがすること', '',
+        items([('目的を言葉にし、進め方を決める', jp('何のために、いつまでに、何を。|目的を正確に汲み取り、|いつ、何を、どう進めるかを決めて渡します。\n目的が変わったら、|進め方を組み直して続けます。')),
+               ('最小の人数で、最大の利益を', jp('調査、台本、一次制作、進行管理、集計。|人がやらなくていい仕事を|AIと仕組みに移します。\n人は決めることと伝えることに集中し、|少ない人数で利益を生む体制をつくります。')),
+               ('判断を、「はい」か「いいえ」で', jp('迷う原因は、材料が整っていないことです。\n目的への効き目、根拠、リスク、案を|一枚にまとめて出します。|迷わず決められるところまで持っていきます。')),
+               ('動画・映像制作', jp('会社、商品、採用、発信。|伝えたいことを、使われる映像に。\n企画から撮影、編集、公開後の運用まで、|自社で行います。')),
+               ('SNSアカウントの運用支援', jp('立ち上げと見直し、企画と台本、撮影と編集、|毎日の投稿、数字の振り返り。\n感覚ではなく事実で確かめ、|会社の資産になるアカウントを育てます。')),
+               ('ブランドと制作', jp('ブランドの方向づけ、|サイト・映像・SNSの制作と運用。\nこのサイトも、|自社で設計・制作しています。')),
+               ('サイトと業務の仕組みづくり', jp('映像とSNSの受け皿になるサイトから、|社内で使う仕組みまで。\n使う人と仕事の流れから、|必要なものを整理してつくります。')),
                ('クリエイターとの販売設計', jp('クリエイターと連動した|販売の設計と運用。|国内からアジアへの越境販売まで。')),
-               ('表現と広告の検証', jp('ステマ規制、景品表示法、|医療広告ガイドライン、薬機法に照らし、|公開前に表現を検証します。')),
-               ('AI導入', jp('業務の設計から実装、|検証・運用までをAIと共に進める体制を、|自社AI基盤「REYZ PLATFORM」で構築します。'), 'ai.html', 'REYZ PLATFORMについて')])) + \
-section('how', 'How it works', '進め方', '',
-        steps([('01', '診断', jp('事業・ブランド・表現の現状を、|データで確認します。')),
-               ('02', '設計と検証', jp('戦略・チャネル・表現を設計し、|公開前に法令への適合を検証します。')),
-               ('03', '運用と改善', jp('AIと共に運用し、|結果をもとに改善を続けます。'))], cls='list') + more('contact.html', '相談する'))
-page('creative.html', 'Creative — REYZ Inc.', 'REYZの企業向けサービス。戦略・ブランド・マーケティングをAIとデータで成長設計へ統合し、表現と広告の適法性検証まで一貫して担います。', creative)
+               ('表現と広告の確認', jp('ステマ規制、景品表示法、|医療広告ガイドライン、薬機法に照らし、|公開前に表現を確かめます。')),
+               ('AIを仕事に入れる', jp('仕事の流れの設計から|実際の運用までを、|自社の仕組み「REYZ PLATFORM」で。'), 'ai.html', 'REYZ PLATFORMについて')])) + \
+section('decide', 'Decide', '判断を、一枚で。', jp('経営者も担当者も、|「はい」か「いいえ」を|選ぶだけにします。'),
+        SHEET +
+        sub(jp('人がやらなくていい仕事を、|AIと仕組みへ。')) + SHIFT) + \
+section('promise', 'Our promise', 'REYZの約束', jp('「任せたい」は、強い言葉からではなく、|守る仕組みから生まれます。'), PROMISE) + \
+section('how', 'How it works', '任せ方', jp('いきなり大きな契約を結ぶ必要はありません。\n合わなければ、そこで終えて構いません。'),
+        steps([('01', '相談する', jp('今の状況と、|やりたいことを聞かせてください。\nまだ言葉になっていなくても、|構いません。')),
+               ('02', '一枚を受け取る', jp('目的と今いる場所、|最初の進め方を一枚にして返します。')),
+               ('03', '「はい」か「いいえ」を決める', jp('合えば始める。合わなければ始めない。\n始めたあとに目標が変わっても、|組み直して続けます。'))], cls='list') +
+        more('contact.html', '相談する'))
+page('creative.html', 'Creative — REYZ Inc.', 'REYZの企業向けサービス。目的を言葉にして進め方を決め、動画・映像制作、SNSアカウントの運用支援、最小の人数で最大の利益を生む仕組みづくり、「はい」か「いいえ」で決められる判断の支えまで。目的が変わっても、続きます。', creative)
 
 # ------------------------------------------------------------------ AI (Z)（AIプラットフォーム事業）
 # 事業内容: 複数のAIエージェントをクリエイターエコノミーと統合運用する自社AI基盤「REYZ PLATFORM」の開発・提供。
 #           業務の設計から実装、検証・運用までを、AIと共に。複数のAIによる相互検証と記録を標準とし、監査可能なAI運用を設計段階から組み込む。
 # 名称（2026-10-03 CEO 決定）: AI 製品を集約するプラットフォームの名称であり、個別の柱の名前ではない。
 # 改名（2026-10-15 CEO 決定 NAMING-001）: Z-PLATFORM→REYZ PLATFORM、Z-DEVELOPER→REYZ DEVELOPER、Cross-AI Flow→REYZ CONSENSUS。ブランド層は全大文字。
-# 表示の規律: 製品は開発中。稼働・実績を示す表現（「日々稼働しています」等）は、根拠を併記できるまで書かない（legal.html「表示に関する方針」）。
+# 表示の規律（2026-10-23 CEO）: 開発中・準備中・順次・先行導入などの進行形の状態語は書かない。稼働・実績・顧客数を示す表現は、根拠を併記できるまで書かない（legal.html「表示に関する方針」）。
 ai_products = ('<div class="items reveal">\n'
     '            <div class="item"><span class="n">01</span><span class="kw">つなぐ<small>AI Orchestration</small></span><p>' + jp('複数のAIエージェントを、|ひとつの統制のもとで運用するための層。\n提供元の異なるAIを組み合わせ、|特定のAIに依存しない構成にします。') + '</p></div>\n'
     '            <div class="item"><span class="n">02</span><span class="kw">つくる<small>REYZ DEVELOPER</small></span><p>' + jp('開発経験がなくても、|自分の言葉で伝えることから|始められる開発・運用システム。\n公開して終わりではなく、|その後の運用と改善までを|対象にします。') + '</p></div>\n'
@@ -304,7 +408,11 @@ ai_products = ('<div class="items reveal">\n'
     '          </div>')
 ai = title_chapter('AI', 'REYZ PLATFORM · AI Infrastructure', 'AIが支える。',
                    jp('複数のAIエージェントを統合運用する|AI基盤「REYZ PLATFORM」。')) + \
-section('products', 'Products', 'REYZ PLATFORM', jp('REYZのAI製品を、|ひとつに集約するプラットフォーム。\n開発を進めながら、|順次提供します。'), ai_products) + \
+section('promise', 'Our promise', 'AIの3つの約束', jp('映像制作、SNS運用、仕事の仕組みづくり、判断の支え。|その裏側で動くREYZのAIは、|3つの約束で動きます。'),
+        items([('止まる', jp('確認が取れていないこと、|人が決めるべき分かれ道では、|AIは勝手に先へ進めず、止まります。')),
+               ('事実から', jp('確かめた事実とデータだけで、|案と判断の材料を組み立てます。\n不確かなことは、|「確認が必要」と正直に示します。')),
+               ('見返せる', jp('何を確かめ、誰が、いつ、どの決まりで|進めたか、止めたかを、|あとから見返せる形で残します。\n担当が変わっても、目標が変わっても、|続きから再開できます。'))])) + \
+section('products', 'Products', 'REYZ PLATFORM', jp('REYZのAI製品を、|ひとつに集約するプラットフォーム。'), ai_products) + \
 section('enterprise', 'For Enterprise', '企業向け提供', jp('AIに任せた判断を、|あとから説明できる状態に。\n監査できるAI運用の基盤を、|企業向けに提供します。'),
         items([('相互検証', jp('提供元の異なる複数のAIが、|同じ内容をそれぞれ検証します。\n一致しないものは、|先へ進めません。')),
                ('人の承認', jp('重要な変更は、|責任者の承認を経てから実行します。\nAIだけの判断で、|本番は変わりません。')),
@@ -313,13 +421,13 @@ section('enterprise', 'For Enterprise', '企業向け提供', jp('AIに任せた
 section('enterprise-how', 'How it works', '進め方', '',
         steps([('01', '現状の確認', jp('どの業務で、|AIが何を判断しているか。\n判断の重さと、|現在の確認方法を整理します。')),
                ('02', '統制の設計と導入', jp('検証の規則、|人が承認する範囲、|記録の形式を決め、\n既存の業務に組み込みます。')),
-               ('03', '運用と報告', jp('AIと共に運用し、|判断の記録を定期的に報告します。\n結果をもとに、|規則を見直します。'))], cls='list') + more('contact.html', '先行導入を相談する')) + \
+               ('03', '運用と報告', jp('AIと共に運用し、|判断の記録を定期的に報告します。\n結果をもとに、|規則を見直します。'))], cls='list') + more('contact.html', '相談する')) + \
 section('principles', 'Principles', '原則', '',
         items([('Fail-Closed', jp('不確実なときは、|安全側で止まる。')), ('Fact-First', jp('事実・推論・仮説を|分けて扱う。')), ('Auditable', jp('すべての判断に、|確認できる記録を残す。|監査可能な運用を、|設計段階から。'))]))
 page('ai.html', 'AI — REYZ Inc.', 'REYZのAI製品を集約するプラットフォーム「REYZ PLATFORM」。複数のAIによる相互検証、人の承認、検証できる記録を備えた、監査できるAI運用の基盤を企業向けに提供します。', ai)
 
 # ------------------------------------------------------------------ REYZ CONSENSUS（REYZ PLATFORM の製品。2026-10-22 CEO 指示: ホームページから到達できるようにする）
-# 表示の規律: 製品は開発中。稼働・実績・顧客数を示す表現は、根拠を併記できるまで書かない（legal.html「表示に関する方針」）。
+# 表示の規律（2026-10-23 CEO）: 進行形の状態語は書かない。稼働・実績・顧客数を示す表現は、根拠を併記できるまで書かない。
 # 到達経路: ai.html の製品 03 のリンク、sitemap。URL は /consensus（拡張子なし、clean()）。
 consensus = title_chapter('Consensus', 'REYZ CONSENSUS', jp('確かめてから、|進める。'),
                           jp('提供元の異なる複数のAIが互いに検証し、|合意したものだけを次へ進める。\n後戻りできない決定は人が行い、|すべてに確認できる記録を残す。\nREYZ PLATFORMのAI運用の仕組みです。')) + \
@@ -332,11 +440,11 @@ section('how', 'How it works', '進め方', '',
         steps([('01', '伝える', jp('やりたいことを、|自分の言葉で伝えます。')),
                ('02', '作り、確かめる', jp('複数のAIが作り、互いに検証し、|記録を残します。\n不確実なときは、|安全側で止まります。')),
                ('03', '決めて、反映する', jp('責任者が決め、|承認を経たものだけが反映されます。\nAIだけの判断で、|本番は変わりません。'))], cls='list')) + \
-section('offer', 'Offering', '提供の形', jp('現在開発中です。|先行導入のご相談を受け付けています。'),
+section('offer', 'Offering', '提供の形', jp('ご相談を受け付けています。'),
         items([('企業向け', jp('自社のAI運用に、|検証と承認と記録の統制を組み込みます。')),
                ('自社ブランドでの提供', jp('表示名・配色・ロゴを変えて、|自社の製品として提供できます。\n判断の規則と記録の形式は、|変わりません。')),
                ('特定のAIに依存しない構成', jp('複数の提供元を前提に構成します。\nモデルの世代交代や価格の変化に、|構成を変えて対応できます。'))]) +
-        more('contact.html', '先行導入を相談する') + more('ai.html', 'REYZ PLATFORMについて'))
+        more('contact.html', '相談する') + more('ai.html', 'REYZ PLATFORMについて'))
 page('consensus.html', 'REYZ CONSENSUS — REYZ Inc.', 'REYZ CONSENSUS — 提供元の異なる複数のAIが互いに検証し、合意したものだけを次へ進める。後戻りできない決定は人が行い、すべてに確認できる記録を残す、REYZ PLATFORMのAI運用の仕組み。', consensus)
 
 # ------------------------------------------------------------------ CONTACT
@@ -377,11 +485,14 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
                     <option>映像制作の依頼</option>
                   </optgroup>
                   <optgroup label="企業の方">
-                    <option>成長設計・マーケティング</option>
+                    <option>目的の整理と進め方の相談</option>
+                    <option>動画・映像制作</option>
+                    <option>SNSアカウントの運用支援</option>
                     <option>ブランディング・制作</option>
+                    <option>サイト・業務の仕組みづくり</option>
                     <option>クリエイターとの販売設計</option>
-                    <option>表現・広告の適法性検証</option>
-                    <option>AI基盤「REYZ PLATFORM」・SaaS導入</option>
+                    <option>表現・広告の確認</option>
+                    <option>AIを仕事に使う（REYZ PLATFORM）</option>
                   </optgroup>
                   <optgroup label="その他">
                     <option>取材・提携</option>
@@ -501,12 +612,11 @@ def works_list():
             out.append('          <figure class="work" data-src="' + src + '">\n'
                        '            <video controls playsinline preload="metadata"' + poster + '><source src="' + src + '" type="video/mp4"></video>'
                        + cap_line + '\n          </figure>')
-    # 作品が 0 件のときは注記をビルド時点で表示（JS 不要）。1 件以上あるときは hidden にし、全動画が欠けた場合だけ JS が表示する
-    empty_attr = '' if not WORKS else ' hidden'
-    body = ('\n'.join(out) + '\n') if out else ''
-    return '<div class="works reveal" id="works">\n' + body + f'          <p class="lead works-empty" id="worksEmpty"{empty_attr}>作品例は準備中です。</p>\n        </div>'
-works = title_chapter('Works', 'Works', '作品例', '※個人情報の観点から一部のみ掲載', lead_cls='lead note') + \
-section('list', 'Selected works', '映像', '', works_list())
+    # 2026-10-23 CEO: 「準備中」「ご相談の際に」等の注記は書かない。作品が 0 件のときは一覧セクションを出さない
+    if not out: return ''
+    return section('list', 'Selected works', '映像', '', '<div class="works reveal" id="works">\n' + '\n'.join(out) + '\n        </div>')
+BACK = '    <section class="section" id="back"><div class="wrap"><div class="section-text"><h2 class="sr-only">戻る</h2><p class="more reveal"><a class="go" href="creator.html">クリエイターの方へ</a></p><p class="more reveal"><a class="go" href="creative.html">企業の方へ</a></p></div></div></section>\n'
+works = title_chapter('Works', 'Works', '作品例', '※個人情報の観点から一部のみ掲載', lead_cls='lead note') + works_list() + BACK
 page('works.html', 'Works — REYZ Inc.', 'REYZが企画・撮影・編集した映像作品の例。', works)
 
 # ------------------------------------------------------------------ 公開用の付属ファイル
