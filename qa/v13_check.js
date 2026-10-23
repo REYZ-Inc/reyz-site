@@ -1,4 +1,4 @@
-// v13 acceptance: brand Z colour, menu sheet (colour / X close / scroll close / Escape / link), works empty note (JS on & off), creator copy, excluded strings.
+// v13 acceptance: brand Z colour, menu sheet (colour / X close / scroll close / Escape / link), works page (no note), creator copy, excluded strings.
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');
 const ROOT = path.resolve(process.argv[2]);
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
@@ -31,8 +31,8 @@ const PINK = 'rgb(247, 21, 172)', SHEET = 'rgb(28, 28, 28)';
     F('company lead', got.lead === 'クリエイターエコノミーとAIの交点に、\n人とAIが共に価値を生む事業基盤を築く。\n国内から世界へ、次の10年の標準をつくる。');
     F('company labels', JSON.stringify(got.labels) === JSON.stringify(['クリエイターエコノミー事業', 'エンタープライズ事業', 'AIプラットフォーム事業']));
     F('company item 1', got.items[0] === '個人の創造性と影響力を、持続する経済価値へ。\n発掘から育成、収益化までを一体で設計・運営する。');
-    F('company item 2', got.items[1] === '戦略・ブランド・マーケティングを、AIとデータで企業の成長設計へ統合する。\n表現と広告の適法性検証まで、一貫して担う。');
-    F('company item 3', got.items[2] === '複数のAIエージェントをクリエイターエコノミーと統合運用する\n自社AI基盤「REYZ PLATFORM」の開発・提供。\n業務の設計から実装、検証・運用までを、AIと共に。\n複数のAIによる相互検証と記録を標準とし、\n監査可能なAI運用を設計段階から組み込む。');
+    F('company item 2', got.items[1] === '企業のサイト、ブランド、映像、SNSの発信と運用、仕事の仕組みづくり。\n伝え方の設計から、表現と広告の確認まで一貫して担う。');
+    F('company item 3', got.items[2] === 'AIを安心して仕事に使うための自社の仕組み「REYZ PLATFORM」を提供する。\n複数のAIを組み合わせ、確かめ、人が決め、\nあとから見返せる形で仕事を進める。');
     F('no visible h2 in company', got.visibleH2 === 0); F('no service names / excluded businesses in company', !/ライブ配信|映像制作|不動産|リユース|TikTok|クリエイター起点/.test(got.text));
     await ctx0.close(); }
   // 2) runtime, mobile
@@ -49,16 +49,16 @@ const PINK = 'rgb(247, 21, 172)', SHEET = 'rgb(28, 28, 28)';
   await p.evaluate(() => window.scrollTo({ top: 60, behavior: 'instant' })); await p.waitForTimeout(200); const scrolled = await menuState(); F('scroll closes menu', scrolled.hidden === true && scrolled.expanded === 'false');
   await p.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' })); await p.waitForTimeout(100); await p.click('#menuBtn'); await p.waitForTimeout(200); await p.keyboard.press('Escape'); await p.waitForTimeout(150); F('Escape closes menu', (await menuState()).hidden === true);
   await p.click('#menuBtn'); await p.waitForTimeout(200); await Promise.all([p.waitForNavigation({ waitUntil: 'load' }), p.click('#sheet a[href="creator"]')]); await p.waitForTimeout(400); F('menu link navigates to creator', p.url().endsWith('/creator')); F('menu closed after nav', (await menuState()).hidden === true);
-  // 3) works page — empty note, JS on
+  // 3) works page — JS on: no "準備中" style note (2026-10-23 CEO), no figures without data, no page errors
   await p.goto(base + 'works.html', { waitUntil: 'load' }); await p.waitForTimeout(900);
-  out.works = await p.evaluate(() => { const e = document.getElementById('worksEmpty'); const r = e.getBoundingClientRect(); return { hidden: e.hidden, visible: r.height > 0 && getComputedStyle(e).display !== 'none', text: e.textContent, figs: document.querySelectorAll('.work').length, opacity: +getComputedStyle(e).opacity, revealOpacity: +getComputedStyle(document.getElementById('works')).opacity }; });
-  F('works empty note visible (JS on)', out.works.visible && !out.works.hidden && out.works.figs === 0);
+  out.works = await p.evaluate(() => ({ note: !!document.getElementById('worksEmpty'), figs: document.querySelectorAll('.work').length, h1: document.querySelector('h1').getBoundingClientRect().height > 0, text: document.body.innerText }));
+  F('works: no empty note (JS on)', !out.works.note && out.works.figs === 0 && out.works.h1); F('works: no status words', !/準備中|ご相談の際に/.test(out.works.text));
   await p.screenshot({ path: path.join(process.env.QA_OUT || path.dirname(__filename), 'works_m390.png') });
   out.errors = errs; F('no page errors', errs.length === 0); await ctx.close();
   // 4) works page — JS off
   const ctx2 = await b.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false }); const p2 = await ctx2.newPage(); await p2.goto(base + 'works.html', { waitUntil: 'load' });
-  out.worksNoJs = await p2.evaluate(() => { const e = document.getElementById('worksEmpty'); const r = e.getBoundingClientRect(); return { hidden: e.hidden, visible: r.height > 0, opacity: +getComputedStyle(e).opacity, h1: document.querySelector('h1').getBoundingClientRect().height > 0 }; });
-  F('works empty note visible (no JS)', out.worksNoJs.visible && out.worksNoJs.opacity > 0.9); await ctx2.close();
+  out.worksNoJs = await p2.evaluate(() => ({ note: !!document.getElementById('worksEmpty'), h1: document.querySelector('h1').getBoundingClientRect().height > 0 }));
+  F('works: no empty note (no JS)', !out.worksNoJs.note && out.worksNoJs.h1); await ctx2.close();
   // 5) desktop: sheet not used; nav visible with pink links; brand Z pink
   const ctx3 = await b.newContext({ viewport: { width: 1440, height: 900 } }); const p3 = await ctx3.newPage(); await p3.goto(base + 'index.html', { waitUntil: 'load' }); await p3.waitForTimeout(400);
   out.desktop = await p3.evaluate(() => ({ menuBtnShown: getComputedStyle(document.getElementById('menuBtn')).display !== 'none', navLink: getComputedStyle(document.querySelector('.site-header .nav a')).color, z: getComputedStyle(document.querySelector('.site-header .brand .z')).color, navShown: getComputedStyle(document.querySelector('.site-header .nav')).display !== 'none' }));
