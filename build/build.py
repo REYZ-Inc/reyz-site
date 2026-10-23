@@ -240,7 +240,7 @@ home = f'''    <section class="chapter" id="infinity">
         <a class="gate copy" href="ai.html">
           <p class="eyebrow">REYZ PLATFORM · AI Infrastructure</p>
           <h2>AIが支える。</h2>
-          <p class="lead">AIに任せた判断を、あとから説明できる状態に。</p>
+          <p class="lead">AIに任せた判断を、<br>あとから説明できる状態に。</p>
           <span class="go">AI</span>
         </a>
       </div>
@@ -249,7 +249,7 @@ home = f'''    <section class="chapter" id="infinity">
       <div class="wrap chapter-stack">
         {slot('Continue')}
         <div class="head copy">
-          <h2>目的が変わっても、続く。</h2>
+          <h2>目的が変わっても、<br>続く。</h2>
           <p class="lead">人の目的は変わります。<br>REYZは、変わる前提で進め方をつくり、<br>変わったら組み直して続けます。<br>やり直しではなく、続きから。<br>クリエイターにも、企業にも。</p>
         </div>
       </div>
@@ -352,7 +352,7 @@ SHEET = ('<div class="onesheet reveal">\n'
     '          </div>')
 SHIFT = ('<div class="shift reveal">\n'
     '            <div class="row"><span class="k">今</span><div class="bars"><span class="bar">調査</span><span class="bar">台本</span><span class="bar">編集</span><span class="bar">確認</span><span class="bar">集計</span><span class="bar">進行管理</span><span class="bar">決める・伝える</span></div></div>\n'
-    '            <div class="row"><span class="k">REYZと</span><div class="bars"><span class="bar ai">人がやらなくていい仕事は、AIと仕組みへ</span><span class="bar human">人は、決めることと伝えることに</span></div></div>\n'
+    '            <div class="row"><span class="k">REYZと</span><div class="bars"><span class="bar ai">' + jp('人がやらなくていい仕事は、|AIと仕組みへ') + '</span><span class="bar human">' + jp('人は、|決めることと伝えることに') + '</span></div></div>\n'
     '          </div>')
 creative = title_chapter('Creative', 'For Enterprise', '「伝わる」を設計する。',
                          jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。')) + \
@@ -531,14 +531,20 @@ section('form', 'Message', 'お問い合わせ', '内容をお送りください
 page('contact.html', 'Contact — REYZ Inc.', 'REYZ Inc. へのお問い合わせ。', contact)
 
 # ------------------------------------------------------------------ LEGAL
-legal_grid = '''<div class="legal-grid reveal">
+# WORKS は作品例ページと、個人情報の取り扱い（YouTube 埋め込みの注記）の両方が参照する
+WORKS = [
+]
+if os.environ.get('WORKS_JSON'):                                     # 検証用: 一時的な作品リストで組む
+    WORKS = json.load(open(os.environ['WORKS_JSON'], encoding='utf-8'))
+YT_NOTICE = '\n            <p>作品例ページでは YouTube の埋め込みプレイヤー（プライバシー強化モード）を利用しており、サムネイルの表示および再生時に接続情報が Google に送信されます。</p>' if any(w.get('yt') for w in WORKS) else ''
+legal_grid = f'''<div class="legal-grid reveal">
           <div class="legal-block">
             <h2>宅地建物取引業者</h2>
             <dl>
               <div><dt>商号</dt><dd>株式会社レイズ</dd></div>
               <div><dt>免許証番号</dt><dd>東京都知事（1）第110185</dd></div>
               <div><dt>代表者</dt><dd>堀内智一</dd></div>
-              <div><dt>主たる事務所</dt><dd>''' + ADDRESS + '''</dd></div>
+              <div><dt>主たる事務所</dt><dd>''' + ADDRESS + f'''</dd></div>
             </dl>
           </div>
           <div class="legal-block">
@@ -556,8 +562,7 @@ legal_grid = '''<div class="legal-grid reveal">
           <div class="legal-block">
             <h2>個人情報の取り扱い</h2>
             <p>お問い合わせで取得した個人情報は、その対応の目的にのみ利用し、法令に基づく場合を除き第三者に提供しません。</p>
-            <p>本サイトはフォント配信に Google Fonts を利用しており、閲覧時にIPアドレス等の接続情報が Google に送信されます。</p>
-            <p>作品例ページでは YouTube の埋め込みプレイヤー（プライバシー強化モード）を利用しており、サムネイルの表示および再生時に接続情報が Google に送信されます。</p>
+            <p>本サイトはフォント配信に Google Fonts を利用しており、閲覧時にIPアドレス等の接続情報が Google に送信されます。</p>{YT_NOTICE}
           </div>
         </div>'''
 legal = title_chapter('line', 'Privacy &amp; Legal', '法令に基づく表記', '') + f'''    <section class="section" id="notices">
@@ -572,10 +577,6 @@ page('legal.html', 'Privacy & Legal — REYZ Inc.', '株式会社レイズの法
 #            → クリックするまで YouTube の iframe は読み込まない（サムネイル＋再生マークだけ）。埋め込みは youtube-nocookie.com（プライバシー強化モード）。
 #            YouTube 側の条件: 公開 or 限定公開（非公開は不可）、動画の「埋め込みを許可する」が ON。
 #   mp4    : { 'src': 'assets/works/work-01.mp4', 'poster': 'assets/works/work-01.jpg', 'title': '作品名', 'note': 'PV／2026' }
-WORKS = [
-]
-if os.environ.get('WORKS_JSON'):                                     # 検証用: 一時的な作品リストで組む
-    WORKS = json.load(open(os.environ['WORKS_JSON'], encoding='utf-8'))
 
 YT_ID = re.compile(r'^[A-Za-z0-9_-]{11}$')
 def yt_id(v):

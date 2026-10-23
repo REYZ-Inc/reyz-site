@@ -282,7 +282,7 @@ html.no-js .reveal { animation: none; }
 .stages .n { font-family: var(--font-en); font-size: 0.68rem; letter-spacing: 0.24em; color: var(--accent); font-variant-numeric: tabular-nums; }
 .stages strong { font-weight: 500; font-size: 0.92rem; letter-spacing: 0.03em; line-height: 1.5; }
 .stages span:last-child { color: var(--text-3); font-size: 0.8rem; line-height: 1.6; }
-@media (max-width: 720px) { .stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .stages { grid-template-columns: 1fr; gap: 0.4rem; } .stages li { grid-template-columns: auto 1fr; grid-template-areas: 'n t' 'n p'; column-gap: 0.8rem; } .stages .n { grid-area: n; padding-top: 0.3em; } .stages strong { grid-area: t; } .stages span:last-child { grid-area: p; } }
 .showcase { display: grid; grid-template-columns: 1fr; gap: 0.8rem; margin-top: 2.4rem; max-width: 40rem; }
 .frame { position: relative; margin: 0; overflow: hidden; border: 1px solid var(--line-2); background:
     radial-gradient(circle at 22% 30%, rgba(247, 21, 172, 0.22), transparent 55%),
@@ -300,7 +300,7 @@ html.no-js .reveal { animation: none; }
 .frame.tall strong { font-size: 0.86rem; }
 .frame.tall figcaption > span:last-child { font-size: 0.74rem; }
 .phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; align-content: start; }
-@media (max-width: 720px) { .frame.tall { aspect-ratio: auto; min-height: 14rem; } .frame.tall figcaption { padding: 0.7rem 0.6rem; } }
+@media (max-width: 720px) { .phones { grid-template-columns: 1fr; gap: 0.5rem; } .frame.tall { aspect-ratio: auto; min-height: 0; display: grid; grid-template-columns: 4.2rem 1fr; align-items: center; border-radius: 10px; } .frame.tall::before { position: static; inset: auto; width: auto; height: 100%; min-height: 6.5rem; opacity: 1; border-right: 1px solid var(--line); background: radial-gradient(circle at 50% 35%, rgba(247, 21, 172, 0.45), transparent 60%), linear-gradient(180deg, #0a0a0f, #1a1020); } .frame.tall figcaption { padding: 0.8rem 0.9rem; background: rgba(6, 6, 9, 0.6); } .frame.tall strong { font-size: 0.92rem; } .frame.tall figcaption > span:last-child { font-size: 0.8rem; } }
 .cycle { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; max-width: 40rem; counter-reset: c; }
 .cycle li { position: relative; display: grid; gap: 0.3rem; padding: 0.9rem 0.8rem 1rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); }
 .cycle li:not(:last-child)::after { content: "\2192"; position: absolute; right: -0.65rem; top: 0.85rem; color: var(--accent); font-size: 0.8rem; }
@@ -326,7 +326,7 @@ html.no-js .reveal { animation: none; }
 .shift .row { display: grid; grid-template-columns: 5.5em 1fr; gap: 0.8rem; align-items: center; }
 .shift .k { font-size: 0.78rem; letter-spacing: 0.12em; color: var(--text-3); }
 .shift .bars { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.shift .bar { display: inline-flex; align-items: center; min-height: 38px; padding: 0.3rem 0.9rem; font-size: 0.84rem; line-height: 1.5; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); color: var(--text-2); }
+.shift .bar { display: inline-block; min-height: 38px; padding: 0.45rem 0.9rem; font-size: 0.84rem; line-height: 1.5; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); color: var(--text-2); }
 .shift .bar.ai { border-color: rgba(247, 21, 172, 0.5); color: var(--text); }
 .shift .bar.human { background: var(--accent); border-color: transparent; color: #fff; }
 .section-text .sub { margin-top: 2.6rem; font-size: 1.05rem; font-weight: 500; letter-spacing: 0.06em; }
