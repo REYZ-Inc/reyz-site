@@ -297,8 +297,8 @@
     const card = document.getElementById('mapCard'), note = document.getElementById('mapNote'), noteLive = document.getElementById('mapNoteLive');
     const out = { goal: document.getElementById('mapGoal'), place: document.getElementById('mapPlace'), step: document.getElementById('mapStep') };
     const ans = {};
-    // 文節（「、」「。」の直後）でだけ折り返す（build.py の jp() と同じ規則）
-    const phrase = (el, text) => { el.textContent = ''; for (const t of text.split(/(?<=[、。])/)) { if (!t) continue; const sp = document.createElement('span'); sp.className = 'ph'; sp.textContent = t; el.append(sp); } };
+    // 文節（「、」「。」「）」の直後と「（」の直前）でだけ折り返す（build.py の jp() と同じ規則＋括弧）
+    const phrase = (el, text) => { el.textContent = ''; for (const t of text.split(/(?<=[、。）])|(?=（)/)) { if (!t) continue; const sp = document.createElement('span'); sp.className = 'ph'; sp.textContent = t; el.append(sp); } };
     const groupOf = (q, aud) => groups.find(g => g.dataset.q === q && g.dataset.for === aud);
     const compose = () => {
       const who = ans.who, T = MAP_TEXT[who]; if (!T) return null;
@@ -316,7 +316,7 @@
         for (const q of order) { const g = groupOf(q, who); if (!g) continue; g.hidden = !open; if (open && !ans[q]) open = false; } }
       for (const g of groups) for (const b of g.querySelectorAll('.opt')) b.setAttribute('aria-pressed', String(ans[g.dataset.q] === b.dataset.v && (g.dataset.for === 'all' || g.dataset.for === who)));
       const r = compose(); mapper.dataset.done = r ? 'true' : 'false';
-      if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); note.hidden = who !== 'creator'; noteLive.hidden = !r.live; card.hidden = false;
+      if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); note.hidden = who !== 'creator'; noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
         if (!render.shown) { render.shown = true; const h = card.querySelector('h3'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } } }
       else { card.hidden = true; render.shown = false; }
     };

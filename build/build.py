@@ -228,10 +228,23 @@ def mapper():
             '              <p class="map-note" id="mapNote" hidden>' + jp('費用はかからない。|REYZはクリエイターの報酬から|手数料を取らない。|やめるのも自由。') + '</p>\n'
             f'              <p class="map-note" id="mapNoteLive" hidden>{TT_NOTE}</p>\n'
             '              <p class="map-fine">' + jp('設計上の見本です。|相談で、あなたの言葉に合わせて|作り直します。') + '</p>\n'
+            '              <div class="map-next" data-for="creator"><p class="map-next-head">この地図から、次へ。</p><ol><li><span class="n">01</span><strong>地図</strong><span>' + jp('目的と、最初の一歩。') + '</span></li><li><span class="n">02</span><strong>入口</strong><span>' + jp('確認を通った案件と商品だけが届く。') + '</span></li><li><span class="n">03</span><strong>明細</strong><span>' + jp('いつ、何で、いくら。|記録はあなたのもの。') + '</span></li></ol></div>\n'
+            '              <div class="map-next" data-for="company"><p class="map-next-head">この地図から、次へ。</p><ol><li><span class="n">01</span><strong>地図</strong><span>' + jp('目的と、次の一手。|はい／いいえで決める。') + '</span></li><li><span class="n">02</span><strong>確認</strong><span>' + jp('公開前に、複数のAIが確かめ、|人が決める。') + '</span></li><li><span class="n">03</span><strong>記録</strong><span>' + jp('決定ごとに残る。|記録は企業のもの。') + '</span></li></ol></div>\n'
             '              <div class="ctas tight"><a class="btn primary" id="mapGo" href="contact.html">この内容で相談する</a><button type="button" class="btn" id="mapReset">最初から</button></div>\n'
             '            </div>\n'
             '          </div>')
 MAPPER = mapper()
+
+# ------------------------------------------------------------------ HOME 章「AI」: REYZ 自身がこの仕組みで動いている事実（企業正本 §11「REYZ 自身がこの仕組みで運営している（事実の範囲で）」。2026-10-26 CEO「表現で解決せよ」）
+# 書くのは確認できる事実だけ: 公開リポジトリ REYZ-Inc/reyz-site（変更ごとの自動検査・人の承認。ブランチ保護＋必須チェック＋CEO の merge）、決定の通し番号つき記録（2026-09〜、2026-10-23 時点で 517 番）、設計書の版。人数・規模・「共生」は書かない（2026-09-26 除外文言）
+PROOF = ('<div class="proof reveal">\n'
+    '            <p class="proof-head">' + jp('REYZ自身が、|この仕組みで動いています。') + '</p>\n'
+    '            <ol class="proof-list">\n'
+    '              <li><strong>このサイト</strong><p>' + jp('変更は1件ごとに自動の検査を通り、|人が承認してから公開されます。\n変更の記録は、公開しています。') + '</p><a class="go" href="https://github.com/REYZ-Inc/reyz-site/pulls?q=is%3Apr+is%3Amerged" rel="noopener">変更の記録</a></li>\n'
+    '              <li><strong>会社の決定</strong><p>' + jp('提供元の異なる複数のAIが互いに検証し、|人が決め、通し番号つきの記録に残します。\n2026年9月から続け、|通し番号は2026年10月23日時点で517。') + '</p></li>\n'
+    '              <li><strong>事業の設計書</strong><p>' + jp('同じ流れで版を重ねています。\nどの版で、何を決めたかが残ります。') + '</p></li>\n'
+    '            </ol>\n'
+    '          </div>')
 
 # ------------------------------------------------------------------ HOME
 home = f'''    <section class="chapter" id="infinity">
@@ -240,6 +253,7 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h1><span>無限の可能性を</span><span>かたちに</span></h1>
           <p class="hero-sub">From Japan, <em>beyond.</em></p>
+          <p class="lead hero-lead">{jp('クリエイターの収入と、|企業の「伝わる」を、|AIと人で設計する。')}</p>
         </div>
       </div>
     </section>
@@ -287,12 +301,11 @@ home = f'''    <section class="chapter" id="infinity">
     <section class="chapter" id="ai">
       <div class="wrap chapter-stack">
         {slot('AI')}
-        <a class="gate copy" href="ai.html">
-          <p class="eyebrow">REYZ PLATFORM · AI Infrastructure</p>
-          <h2>AIが支える。</h2>
-          <p class="lead">AIに任せた判断を、<br>あとから説明できる状態に。</p>
-          <span class="go">AI</span>
-        </a>
+        <div class="copy">
+          <div class="head"><p class="eyebrow">REYZ PLATFORM · AI Infrastructure</p><h2>AIが支える。</h2><p class="lead">AIに任せた判断を、<br>あとから説明できる状態に。</p></div>
+{PROOF}
+          <p class="more"><a class="go" href="ai.html">AI</a></p>
+        </div>
       </div>
     </section>
     <section class="chapter" id="continue">
@@ -340,6 +353,17 @@ MODEL = ('<div class="model reveal">\n'
     '              <div class="flow"><span class="from">' + jp('プラットフォーム・|企業') + '</span><span class="arrow" aria-hidden="true">→</span><span class="to">REYZ</span><span class="what">報酬・利用料</span></div>\n'
     '              <div class="flow zero"><span class="from">あなた</span><span class="arrow" aria-hidden="true">→</span><span class="to">REYZ</span><span class="what">0円</span></div>\n'
     '              <p>' + jp('REYZの収入は、|プラットフォームと企業から。\nだから、あなたの報酬からは引きません。') + '</p>\n'
+    '            </div>\n'
+    '            <div class="terms">\n'
+    '              <p class="terms-head">はっきり決めていること</p>\n'
+    '              <ul>\n'
+    '                <li>' + jp('活動が続く限り、無料。|休むときは、待ちます。') + '</li>\n'
+    '                <li>' + jp('目標を課しません。') + '</li>\n'
+    '                <li>' + jp('違約金なし。|他の仕事を制限しません。|やめた後の配信も制限しません。') + '</li>\n'
+    '                <li>' + jp('あとから条件を悪くしません。') + '</li>\n'
+    '                <li>' + jp('直販のクリエイター手数料は0%。|購入時の利用料は買う人に明示し、|使うかはあなたが選びます。|売上ゼロなら、課金ゼロ。') + '</li>\n'
+    '                <li>' + jp('記録はあなたのもの。|いつでも持ち出せます。') + '</li>\n'
+    '              </ul>\n'
     '            </div>\n'
     '          </div>')
 SCREENS_CREATOR = ('<div class="onesheet screens reveal">\n'
@@ -426,6 +450,16 @@ SCREENS_ENT = ('<div class="onesheet screens reveal">\n'
     '            </div>\n'
     '            <div class="decide"><p>' + jp('決めるのは、あなたです。|会議でゼロから悩む必要はありません。') + '</p><span class="pill yes">はい：この内容で進める</span><span class="pill">いいえ：条件を変えて、組み直す</span></div>\n'
     '            <p class="gate-note">' + jp('確認を通った案件と商品だけが、|クリエイターの入口に届きます。') + '</p>\n'
+    '            <div class="terms">\n'
+    '              <p class="terms-head">はっきり言えること</p>\n'
+    '              <ul>\n'
+    '                <li>' + jp('公的なきまりと自主基準に照らして確かめ、|判断の材料を渡します。|法律の鑑定ではありません。') + '</li>\n'
+    '                <li>' + jp('提供元の異なる複数のAIが確かめ、|一致しないものは止まります。|後戻りできない決定は、|人が「はい」か「いいえ」で決めます。') + '</li>\n'
+    '                <li>' + jp('決定ごとの記録を残し、|企業が持ち出せます。') + '</li>\n'
+    '                <li>' + jp('クリエイターの報酬から取りません。|報酬はREYZの口座を通しません。') + '</li>\n'
+    '                <li>' + jp('自社ブランドでの提供も、|いまの仕組みへの組み込みもできます。') + '</li>\n'
+    '              </ul>\n'
+    '            </div>\n'
     '          </div>')
 SHIFT = ('<div class="shift reveal">\n'
     '            <div class="row"><span class="k">今</span><div class="bars"><span class="bar">調査</span><span class="bar">台本</span><span class="bar">編集</span><span class="bar">確認</span><span class="bar">集計</span><span class="bar">進行管理</span><span class="bar">決める・伝える</span></div></div>\n'
