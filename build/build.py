@@ -253,8 +253,6 @@ def mapper():
             '              <p class="map-note" id="mapNote" hidden>' + jp('費用はかからない。|REYZはクリエイターの報酬から|手数料を取らない。|やめるのも自由。') + '</p>\n'
             f'              <p class="map-note" id="mapNoteLive" hidden>{TT_NOTE}</p>\n'
             '              <p class="map-fine">' + jp('設計上の見本です。|相談で、あなたの言葉に合わせて|作り直します。') + '</p>\n'
-            '              <div class="map-next" data-for="creator"><p class="map-next-head">この地図から、次へ。</p><ol><li><span class="n">01</span><strong>地図</strong><span>' + jp('目的と、最初の一歩。') + '</span></li><li><span class="n">02</span><strong>入口</strong><span>' + jp('確認を通った案件と商品だけが届く。') + '</span></li><li><span class="n">03</span><strong>明細</strong><span>' + jp('いつ、何で、いくら。|記録はあなたのもの。') + '</span></li></ol></div>\n'
-            '              <div class="map-next" data-for="company"><p class="map-next-head">この地図から、次へ。</p><ol><li><span class="n">01</span><strong>地図</strong><span>' + jp('目的と、次の一手。|はい／いいえで決める。') + '</span></li><li><span class="n">02</span><strong>確認</strong><span>' + jp('公開前に、複数のAIが確かめ、|人が決める。') + '</span></li><li><span class="n">03</span><strong>記録</strong><span>' + jp('決定ごとに残る。|記録は企業のもの。') + '</span></li></ol></div>\n'
             '              <div class="ctas tight"><a class="btn primary" id="mapGo" href="contact.html">この内容で相談する</a><button type="button" class="btn" id="mapReset">最初から</button></div>\n'
             '            </div>\n'
             '          </div>')
@@ -278,16 +276,14 @@ def check_inst():
     ticks = ''.join('<i></i>' for _ in range(48))
     return ('          <div class="check reveal" data-run="">\n'
             '            <div class="check-lanes">\n' + lanes +
-            '              <p class="cap">' + jp('提供元の異なる複数のAIが、|それぞれ確かめる。') + '</p>\n'
             '            </div>\n'
             '            <div class="check-human">\n'
             '              <span class="dot human" aria-hidden="true"></span><span class="lbl">人が決める</span>\n'
             '              <span class="yn" aria-hidden="true"><span class="pill yes">はい</span><span class="pill">いいえ</span></span>\n'
-            '              <p class="cap cap-go">' + jp('後戻りできない決定は、|人が決める。') + '</p><p class="cap cap-stop">' + jp('一致しないものは、|止まる。') + '</p>\n'
+            '              <p class="cap cap-stop">' + jp('一致しないものは、|止まる。') + '</p>\n'
             '            </div>\n'
             '            <div class="check-rec">\n'
             '              <span class="lbl">記録</span><span class="ticks" aria-hidden="true">' + ticks + '</span>\n'
-            '              <p class="cap">' + jp('決定ごとに、|あとから変えられない形で残る。') + '</p>\n'
             '            </div>\n'
             '          </div>')
 CHECK = check_inst()

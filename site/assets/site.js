@@ -363,6 +363,9 @@
   const live = el => el.classList.add('is-live');
   const ioLive = ('IntersectionObserver' in window) ? new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { live(e.target); ioLive.unobserve(e.target); } }, { threshold: 0.35 }) : null;
   for (const el of document.querySelectorAll('.bend')) { if (reduce) { live(el); const svg = el.querySelector('svg'); if (svg) { try { svg.pauseAnimations(); } catch (err) { /* 無視 */ } } } else if (ioLive) ioLive.observe(el); else live(el); }
+  // 見本（3 つの画面・映像の型）は画面に入ったら 1 回だけ動き、そのまま止まる。タップでもう一度
+  const replay = el => { el.classList.remove('is-live'); void el.offsetWidth; el.classList.add('is-live'); };
+  for (const el of document.querySelectorAll('.phone, .showcase')) { if (reduce) live(el); else if (ioLive) ioLive.observe(el); else live(el); el.addEventListener('click', () => { if (!reduce) replay(el); }); }
   for (const check of document.querySelectorAll('.check')) {
     const lanes = Array.from(check.querySelectorAll('.lane')), human = check.querySelector('.check-human'), rec = check.querySelector('.check-rec');
     let timers = [], running = false, runIdx = 0;
@@ -373,12 +376,12 @@
       clear(); const ng = runIdx % 2 === 1; runIdx++; check.dataset.run = ng ? 'stop' : 'go';
       lanes.forEach((l, i) => { at(200 + i * 280, () => l.classList.add('on')); at(950 + i * 280, () => l.classList.add(ng && i === 1 ? 'ng' : 'ok')); });
       if (ng) { at(2200, () => human.classList.add('stop')); at(5400, run); }
-      else { at(2200, () => human.classList.add('on')); at(3000, () => rec.classList.add('on')); at(6400, run); }
+      else { at(2200, () => human.classList.add('on')); at(3000, () => rec.classList.add('on')); if (runIdx < 3) at(6400, run); }   // 通る → 止まる → 通る、で止まる（タップでもう一度）
     };
     if (reduce || !('IntersectionObserver' in window)) done();
     else {
       const io = new IntersectionObserver(es => { for (const e of es) { if (e.isIntersecting && !running) { running = true; runIdx = 0; run(); } else if (!e.isIntersecting && running) { running = false; done(); } } }, { threshold: 0.3 });
-      io.observe(check); check.addEventListener('click', () => { if (running) run(); });
+      io.observe(check); check.addEventListener('click', () => { if (running) { runIdx = 0; run(); } });
     }
   }
 

@@ -567,8 +567,9 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 /* 地図 */
 .scr-map { position: relative; display: grid; gap: 1.1rem; padding-left: 1.3rem; padding-top: 0.3rem; }
 .scr-map .scr-line { position: absolute; left: 4px; top: 0.6rem; bottom: 2.6rem; width: 1px; background: var(--accent); opacity: 0.8; }
-.scr-map .scr-line::after { content: ""; position: absolute; left: -2.5px; top: 0; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px rgba(247, 21, 172, 0.95); animation: scrPulse 4s linear infinite; }
-@keyframes scrPulse { from { top: 0; } to { top: 100%; } }
+.scr-map .scr-line::after { content: ""; position: absolute; left: -2.5px; top: 0; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px rgba(247, 21, 172, 0.95); opacity: 0; }
+.phone.is-live .scr-map .scr-line::after { animation: scrPulse 3.2s var(--ease) 1 forwards; }
+@keyframes scrPulse { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
 .scr-node { position: relative; }
 .scr-node i { position: absolute; left: -1.3rem; top: 0.35em; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 7px rgba(247, 21, 172, 0.8); }
 .scr-node.goal i { width: 12px; height: 12px; left: calc(-1.3rem - 1.5px); top: 0.25em; outline: 1px solid rgba(247, 21, 172, 0.5); outline-offset: 2px; }
@@ -582,9 +583,10 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 .scr-gatebar::before, .scr-gatebar::after { content: ""; flex: 1; height: 1px; background: var(--accent); opacity: 0.7; }
 .scr-card { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; padding: 0.5rem 0.6rem; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.03); }
 .scr-card i { font-style: normal; color: var(--accent); font-family: var(--font-en); }
-.scr-card.ok { order: 2; animation: cardIn 7s var(--ease) infinite both; }
+.scr-card.ok { order: 2; opacity: 0; transform: translateY(-14px); }
+.phone.is-live .scr-card.ok { animation: cardIn 0.9s var(--ease) 1 both; }
 .scr-card.ok:nth-of-type(2) { animation-delay: 0.5s; } .scr-card.ok:nth-of-type(3) { animation-delay: 1s; }
-@keyframes cardIn { 0% { opacity: 0; transform: translateY(-14px); } 10%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-14px); } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
 .scr-card.ng { order: 0; opacity: 0.4; border-style: dashed; }
 .scr-card.ng i { color: var(--text-2); }
 /* 明細 */
@@ -593,22 +595,25 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 .scr-row em { font-style: normal; font-family: var(--font-en); color: var(--text); font-size: 0.68rem; letter-spacing: 0.06em; }
 .scr-bar { display: block; height: 6px; border-radius: 3px; background: rgba(244, 244, 246, 0.12); overflow: hidden; }
 .scr-bar i { display: block; height: 100%; width: 0; background: var(--accent); box-shadow: 0 0 8px rgba(247, 21, 172, 0.8); }
-.scr-bar.full i { animation: barFill 6s var(--ease) infinite; }
-@keyframes barFill { 0% { width: 0; } 25%, 90% { width: 100%; } 100% { width: 0; } }
+.phone.is-live .scr-bar.full i { animation: barFill 1.6s var(--ease) 1 forwards; }
+@keyframes barFill { from { width: 0; } to { width: 100%; } }
 .scr-foot { display: grid; gap: 0.15rem; margin-top: 0.4rem; padding-top: 0.6rem; border-top: 1px solid var(--line); }
 .scr-foot em { font-style: normal; color: var(--accent); font-size: 0.66rem; letter-spacing: 0.08em; }
 /* 確認 */
 .scr-check { display: grid; gap: 0.7rem; }
 .scr-ai { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 0.45rem; align-items: center; }
 .scr-ai i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px rgba(247, 21, 172, 0.8); }
-.scr-ai s { display: block; height: 1px; background: linear-gradient(90deg, var(--accent), rgba(247, 21, 172, 0.3)); transform-origin: left; animation: wireIn 6s var(--ease) infinite; }
-.scr-ai em { font-style: normal; color: var(--accent); font-family: var(--font-en); animation: markIn 6s var(--ease) infinite; }
+.scr-ai s { display: block; height: 1px; background: linear-gradient(90deg, var(--accent), rgba(247, 21, 172, 0.3)); transform-origin: left; transform: scaleX(0); }
+.phone.is-live .scr-ai s { animation: wireIn 0.8s var(--ease) 1 forwards; }
+.scr-ai em { font-style: normal; color: var(--accent); font-family: var(--font-en); opacity: 0; }
+.phone.is-live .scr-ai em { animation: markIn 0.5s var(--ease) 0.7s 1 forwards; }
 .scr-ai:nth-child(2) s, .scr-ai:nth-child(2) em { animation-delay: 0.35s; } .scr-ai:nth-child(3) s, .scr-ai:nth-child(3) em { animation-delay: 0.7s; }
-@keyframes wireIn { 0% { transform: scaleX(0); } 15%, 90% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
-@keyframes markIn { 0%, 14% { opacity: 0; } 22%, 90% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes wireIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes markIn { from { opacity: 0; } to { opacity: 1; } }
 .scr-decide { display: grid; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.6rem; border-top: 1px solid var(--line); }
 .scr-decide span { display: inline-block; padding: 0.25rem 0.55rem; border: 1px solid var(--line-2); border-radius: 6px; margin-right: 0.3rem; font-size: 0.66rem; }
-.scr-decide span.y { background: var(--accent); border-color: transparent; color: var(--bg); font-weight: 500; animation: markIn 6s var(--ease) infinite; animation-delay: 1.4s; }
+.scr-decide span.y { background: var(--accent); border-color: transparent; color: var(--bg); font-weight: 500; opacity: 0; }
+.phone.is-live .scr-decide span.y { animation: markIn 0.5s var(--ease) 1.6s 1 forwards; }
 /* 記録 */
 .scr-rec { display: grid; gap: 0.6rem; }
 .scr-line2 { display: grid; gap: 0.2rem; }
@@ -625,8 +630,9 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 .frame.study::before { display: none; }
 .study-guides { position: absolute; inset: 0; pointer-events: none; }
 .study-guides .safe { position: absolute; inset: 7% 6%; border: 1px dashed rgba(244, 244, 246, 0.22); }
-.study-guides .thirds { position: absolute; inset: 0; background-image: linear-gradient(rgba(244, 244, 246, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(244, 244, 246, 0.08) 1px, transparent 1px); background-size: 33.34% 33.34%; background-position: -1px -1px; }
-.study-guides .att { position: absolute; left: 30%; top: 38%; width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px rgba(247, 21, 172, 0.95), 0 0 26px rgba(247, 21, 172, 0.45); animation: attMove 8s var(--ease) infinite; }
+.study-guides .thirds { display: none; }
+.study-guides .att { position: absolute; left: 30%; top: 38%; width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px rgba(247, 21, 172, 0.95), 0 0 26px rgba(247, 21, 172, 0.45); }
+.showcase.is-live .study-guides .att { animation: attMove 6s var(--ease) 1 forwards; }
 @keyframes attMove { 0%, 8% { left: 30%; top: 38%; } 35%, 45% { left: 62%; top: 36%; } 70%, 80% { left: 50%; top: 62%; } 100% { left: 30%; top: 38%; } }
 .study-guides .att.a1 { animation-name: attTall1; } .study-guides .att.a2 { animation-name: attTall2; } .study-guides .att.a3 { animation-name: attTall3; }
 @keyframes attTall1 { 0%, 10% { left: 50%; top: 20%; } 50%, 60% { left: 44%; top: 40%; } 100% { left: 50%; top: 20%; } }
@@ -636,9 +642,9 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 .study-guides .cap-block b { display: block; height: 5px; border-radius: 2px; background: rgba(244, 244, 246, 0.3); }
 .study-guides .cap-block b:last-child { width: 70%; }
 .study-guides .cap-block.v { left: 10%; right: 10%; width: auto; bottom: 50%; }
-.study-guides .hook { position: absolute; left: 10%; right: 10%; top: 12%; height: 8px; border-radius: 3px; background: linear-gradient(90deg, var(--accent), rgba(247, 21, 172, 0.2)); animation: hookPulse 3.2s ease-in-out infinite; }
+.study-guides .hook { position: absolute; left: 10%; right: 10%; top: 12%; height: 8px; border-radius: 3px; background: linear-gradient(90deg, var(--accent), rgba(247, 21, 172, 0.2)); }
 @keyframes hookPulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
-.study-guides .cta-block { position: absolute; left: 20%; right: 20%; bottom: 52%; height: 22px; border-radius: 11px; border: 1px solid var(--accent); background: rgba(247, 21, 172, 0.12); animation: hookPulse 3.2s ease-in-out infinite; }
+.study-guides .cta-block { position: absolute; left: 20%; right: 20%; bottom: 52%; height: 22px; border-radius: 11px; border: 1px solid var(--accent); background: rgba(247, 21, 172, 0.12); }
 .frame figcaption { background: linear-gradient(180deg, transparent, rgba(6, 6, 9, 0.9) 40%); }
 @media (max-width: 720px) { .frame.tall.study .study-guides { display: none; } }
 
@@ -658,6 +664,10 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 @media (prefers-reduced-motion: reduce) {
   .flowmap .flow .fl-lane i, .scr-map .scr-line::after, .scr-card.ok, .scr-bar.full i, .scr-ai s, .scr-ai em, .scr-decide span.y, .study-guides .att, .study-guides .hook, .study-guides .cta-block { animation: none; }
   .scr-bar.full i { width: 100%; }
+  .scr-map .scr-line::after { display: none; }
+  .scr-card.ok { opacity: 1; transform: none; }
+  .scr-ai s { transform: none; }
+  .scr-ai em, .scr-decide span.y { opacity: 1; }
 }
 
 /* たたんだ項目: 見出しだけが並び、タップで開く */
@@ -688,3 +698,14 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 
 .section .check { max-width: 40rem; }
 @media (min-width: 900px) { .section .check { --bw: min(62rem, calc(100vw - 2 * var(--gutter) - 24px)); width: var(--bw); max-width: none; margin-inline: calc((100% - var(--bw)) / 2); } }
+@media (max-width: 720px) {
+  .frame.tall.study { grid-template-columns: 1fr; border-radius: 10px; }
+  .frame.tall.study .study-guides { display: block; position: relative; inset: auto; height: 3.2rem; border-bottom: 1px solid var(--line); }
+  .frame.tall.study .study-guides .safe { inset: 0.6rem 1rem; }
+  .frame.tall.study .study-guides .att { top: 50%; margin-top: -5px; }
+  .frame.tall.study .study-guides .hook { top: 1rem; height: 6px; }
+  .frame.tall.study .study-guides .cap-block.v { bottom: 0.9rem; gap: 4px; }
+  .frame.tall.study .study-guides .cap-block.v b { height: 4px; }
+  .frame.tall.study .study-guides .cta-block { bottom: 0.8rem; height: 18px; }
+  .frame.tall.study figcaption { background: none; }
+}
