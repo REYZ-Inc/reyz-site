@@ -274,7 +274,7 @@ PROOF = ('<div class="proof reveal">\n'
 def check_inst():
     lanes = ''.join('                <div class="lane"><span class="dot ai" aria-hidden="true"></span><span class="lbl">AI</span><span class="wire" aria-hidden="true"></span><span class="mark" aria-hidden="true"></span></div>\n' for _ in range(3))
     ticks = ''.join('<i></i>' for _ in range(48))
-    return ('          <div class="check reveal" id="check" data-run="">\n'
+    return ('          <div class="check reveal" data-run="">\n'
             '            <div class="check-lanes">\n' + lanes +
             '              <p class="cap">' + jp('提供元の異なる複数のAIが、|それぞれ確かめる。') + '</p>\n'
             '            </div>\n'
@@ -597,7 +597,7 @@ section('promise', 'Our promise', 'AIの3つの約束', jp('映像制作、SNS�
                ('見返せる', jp('何を確かめ、誰が、いつ、どの決まりで|進めたか、止めたかを、|あとから見返せる形で残します。\n担当が変わっても、目標が変わっても、|続きから再開できます。'))])) + \
 section('products', 'Products', 'REYZ PLATFORM', jp('REYZのAI製品を、|ひとつに集約するプラットフォーム。'), ai_products) + \
 section('enterprise', 'For Enterprise', '企業向け提供', jp('AIに任せた判断を、|あとから説明できる状態に。\n監査できるAI運用の基盤を、|企業向けに提供します。\n公開前の表現と広告の確認にも、|同じ仕組みを使います。'),
-        items([('相互検証', jp('提供元の異なる複数のAIが、|同じ内容をそれぞれ検証します。\n一致しないものは、|先へ進めません。')),
+        CHECK + items([('相互検証', jp('提供元の異なる複数のAIが、|同じ内容をそれぞれ検証します。\n一致しないものは、|先へ進めません。')),
                ('人の承認', jp('重要な変更は、|責任者の承認を経てから実行します。\nAIだけの判断で、|本番は変わりません。')),
                ('検証できる記録', jp('入力、根拠、判定、承認を記録し、|第三者があとから|同じ判断をたどれるようにします。')),
                ('特定のAIに依存しない構成', jp('複数の提供元を前提に構成します。\nモデルの世代交代や価格の変化に、|構成を変えて対応できます。'))])) + \
@@ -615,7 +615,7 @@ page('ai.html', 'AI — REYZ Inc.', 'REYZのAI製品を集約するプラット�
 consensus = title_chapter('Consensus', 'REYZ CONSENSUS', jp('確かめてから、|進める。'),
                           jp('提供元の異なる複数のAIが互いに検証し、|合意したものだけを次へ進める。\n後戻りできない決定は人が行い、|すべてに確認できる記録を残す。\nREYZ PLATFORMのAI運用の仕組みです。')) + \
 section('what', 'What it is', '仕組み', jp('AIに任せた判断を、|あとから誰にでも説明できる状態に。'),
-        items([('相互検証', jp('提供元の異なる複数のAIが、|同じ内容をそれぞれ検証します。\n一致しないものは、|先へ進めません。')),
+        CHECK + items([('相互検証', jp('提供元の異なる複数のAIが、|同じ内容をそれぞれ検証します。\n一致しないものは、|先へ進めません。')),
                ('独立した検証', jp('作る側と確かめる側を分けます。\n記録の同一性と根拠を、|機械と、作る側から独立した検証者が確かめます。')),
                ('人の承認', jp('後戻りできない変更だけを、|責任者が「はい」「いいえ」で決めます。\n技術の知識を前提にしない設計です。')),
                ('検証できる記録', jp('入力、根拠、判定、承認を記録し、|第三者があとから|同じ判断をたどれるようにします。'))])) + \

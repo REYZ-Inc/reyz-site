@@ -629,16 +629,16 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 .study-guides .att { position: absolute; left: 30%; top: 38%; width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px rgba(247, 21, 172, 0.95), 0 0 26px rgba(247, 21, 172, 0.45); animation: attMove 8s var(--ease) infinite; }
 @keyframes attMove { 0%, 8% { left: 30%; top: 38%; } 35%, 45% { left: 62%; top: 36%; } 70%, 80% { left: 50%; top: 62%; } 100% { left: 30%; top: 38%; } }
 .study-guides .att.a1 { animation-name: attTall1; } .study-guides .att.a2 { animation-name: attTall2; } .study-guides .att.a3 { animation-name: attTall3; }
-@keyframes attTall1 { 0%, 10% { left: 50%; top: 22%; } 50%, 60% { left: 46%; top: 48%; } 100% { left: 50%; top: 22%; } }
-@keyframes attTall2 { 0%, 10% { left: 36%; top: 34%; } 50%, 60% { left: 60%; top: 52%; } 100% { left: 36%; top: 34%; } }
-@keyframes attTall3 { 0%, 10% { left: 50%; top: 40%; } 50%, 60% { left: 50%; top: 72%; } 100% { left: 50%; top: 40%; } }
+@keyframes attTall1 { 0%, 10% { left: 50%; top: 20%; } 50%, 60% { left: 44%; top: 40%; } 100% { left: 50%; top: 20%; } }
+@keyframes attTall2 { 0%, 10% { left: 36%; top: 24%; } 50%, 60% { left: 60%; top: 38%; } 100% { left: 36%; top: 24%; } }
+@keyframes attTall3 { 0%, 10% { left: 50%; top: 22%; } 50%, 60% { left: 50%; top: 44%; } 100% { left: 50%; top: 22%; } }
 .study-guides .cap-block { position: absolute; left: 8%; bottom: 36%; display: grid; gap: 5px; width: 40%; }
 .study-guides .cap-block b { display: block; height: 5px; border-radius: 2px; background: rgba(244, 244, 246, 0.3); }
 .study-guides .cap-block b:last-child { width: 70%; }
-.study-guides .cap-block.v { left: 10%; right: 10%; width: auto; bottom: 42%; }
+.study-guides .cap-block.v { left: 10%; right: 10%; width: auto; bottom: 50%; }
 .study-guides .hook { position: absolute; left: 10%; right: 10%; top: 12%; height: 8px; border-radius: 3px; background: linear-gradient(90deg, var(--accent), rgba(247, 21, 172, 0.2)); animation: hookPulse 3.2s ease-in-out infinite; }
 @keyframes hookPulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
-.study-guides .cta-block { position: absolute; left: 20%; right: 20%; bottom: 40%; height: 22px; border-radius: 11px; border: 1px solid var(--accent); background: rgba(247, 21, 172, 0.12); animation: hookPulse 3.2s ease-in-out infinite; }
+.study-guides .cta-block { position: absolute; left: 20%; right: 20%; bottom: 52%; height: 22px; border-radius: 11px; border: 1px solid var(--accent); background: rgba(247, 21, 172, 0.12); animation: hookPulse 3.2s ease-in-out infinite; }
 .frame figcaption { background: linear-gradient(180deg, transparent, rgba(6, 6, 9, 0.9) 40%); }
 @media (max-width: 720px) { .frame.tall.study .study-guides { display: none; } }
 
@@ -670,3 +670,21 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 .item.fold h3 { font-weight: 400; color: var(--text-2); transition: color 0.3s; }
 .item.fold .fold-body { padding: 0 0 1.2rem; }
 .item.fold .fold-body p { max-width: 36em; }
+
+/* 見本と映像の型は本文の列（40rem）から外へ広げる（PC） */
+@media (min-width: 900px) {
+  .screens3, .showcase { --bw: min(62rem, calc(100vw - 2 * var(--gutter) - 24px)); width: var(--bw); margin-inline: calc((100% - var(--bw)) / 2); max-width: none; }
+  .showcase { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+  .showcase .phones { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.screens3 .decide { display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem 1rem; margin-top: 1.6rem; padding: 1rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.screens3 .decide p { flex: 1 1 14em; font-size: 0.95rem; color: var(--text); }
+.screens3 .pill { display: inline-flex; align-items: center; min-height: 40px; padding: 0 1rem; font-size: 0.84rem; letter-spacing: 0.03em; border: 1px solid var(--line-2); color: var(--text-2); }
+.screens3 .pill.yes { background: var(--accent); border-color: transparent; color: var(--bg); font-weight: 500; }
+.screens3 .gate-note { margin-top: 0.9rem; color: var(--text-2); font-size: 0.88rem; line-height: 1.75; }
+.screens3 .terms { margin-top: 1.4rem; }
+.phone-screen { aspect-ratio: 9 / 10; }
+@media (max-width: 720px) { .phone-screen { aspect-ratio: 9 / 11; } }
+
+.section .check { max-width: 40rem; }
+@media (min-width: 900px) { .section .check { --bw: min(62rem, calc(100vw - 2 * var(--gutter) - 24px)); width: var(--bw); max-width: none; margin-inline: calc((100% - var(--bw)) / 2); } }
