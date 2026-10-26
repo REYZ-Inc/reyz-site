@@ -428,15 +428,15 @@ html.no-js .reveal { animation: none; }
 .route-pulse { fill: #fff; filter: drop-shadow(0 0 6px rgba(247, 21, 172, 0.95)); opacity: 0; }
 .map-card.is-live .route-pulse { opacity: 1; transition: opacity 0.6s 1.8s; }
 .map-rows { position: relative; display: grid; gap: 1.4rem; margin: 0; }
-.map-rows .node { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); grid-template-areas: 'dot dt' 'dot dd'; column-gap: 0.7rem; align-items: start; opacity: 0; transform: translateY(8px); }
+.map-rows .node { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); padding-left: 2.3rem; align-items: start; opacity: 0; transform: translateY(8px); }
 .map-card.is-live .node { opacity: 1; transform: none; transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
 .map-card.is-live .node:nth-child(2) { transition-delay: 0.55s; }
 .map-card.is-live .node:nth-child(3) { transition-delay: 1.1s; }
-.map-rows .dot { grid-area: dot; justify-self: center; margin-top: 0.5em; }
-.map-rows .node.goal .dot { width: 14px; height: 14px; margin-top: 0.4em; outline: 1px solid rgba(247, 21, 172, 0.55); outline-offset: 4px; }
-.map-rows dt { grid-area: dt; font-family: var(--font-jp); font-size: 0.78rem; letter-spacing: 0.16em; color: #F9C6D9; padding-top: 0; }
-.map-rows dd { grid-area: dd; margin: 0; color: var(--text); font-size: 0.96rem; line-height: 1.8; }
-.map-rows > div { grid-template-columns: 1.6rem minmax(0, 1fr); gap: 0; } /* 旧ルール（6.2em の 2 列）を上書き */
+.map-rows .dot { position: absolute; left: 0.3rem; top: 0.45em; }
+.map-rows .node.goal .dot { width: 14px; height: 14px; left: 0.18rem; top: 0.35em; outline: 1px solid rgba(247, 21, 172, 0.55); outline-offset: 4px; }
+.map-rows dt { position: static; font-family: var(--font-jp); font-size: 0.78rem; letter-spacing: 0.16em; color: #F9C6D9; padding-top: 0; }
+.map-rows dd { margin: 0; color: var(--text); font-size: 0.96rem; line-height: 1.8; }
+.map-rows > div { grid-template-columns: minmax(0, 1fr); gap: 0; } /* 旧ルール（6.2em の 2 列）を上書き */
 @media (min-width: 821px) {
   .map-rows { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 1.8rem; align-items: start; min-height: 15rem; }
   .map-rows .node:nth-child(1) { grid-column: 1; margin-top: 7rem; }
@@ -448,7 +448,7 @@ html.no-js .reveal { animation: none; }
   .mapper .mq { grid-column: 1; }
   .mapper .map-card { grid-column: 2; grid-row: 1 / span 12; margin-top: 0.9rem; }
 }
-@media (max-width: 560px) { .map-rows > div { grid-template-columns: 1.6rem minmax(0, 1fr); } }
+@media (max-width: 560px) { .map-rows > div { grid-template-columns: minmax(0, 1fr); } }
 
 /* 確認: 複数の AI が確かめる → 人が はい／いいえ → 記録。一致しなければ止まる */
 .check { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); gap: 1.4rem 2.2rem; margin-top: 2rem; padding: 1.5rem 0 1.4rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; cursor: default; }
