@@ -29,7 +29,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: scorecard-sarif, path: results.sarif, retention-days: 30 }
       - name: upload to Code scanning
-        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with: { sarif_file: results.sarif }
       - name: 点数を記録（scorecard.dev の公開 API を読み、annotation と Summary に出す。IV が API で読める）
         if: always()
