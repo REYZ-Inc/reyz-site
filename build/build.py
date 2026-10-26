@@ -274,7 +274,7 @@ PROOF = ('<div class="proof reveal">\n'
 def check_inst():
     lanes = ''.join('                <div class="lane"><span class="dot ai" aria-hidden="true"></span><span class="lbl">AI</span><span class="wire" aria-hidden="true"></span><span class="mark" aria-hidden="true"></span></div>\n' for _ in range(3))
     ticks = ''.join('<i></i>' for _ in range(48))
-    return ('          <div class="check reveal" id="check" data-run="" aria-label="確認の流れ：複数のAIが確かめ、人が決め、記録に残る">\n'
+    return ('          <div class="check reveal" id="check" data-run="">\n'
             '            <div class="check-lanes">\n' + lanes +
             '              <p class="cap">' + jp('提供元の異なる複数のAIが、|それぞれ確かめる。') + '</p>\n'
             '            </div>\n'
@@ -400,7 +400,7 @@ PROMISE = items([('目的を、先に言葉にします。', jp('最初の相談
 MODEL = ('<div class="model reveal">\n'
     '            <ul class="vows"><li>費用ゼロ。</li><li>' + jp('報酬からの|手数料ゼロ。') + '</li><li>' + jp('やめるのも|自由。') + '</li></ul>\n'
     # お金の流れ（正本 §8「原資の図」）: 動くのは プラットフォーム・企業 → REYZ の線だけ。あなた → REYZ の線には何も流れない（0 円）
-    '            <div class="fund flowmap" aria-label="お金の流れ">\n'
+    '            <div class="fund flowmap">\n'
     '              <div class="flow"><span class="from">' + jp('プラットフォーム・|企業') + '</span><span class="fl-lane" aria-hidden="true"><i></i><i></i><i></i></span><span class="to">REYZ</span><span class="what">報酬・利用料</span></div>\n'
     '              <div class="flow zero"><span class="from">あなた</span><span class="fl-lane" aria-hidden="true"></span><span class="to">REYZ</span><span class="what">0円</span></div>\n'
     '              <p>' + jp('REYZの収入は、|プラットフォームと企業から。\nだから、あなたの報酬からは引きません。') + '</p>\n'
