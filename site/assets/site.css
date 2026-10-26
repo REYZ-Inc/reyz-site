@@ -156,7 +156,7 @@ p { hanging-punctuation: allow-end; }
 .item .go:hover { color: var(--text); }
 .item .go:hover::after { transform: translateX(0.4em); }
 .more { margin: 1.8rem 0 0; }
-.more .go { display: inline-flex; align-items: center; min-height: 44px; font-family: var(--font-en); font-size: 0.78rem; letter-spacing: 0.24em; color: var(--text); transition: color 0.4s var(--ease); }
+.more .go { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; font-family: var(--font-en); font-size: 0.78rem; letter-spacing: 0.24em; color: var(--text); transition: color 0.4s var(--ease); }
 .more .go::after { content: "\2192"; margin-left: 0.6em; display: inline-block; transition: transform 0.5s var(--ease); }
 .more .go:hover { color: var(--accent); }
 .more .go:hover::after { transform: translateX(0.4em); }
