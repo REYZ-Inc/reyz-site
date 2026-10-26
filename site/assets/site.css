@@ -61,7 +61,7 @@ p { hanging-punctuation: allow-end; }
 }
 .site-header.scrolled { background: linear-gradient(180deg, rgba(6, 6, 9, 0.92) 0%, rgba(6, 6, 9, 0.55) 70%, rgba(6, 6, 9, 0) 100%); }
 .brand { font-family: var(--font-en); font-size: 1.1rem; font-weight: 500; letter-spacing: 0.2em; display: inline-flex; align-items: baseline; gap: 0.45em; min-height: 44px; }
-.brand small { font-size: 0.66rem; font-weight: 400; letter-spacing: 0.1em; color: var(--text-3); }
+.brand small { font-size: 0.75rem; font-weight: 400; letter-spacing: 0.1em; color: var(--text-3); }
 .brand .z { color: var(--accent); } /* ヘッダー・フッターとも Z のみ #F715AC */
 .nav { display: flex; gap: 0.25rem; }
 .nav a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 0.9rem; font-family: var(--font-en); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--menu); transition: opacity 0.4s var(--ease); }
@@ -245,7 +245,7 @@ p { hanging-punctuation: allow-end; }
 .foot-top { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1.2rem 2rem; align-items: flex-start; }
 .foot-top .brand { color: var(--text); }
 .foot-nav { display: flex; flex-wrap: wrap; gap: 0.2rem 1.6rem; }
-.foot-nav a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; color: var(--text-2); font-family: var(--font-en); letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.72rem; }
+.foot-nav a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; color: var(--text-2); font-family: var(--font-en); letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.75rem; }
 .foot-nav a:hover { color: var(--text); }
 .foot-slot { position: relative; width: min(100%, 520px); aspect-ratio: 3 / 1; margin: 2.5rem auto 0; pointer-events: none; }
 .foot-contact { text-align: center; color: var(--text-2); letter-spacing: 0.08em; padding-top: 1rem; }

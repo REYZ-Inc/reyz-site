@@ -41,7 +41,7 @@
     if (!canvas || !slots.length) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     let vw = 0, vh = 0, dpr = 1, N = 0, alphaGlobal = 1, skip = 1, lastNow = 0;
-    let px, py, psize, palpha, pphase, sprites = [], frameCost = [];
+    let px, py, psize, palpha, pphase, sprites = [], frameCost = [], skipChecked = false;
     let keys = [];             // { el, copy, word, box, cx, cy, kin, kout, soff, pts (local, centred), am }
     const bornAt = performance.now(); // intro: the first word gathers over ~1.2s and its copy appears with it
     let streamPts = null, streamLoop = null;   // local thread shapes (chapter travel / footer ∞), re-generated on layout
@@ -91,8 +91,8 @@
       const d = c.getImageData(0, 0, W, H).data, cand = []; for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) if (d[(y * W + x) * 4] > 128) cand.push(x, y);
       const M = cand.length / 2, out = new Float32Array(N * 2);
       if (!M) return out;
-      const idx = Array.from({ length: M }, (_, i) => i); idx.sort((p, q) => (cand[p * 2 + 1] - cand[q * 2 + 1]) || (cand[p * 2] - cand[q * 2]));
-      for (let i = 0; i < N; i++) { const k = idx[Math.floor(i * M / N)]; out[i * 2] = cand[k * 2] - W / 2 + (rnd(i, 1) - 0.5) * 2.4; out[i * 2 + 1] = cand[k * 2 + 1] - H / 2 + (rnd(i, 2) - 0.5) * 2.4; }
+      // cand is already in row-major order (y outer, x inner): sample it evenly, no sort needed
+      for (let i = 0; i < N; i++) { const k = Math.floor(i * M / N); out[i * 2] = cand[k * 2] - W / 2 + (rnd(i, 1) - 0.5) * 2.4; out[i * 2 + 1] = cand[k * 2 + 1] - H / 2 + (rnd(i, 2) - 0.5) * 2.4; }
       return out;
     }
     // the travel form: a thin vertical thread the cloud dissolves into while it moves between chapters
@@ -116,6 +116,19 @@
     const GEN = { infinity: (w, h) => lemniscate(w, h, 1), loop: (w, h) => lemniscate(w, h, 0.9), seed, ripple, line, map };
     const ALPHA = { seed: 0.85, line: 0.42, loop: 0.9, ripple: 0.9, map: 0.9 };
     const shapeFor = (word, w, h) => (GEN[word] ? GEN[word](w, h) : text(word, w, h));
+    // shapes are sampled on first use (the chapter in view and the next one), the rest in idle time; identical sizes reuse the
+    // sample, so a re-layout (fonts loaded, toolbar resize) costs nothing for the words that did not move
+    const shapeCache = new Map();
+    function shapeOf(k) {
+      if (k.pts) return k.pts;
+      const id = k.word + '|' + N + '|' + k.box.w + '|' + k.box.h; let p = shapeCache.get(id);
+      if (!p) { if (shapeCache.size > 48) shapeCache.clear(); p = shapeFor(k.word, k.box.w, k.box.h); shapeCache.set(id, p); }
+      k.pts = p; return p;
+    }
+    let warming = false;
+    const idle = window.requestIdleCallback ? (f => window.requestIdleCallback(f, { timeout: 1500 })) : (f => setTimeout(f, 120));
+    function warm() { const k = keys.find(k => !k.pts); if (!k) { warming = false; return; } shapeOf(k); idle(warm); }
+    function startWarm() { if (warming) return; warming = true; idle(warm); }
 
     function layout() {
       vw = window.innerWidth; vh = window.innerHeight; dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -128,15 +141,16 @@
         sprites = [makeSprite(1.3), makeSprite(2.1)]; layout.done = false;
       }
       keys = slots.map(el => { const r = rectPage(el); const w = el.dataset.word; const stack = el.parentElement; const copy = stack ? stack.querySelector('.copy') : null;
-        return { el, copy, word: w, box: r, cx: 0, cy: 0, kin: 0, kout: 0, soff: 0, pts: shapeFor(w, r.w, r.h), am: ALPHA[w] || 1 }; });
+        return { el, copy, word: w, box: r, cx: 0, cy: 0, kin: 0, kout: 0, soff: 0, pts: null, am: ALPHA[w] || 1 }; });
       const first = keys[0].box; alphaGlobal = clamp(Math.sqrt((first.w * first.h) / (520 * 390)), 0.6, 1);
       streamPts = stream(Math.min(vh * 0.62, 460));
       const loop = keys.find(k => k.word === 'loop'); streamLoop = stream(loop ? loop.box.h * 1.4 : Math.min(vh * 0.4, 300));
       measureKeys();
       if (!layout.done) { // first paint: gather into the first shape from a loose scatter (static when motion is reduced)
-        layout.done = true; const k0 = keys[0]; const sc = reduce ? 0 : 1;
-        for (let i = 0; i < N; i++) { px[i] = k0.cx + k0.pts[i * 2] + (rnd(i, 21) - 0.5) * vw * 0.9 * sc; py[i] = k0.cy - window.scrollY + k0.pts[i * 2 + 1] + (rnd(i, 22) - 0.5) * vh * 0.9 * sc; }
+        layout.done = true; const k0 = keys[0], P0 = shapeOf(k0); const sc = reduce ? 0 : 1;
+        for (let i = 0; i < N; i++) { px[i] = k0.cx + P0[i * 2] + (rnd(i, 21) - 0.5) * vw * 0.9 * sc; py[i] = k0.cy - window.scrollY + P0[i * 2 + 1] + (rnd(i, 22) - 0.5) * vh * 0.9 * sc; }
       }
+      startWarm();
     }
     // scroll marks, all in scrollY terms:
     //   kin  — the word is fully formed (its slot centred in the viewport)
@@ -195,7 +209,7 @@
       const ease = (reduce || snap) ? 1 : 1 - Math.pow(0.86, dt / 16.67), breath = reduce ? 0 : 2.4;
       ctx.clearRect(0, 0, vw, vh); ctx.globalCompositeOperation = 'lighter';
       const R = 110, R2 = R * R, pointerOn = pointer.active && fine && !reduce;
-      const P = A.pts, Q = B.pts, firstHalf = fa < 1 || fb === 0;
+      const P = shapeOf(A), Q = B === A ? P : shapeOf(B), firstHalf = fa < 1 || fb === 0;
       for (let i = 0; i < N; i++) {
         const i2 = i * 2, ph = pphase[i], br = Math.sin(now * 0.0018 + ph) * breath;
         let lx, ly;
@@ -209,7 +223,8 @@
         const sp = sprites[psize[i]]; ctx.globalAlpha = palpha[i] * am * alphaGlobal; ctx.drawImage(sp.c, x - sp.s / 2, y - sp.s / 2, sp.s, sp.s);
       }
       ctx.globalAlpha = 1;
-      frameCost.push(performance.now() - t0); if (frameCost.length >= 90) { const avg = frameCost.reduce((a, c) => a + c, 0) / frameCost.length; skip = avg > 9 ? 2 : 1; frameCost.length = 0; }
+      // a slow device draws every second particle: decided after the first 24 frames, then re-checked every 90
+      frameCost.push(performance.now() - t0); if (frameCost.length >= (skipChecked ? 90 : 24)) { const avg = frameCost.reduce((a, c) => a + c, 0) / frameCost.length; skip = avg > 9 ? 2 : 1; frameCost.length = 0; skipChecked = true; }
     }
     let raf = 0, running = true;
     function loop(now) { if (!running) return; draw(now); raf = requestAnimationFrame(loop); }
@@ -230,7 +245,7 @@
     if (reduce) window.addEventListener('scroll', () => draw(performance.now()), { passive: true });
     layout(); remember();
     if (reduce) draw(performance.now()); else start();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { layout(); remember(); if (reduce) draw(performance.now()); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { shapeCache.clear(); layout(); remember(); if (reduce) draw(performance.now()); });
   })(); } catch (err) { /* the field is decorative: never let it take the page down */ }
 
   /* ================================================================
