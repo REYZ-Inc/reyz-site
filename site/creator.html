@@ -72,9 +72,9 @@
           <div class="head reveal"><p class="eyebrow">How it works for you</p><h2>仕組み</h2><p class="lead"><span class="ph">あなたから、</span><span class="ph">一円も取らない。</span></p></div>
           <div class="model reveal">
             <ul class="vows"><li>費用ゼロ。</li><li><span class="ph">報酬からの</span><span class="ph">手数料ゼロ。</span></li><li><span class="ph">やめるのも</span><span class="ph">自由。</span></li></ul>
-            <div class="fund">
-              <div class="flow"><span class="from"><span class="ph">プラットフォーム・</span><span class="ph">企業</span></span><span class="arrow" aria-hidden="true">→</span><span class="to">REYZ</span><span class="what">報酬・利用料</span></div>
-              <div class="flow zero"><span class="from">あなた</span><span class="arrow" aria-hidden="true">→</span><span class="to">REYZ</span><span class="what">0円</span></div>
+            <div class="fund flowmap" aria-label="お金の流れ">
+              <div class="flow"><span class="from"><span class="ph">プラットフォーム・</span><span class="ph">企業</span></span><span class="fl-lane" aria-hidden="true"><i></i><i></i><i></i></span><span class="to">REYZ</span><span class="what">報酬・利用料</span></div>
+              <div class="flow zero"><span class="from">あなた</span><span class="fl-lane" aria-hidden="true"></span><span class="to">REYZ</span><span class="what">0円</span></div>
               <p><span class="ph">REYZの収入は、</span><span class="ph">プラットフォームと企業から。</span><br><span class="ph">だから、</span><span class="ph">あなたの報酬からは引きません。</span></p>
             </div>
             <div class="terms">
@@ -88,12 +88,18 @@
                 <li><span class="ph">記録はあなたのもの。</span><span class="ph">いつでも持ち出せます。</span></li>
               </ul>
             </div>
-          </div><div class="onesheet screens reveal">
+          </div><div class="screens3 reveal">
             <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本</p><h3><span class="ph">地図・入口・明細。</span></h3></div>
-            <div class="cells">
-              <div class="cell"><span class="n">01</span><h4>地図</h4><p><span class="ph">目的と今いる場所、</span><span class="ph">最初の一歩。</span><br><span class="ph">目標が変わったら、</span><span class="ph">引き直す。</span></p></div>
-              <div class="cell"><span class="n">02</span><h4>入口</h4><p><span class="ph">確認を通った案件と商品だけが、</span><span class="ph">ここに届く。</span><br><span class="ph">受けるかは、</span><span class="ph">あなたが決める。</span></p></div>
-              <div class="cell"><span class="n">03</span><h4>明細</h4><p><span class="ph">いつ、</span><span class="ph">何で、</span><span class="ph">いくら。</span><br><span class="ph">記録はあなたのもの。</span><span class="ph">いつでも持ち出せる。</span></p></div>
+            <div class="phones3">
+              <figure class="phone" data-kind="map"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
+                <div class="scr-map" aria-hidden="true"><span class="scr-line"></span><div class="scr-node"><i></i><b>今いる場所</b></div><div class="scr-node"><i></i><b>最初の一歩</b></div><div class="scr-node goal"><i></i><b>目的</b></div><span class="scr-redo">目標が変わったら、引き直す</span></div>
+              </div><figcaption><h4>地図</h4><p><span class="ph">目的と今いる場所、</span><span class="ph">最初の一歩。</span><br><span class="ph">目標が変わったら、</span><span class="ph">引き直す。</span></p></figcaption></figure>
+              <figure class="phone" data-kind="gate"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
+                <div class="scr-gate" aria-hidden="true"><span class="scr-gatebar"><b>確認</b></span><div class="scr-card ok"><b>案件</b><i>✓</i></div><div class="scr-card ok"><b>商品の紹介</b><i>✓</i></div><div class="scr-card ok"><b>ファンへの直販</b><i>✓</i></div><div class="scr-card ng"><b>確認を通らない案件</b><i>×</i></div></div>
+              </div><figcaption><h4>入口</h4><p><span class="ph">確認を通った案件と商品だけが、</span><span class="ph">ここに届く。</span><br><span class="ph">受けるかは、</span><span class="ph">あなたが決める。</span></p></figcaption></figure>
+              <figure class="phone" data-kind="stmt"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
+                <div class="scr-stmt" aria-hidden="true"><div class="scr-row"><b>報酬</b><span class="scr-bar full"><i></i></span><em>あなたへ</em></div><div class="scr-row"><b>手数料</b><span class="scr-bar"><i></i></span><em>0</em></div><div class="scr-row"><b>費用</b><span class="scr-bar"><i></i></span><em>0</em></div><div class="scr-foot"><b>記録</b><span>いつ・何で・いくら</span><em>持ち出せる</em></div></div>
+              </div><figcaption><h4>明細</h4><p><span class="ph">いつ、</span><span class="ph">何で、</span><span class="ph">いくら。</span><br><span class="ph">記録はあなたのもの。</span><span class="ph">いつでも持ち出せる。</span></p></figcaption></figure>
             </div>
           </div>
       </div></div>
@@ -113,16 +119,16 @@
               <p><span class="ph">インフルエンス力向上、</span><span class="ph">ブランド化、</span><span class="ph">リブランディングなど、</span><br><span class="ph">それぞれが抱える</span><span class="ph">現状の課題や目的を明確にし、</span><br><span class="ph">その目的を実現させるための企画、</span><span class="ph">撮影、</span><span class="ph">編集までを、</span><br><span class="ph">自社ですべて行います。</span></p>
               <a class="go" href="works">作品例</a>
             </div>
-            <div class="item"><h3>あなたを知るところから</h3><p><span class="ph">得意なこと、</span><span class="ph">今のフォロワー、</span><span class="ph">生活のリズム、</span><span class="ph">目指す収入。</span><br><span class="ph">まずあなたを正確に知り、</span><span class="ph">目的をあなたの言葉で確かめます。</span></p></div>
-            <div class="item"><h3>合う場所と、順番を決める</h3><p><span class="ph">TikTok、</span><span class="ph">YouTube、</span><span class="ph">Instagram、</span><span class="ph">ライブ配信。</span><br><span class="ph">あなたに合う場所と、</span><span class="ph">いつ、</span><span class="ph">何を、</span><span class="ph">どう出すかを決めて渡します。</span><br><span class="ph">迷う時間をなくします。</span></p></div>
-            <div class="item"><h3>目標が変わっても、続ける</h3><p><span class="ph">伸びているかを一緒に見て、</span><span class="ph">次の一手を決めます。</span><br><span class="ph">目標が変わったら、</span><span class="ph">進め方を組み直して続けます。</span><br><span class="ph">これまでのファンと作品を活かして、</span><span class="ph">続きから。</span></p></div>
-            <div class="item"><h3>SNSアカウントの運用支援</h3><p><span class="ph">投稿の計画、</span><span class="ph">制作、</span><span class="ph">分析、</span><span class="ph">改善。</span><br><span class="ph">ライブ配信の企画と継続まで、</span><span class="ph">あなたの活動に合わせて、</span><span class="ph">続けられる形で支えます。</span></p></div>
-            <div class="item"><h3>表現と案件・広告の確認</h3><p><span class="ph">発信の内容や、</span><span class="ph">タイアップ・広告の表現に</span><span class="ph">問題がないかを公開前に確かめます。</span><br><span class="ph">長く安心して活動できる土台を守ります。</span></p></div>
-            <div class="item"><h3>AIと、最初の地図から</h3><p><span class="ph">最初の相談で、</span><span class="ph">目的と今いる場所、</span><span class="ph">最初の一歩を</span><span class="ph">地図にして返します。</span><br><span class="ph">毎日の次の一手も、</span><span class="ph">AIが材料を揃え、</span><span class="ph">決めるのはあなたです。</span></p></div>
-            <div class="item"><h3>案件と商品の紹介</h3><p><span class="ph">企業の案件や、</span><span class="ph">商品の紹介。</span><br><span class="ph">表現の確認を通ったものだけを、</span><span class="ph">入口に届けます。</span></p></div>
-            <div class="item"><h3>ファンへの直販</h3><p><span class="ph">知識、</span><span class="ph">作品、</span><span class="ph">会員権を、</span><span class="ph">あなたの価格で直接売れます。</span><br><span class="ph">クリエイターの手数料は0%。</span><span class="ph">購入時のシステム利用料は、</span><span class="ph">買う人に明示します。</span></p></div>
-            <div class="item"><h3>記録は、あなたのもの</h3><p><span class="ph">収益、</span><span class="ph">仕事、</span><span class="ph">やり取りの記録は</span><span class="ph">あなたのものです。</span><br><span class="ph">いつでも持ち出せます。</span></p></div>
-            <div class="item"><h3>映像制作から、共同事業へ</h3><p><span class="ph">映像をつくるところから始めて、</span><br><span class="ph">一緒に事業をつくるところまで。</span></p></div>
+            <details class="item fold"><summary><h3>あなたを知るところから</h3></summary><div class="fold-body"><p><span class="ph">得意なこと、</span><span class="ph">今のフォロワー、</span><span class="ph">生活のリズム、</span><span class="ph">目指す収入。</span><br><span class="ph">まずあなたを正確に知り、</span><span class="ph">目的をあなたの言葉で確かめます。</span></p></div></details>
+            <details class="item fold"><summary><h3>合う場所と、順番を決める</h3></summary><div class="fold-body"><p><span class="ph">TikTok、</span><span class="ph">YouTube、</span><span class="ph">Instagram、</span><span class="ph">ライブ配信。</span><br><span class="ph">あなたに合う場所と、</span><span class="ph">いつ、</span><span class="ph">何を、</span><span class="ph">どう出すかを決めて渡します。</span><br><span class="ph">迷う時間をなくします。</span></p></div></details>
+            <details class="item fold"><summary><h3>目標が変わっても、続ける</h3></summary><div class="fold-body"><p><span class="ph">伸びているかを一緒に見て、</span><span class="ph">次の一手を決めます。</span><br><span class="ph">目標が変わったら、</span><span class="ph">進め方を組み直して続けます。</span><br><span class="ph">これまでのファンと作品を活かして、</span><span class="ph">続きから。</span></p></div></details>
+            <details class="item fold"><summary><h3>SNSアカウントの運用支援</h3></summary><div class="fold-body"><p><span class="ph">投稿の計画、</span><span class="ph">制作、</span><span class="ph">分析、</span><span class="ph">改善。</span><br><span class="ph">ライブ配信の企画と継続まで、</span><span class="ph">あなたの活動に合わせて、</span><span class="ph">続けられる形で支えます。</span></p></div></details>
+            <details class="item fold"><summary><h3>表現と案件・広告の確認</h3></summary><div class="fold-body"><p><span class="ph">発信の内容や、</span><span class="ph">タイアップ・広告の表現に</span><span class="ph">問題がないかを公開前に確かめます。</span><br><span class="ph">長く安心して活動できる土台を守ります。</span></p></div></details>
+            <details class="item fold"><summary><h3>AIと、最初の地図から</h3></summary><div class="fold-body"><p><span class="ph">最初の相談で、</span><span class="ph">目的と今いる場所、</span><span class="ph">最初の一歩を</span><span class="ph">地図にして返します。</span><br><span class="ph">毎日の次の一手も、</span><span class="ph">AIが材料を揃え、</span><span class="ph">決めるのはあなたです。</span></p></div></details>
+            <details class="item fold"><summary><h3>案件と商品の紹介</h3></summary><div class="fold-body"><p><span class="ph">企業の案件や、</span><span class="ph">商品の紹介。</span><br><span class="ph">表現の確認を通ったものだけを、</span><span class="ph">入口に届けます。</span></p></div></details>
+            <details class="item fold"><summary><h3>ファンへの直販</h3></summary><div class="fold-body"><p><span class="ph">知識、</span><span class="ph">作品、</span><span class="ph">会員権を、</span><span class="ph">あなたの価格で直接売れます。</span><br><span class="ph">クリエイターの手数料は0%。</span><span class="ph">購入時のシステム利用料は、</span><span class="ph">買う人に明示します。</span></p></div></details>
+            <details class="item fold"><summary><h3>記録は、あなたのもの</h3></summary><div class="fold-body"><p><span class="ph">収益、</span><span class="ph">仕事、</span><span class="ph">やり取りの記録は</span><span class="ph">あなたのものです。</span><br><span class="ph">いつでも持ち出せます。</span></p></div></details>
+            <details class="item fold"><summary><h3>映像制作から、共同事業へ</h3></summary><div class="fold-body"><p><span class="ph">映像をつくるところから始めて、</span><br><span class="ph">一緒に事業をつくるところまで。</span></p></div></details>
           </div>
       </div></div>
     </section>

@@ -74,7 +74,7 @@
     <section class="chapter" id="map">
       <div class="wrap chapter-stack">
         <div class="slot" data-word="map" aria-hidden="true"></div>
-        <div class="copy">
+        <div class="copy wide">
           <div class="head"><p class="eyebrow">Your map</p><h2>あなたの地図を、<br>ここで。</h2><p class="lead"><span class="ph">いくつか選ぶと、</span><span class="ph">目的・今いる場所・最初の一歩を、</span><span class="ph">地図にして返します。</span></p></div>
           <div class="mapper reveal" id="mapper">
             <div class="mq" role="group" aria-labelledby="mq-all-who" data-q="who" data-for="all"><p class="q" id="mq-all-who">あなたは</p><div class="opts"><button type="button" class="opt" data-v="creator" aria-pressed="false">クリエイター</button><button type="button" class="opt" data-v="company" aria-pressed="false">企業</button></div></div>
@@ -88,7 +88,14 @@
             <div class="mq" role="group" aria-labelledby="mq-company-first" data-q="first" data-for="company" hidden><p class="q" id="mq-company-first">最初に整えたいのは</p><div class="opts"><button type="button" class="opt" data-v="law" aria-pressed="false">表現と法令の確認</button><button type="button" class="opt" data-v="speed" aria-pressed="false">速さと省人化</button></div></div>
             <div class="map-card" id="mapCard" hidden>
               <div class="sheet-head"><p class="eyebrow">Your map · 設計上の見本</p><h3>あなたの地図</h3></div>
-              <dl class="map-rows"><div><dt>目的</dt><dd id="mapGoal"></dd></div><div><dt>今いる場所</dt><dd id="mapPlace"></dd></div><div><dt>最初の一歩</dt><dd id="mapStep"></dd></div></dl>
+              <div class="route" id="mapRoute">
+                <svg class="route-svg" aria-hidden="true" focusable="false"><path id="routePath" class="route-line" d="M0 0"/><circle class="route-pulse" r="3"><animateMotion dur="6s" repeatCount="indefinite" calcMode="linear"><mpath href="#routePath"/></animateMotion></circle></svg>
+                <dl class="map-rows">
+                  <div class="node"><span class="dot" aria-hidden="true"></span><dt>今いる場所</dt><dd id="mapPlace"></dd></div>
+                  <div class="node"><span class="dot" aria-hidden="true"></span><dt>最初の一歩</dt><dd id="mapStep"></dd></div>
+                  <div class="node goal"><span class="dot" aria-hidden="true"></span><dt>目的</dt><dd id="mapGoal"></dd></div>
+                </dl>
+              </div>
               <p class="map-note" id="mapNote" hidden><span class="ph">費用はかからない。</span><span class="ph">REYZはクリエイターの報酬から</span><span class="ph">手数料を取らない。</span><span class="ph">やめるのも自由。</span></p>
               <p class="map-note" id="mapNoteLive" hidden><span class="ph">※私達は、</span><span class="ph">TikTok社から委託を受けて</span><span class="ph">運営しているため、</span><br><span class="ph">ライバーさんの収益から</span><span class="ph">手数料を搾取する</span><span class="ph">モデルではありません。</span></p>
               <p class="map-fine"><span class="ph">設計上の見本です。</span><span class="ph">相談で、</span><span class="ph">あなたの言葉に合わせて</span><span class="ph">作り直します。</span></p>
@@ -124,8 +131,25 @@
     <section class="chapter" id="ai">
       <div class="wrap chapter-stack">
         <div class="slot" data-word="AI" aria-hidden="true"></div>
-        <div class="copy">
+        <div class="copy wide">
           <div class="head"><p class="eyebrow">REYZ PLATFORM · AI Infrastructure</p><h2>AIが支える。</h2><p class="lead">AIに任せた判断を、<br>あとから説明できる状態に。</p></div>
+          <div class="check reveal" id="check" data-run="" aria-label="確認の流れ：複数のAIが確かめ、人が決め、記録に残る">
+            <div class="check-lanes">
+                <div class="lane"><span class="dot ai" aria-hidden="true"></span><span class="lbl">AI</span><span class="wire" aria-hidden="true"></span><span class="mark" aria-hidden="true"></span></div>
+                <div class="lane"><span class="dot ai" aria-hidden="true"></span><span class="lbl">AI</span><span class="wire" aria-hidden="true"></span><span class="mark" aria-hidden="true"></span></div>
+                <div class="lane"><span class="dot ai" aria-hidden="true"></span><span class="lbl">AI</span><span class="wire" aria-hidden="true"></span><span class="mark" aria-hidden="true"></span></div>
+              <p class="cap"><span class="ph">提供元の異なる複数のAIが、</span><span class="ph">それぞれ確かめる。</span></p>
+            </div>
+            <div class="check-human">
+              <span class="dot human" aria-hidden="true"></span><span class="lbl">人が決める</span>
+              <span class="yn" aria-hidden="true"><span class="pill yes">はい</span><span class="pill">いいえ</span></span>
+              <p class="cap cap-go"><span class="ph">後戻りできない決定は、</span><span class="ph">人が決める。</span></p><p class="cap cap-stop"><span class="ph">一致しないものは、</span><span class="ph">止まる。</span></p>
+            </div>
+            <div class="check-rec">
+              <span class="lbl">記録</span><span class="ticks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <p class="cap"><span class="ph">決定ごとに、</span><span class="ph">あとから変えられない形で残る。</span></p>
+            </div>
+          </div>
 <div class="proof reveal">
             <p class="proof-head"><span class="ph">REYZ自身が、</span><span class="ph">この仕組みで動いています。</span></p>
             <ol class="proof-list">
@@ -143,6 +167,9 @@
         <div class="slot" data-word="Continue" aria-hidden="true"></div>
         <div class="head copy">
           <h2>目的が変わっても、<br>続く。</h2>
+          <div class="bend reveal" aria-hidden="true">
+            <svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMid meet"><path id="bendPath" class="bend-line" d="M12 66 L146 40 Q150 38 154 39 L308 52"/><circle class="bend-dot" cx="12" cy="66" r="3.2"/><circle class="bend-dot" cx="150" cy="38.5" r="3.2"/><circle class="bend-dot goal" cx="308" cy="52" r="4"/><circle class="bend-pulse" r="2.6"><animateMotion dur="7s" repeatCount="indefinite" calcMode="linear"><mpath href="#bendPath"/></animateMotion></circle></svg>
+          </div>
           <p class="lead">人の目的は変わります。<br>REYZは、変わる前提で進め方をつくり、<br>変わったら組み直して続けます。<br>やり直しではなく、続きから。<br>クリエイターにも、企業にも。</p>
         </div>
       </div>

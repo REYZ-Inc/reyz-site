@@ -317,9 +317,29 @@
       for (const g of groups) for (const b of g.querySelectorAll('.opt')) b.setAttribute('aria-pressed', String(ans[g.dataset.q] === b.dataset.v && (g.dataset.for === 'all' || g.dataset.for === who)));
       const r = compose(); mapper.dataset.done = r ? 'true' : 'false';
       if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); note.hidden = who !== 'creator'; noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
+        drawRoute(); card.classList.remove('is-live'); void card.offsetWidth; card.classList.add('is-live');   // 地図を引き直す（線が点を結んでいく）
         if (!render.shown) { render.shown = true; const h = card.querySelector('h3'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } } }
-      else { card.hidden = true; render.shown = false; }
+      else { card.hidden = true; card.classList.remove('is-live'); render.shown = false; }
     };
+    // 地図の線: 3 つの点（今いる場所 → 最初の一歩 → 目的）の中心を 1 本の線で結ぶ。縦並びなら直線、階段状なら S 字で。脈（route-pulse）はこの線の上を走る
+    const route = document.getElementById('mapRoute');
+    function drawRoute() {
+      if (!route || card.hidden) return;
+      const svg = route.querySelector('.route-svg'), path = svg && svg.querySelector('path'); if (!path) return;
+      const R = route.getBoundingClientRect(); if (R.width < 10) return;
+      const pts = Array.from(route.querySelectorAll('.node .dot')).map(d => { const r = d.getBoundingClientRect(); return [r.left + r.width / 2 - R.left, r.top + r.height / 2 - R.top]; });
+      if (pts.length < 2) return;
+      svg.setAttribute('viewBox', `0 0 ${Math.round(R.width)} ${Math.round(R.height)}`);
+      let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+      for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+        if (Math.abs(x1 - x0) < 4) d += ` L${x1.toFixed(1)} ${y1.toFixed(1)}`;
+        else { const cy = (y0 + y1) / 2; d += ` C${x0.toFixed(1)} ${cy.toFixed(1)}, ${x1.toFixed(1)} ${cy.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`; } }   // 点からは縦に出て、縦に入る（文字の上を横切らない）
+      path.setAttribute('d', d); const len = path.getTotalLength(); path.style.setProperty('--len', len.toFixed(1));
+      const pulse = svg.querySelector('.route-pulse'); if (pulse) { const am = pulse.querySelector('animateMotion'); if (am) { const nu = am.cloneNode(true); am.replaceWith(nu); } }   // 線が変わったら脈も新しい線に乗せ直す
+      if (reduce) { try { svg.pauseAnimations(); } catch (err) { /* 古い環境では無視 */ } }
+    }
+    let routeT = 0; window.addEventListener('resize', () => { clearTimeout(routeT); routeT = setTimeout(drawRoute, 150); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawRoute);
     mapper.addEventListener('click', e => {
       const b = e.target.closest('.opt'); if (!b) return; const g = b.closest('.mq'); const q = g.dataset.q;
       if (q === 'who' && ans.who !== b.dataset.v) { for (const k of Object.keys(ans)) delete ans[k]; }
@@ -333,6 +353,34 @@
       try { sessionStorage.setItem('reyz.map', JSON.stringify({ type: r.type, body })); } catch (err) { /* 引き継げないときは空のフォームへ */ }
     });
     render();
+  }
+
+  /* ================================================================
+     INSTRUMENTS — 2026-10-26 G-UX8「点・線・記録」: 文で説明せず、仕組みそのものを目の前で動かす。
+       bend（続く）: 画面に入ったら線が引かれる。check（確認）: 複数の AI が確かめ → 人が決める → 記録。2 回目は一致せず止まる。
+       motion 抑制時は完成した状態を静止表示。
+     ================================================================ */
+  const live = el => el.classList.add('is-live');
+  const ioLive = ('IntersectionObserver' in window) ? new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { live(e.target); ioLive.unobserve(e.target); } }, { threshold: 0.35 }) : null;
+  for (const el of document.querySelectorAll('.bend')) { if (reduce) { live(el); const svg = el.querySelector('svg'); if (svg) { try { svg.pauseAnimations(); } catch (err) { /* 無視 */ } } } else if (ioLive) ioLive.observe(el); else live(el); }
+  const check = document.getElementById('check');
+  if (check) {
+    const lanes = Array.from(check.querySelectorAll('.lane')), human = check.querySelector('.check-human'), rec = check.querySelector('.check-rec');
+    let timers = [], running = false, runIdx = 0;
+    const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+    const clear = () => { for (const t of timers) clearTimeout(t); timers = []; for (const l of lanes) l.classList.remove('on', 'ok', 'ng'); human.classList.remove('on', 'stop'); rec.classList.remove('on'); check.dataset.run = ''; };
+    const done = () => { clear(); for (const l of lanes) l.classList.add('on', 'ok'); human.classList.add('on'); rec.classList.add('on'); check.dataset.run = 'done'; };
+    const run = () => {
+      clear(); const ng = runIdx % 2 === 1; runIdx++; check.dataset.run = ng ? 'stop' : 'go';
+      lanes.forEach((l, i) => { at(200 + i * 280, () => l.classList.add('on')); at(950 + i * 280, () => l.classList.add(ng && i === 1 ? 'ng' : 'ok')); });
+      if (ng) { at(2200, () => human.classList.add('stop')); at(5400, run); }
+      else { at(2200, () => human.classList.add('on')); at(3000, () => rec.classList.add('on')); at(6400, run); }
+    };
+    if (reduce || !('IntersectionObserver' in window)) done();
+    else {
+      const io = new IntersectionObserver(es => { for (const e of es) { if (e.isIntersecting && !running) { running = true; runIdx = 0; run(); } else if (!e.isIntersecting && running) { running = false; done(); } } }, { threshold: 0.3 });
+      io.observe(check); check.addEventListener('click', () => { if (running) run(); });
+    }
   }
 
   /* ================================================================
