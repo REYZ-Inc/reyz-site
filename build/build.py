@@ -15,7 +15,9 @@ def clean(fname):
     return '' if fname == 'index.html' else re.sub(r'\.html$', '', fname)
 _PAGE_RE = r'(?:creator|creative|ai|consensus|contact|legal|works)'
 def clean_links(doc):
-    """ページ内リンクを .html なしの表記へ（index.html → ./ 、x.html → x。#以降は保つ）。本文は x.html で書き、出力時に一括変換する。"""
+    """ページ内リンクを .html なしの表記へ（index.html → ./ 、x.html → x。#以降は保つ）。本文は x.html で書き、出力時に一括変換する。
+    KEEP_HTML_LINKS=1 は検証用（静的ファイルだけを配る試写では x.html のまま）。本番ビルドでは使わない。"""
+    if os.environ.get('KEEP_HTML_LINKS') == '1': return doc
     doc = re.sub(r'href="index\.html(#[^"]*)?"', lambda m: 'href="./' + (m.group(1) or '') + '"', doc)
     return re.sub(r'href="(' + _PAGE_RE + r')\.html(#[^"]*)?"', lambda m: 'href="' + m.group(1) + (m.group(2) or '') + '"', doc)
 
