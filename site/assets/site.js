@@ -365,6 +365,12 @@
   for (const el of document.querySelectorAll('.bend')) { if (reduce) { live(el); const svg = el.querySelector('svg'); if (svg) { try { svg.pauseAnimations(); } catch (err) { /* 無視 */ } } } else if (ioLive) ioLive.observe(el); else live(el); }
   // 見本（3 つの画面・映像の型）は画面に入ったら 1 回だけ動き、そのまま止まる。タップでもう一度
   const replay = el => { el.classList.remove('is-live'); void el.offsetWidth; el.classList.add('is-live'); };
+  // 3 つの画面（スマホは横に送る）: いま見ている画面を点で示す
+  for (const row of document.querySelectorAll('.phones3')) {
+    const dots = row.nextElementSibling && row.nextElementSibling.classList.contains('phones-dots') ? row.nextElementSibling.querySelectorAll('i') : null; if (!dots) continue;
+    const upd = () => { const ph = row.querySelectorAll('.phone'); const x = row.scrollLeft + row.clientWidth / 2; let k = 0; ph.forEach((el, i) => { if (el.offsetLeft <= x) k = i; }); dots.forEach((d, i) => d.classList.toggle('on', i === k)); };
+    row.addEventListener('scroll', upd, { passive: true }); upd();
+  }
   for (const el of document.querySelectorAll('.phone, .showcase')) { if (reduce) live(el); else if (ioLive) ioLive.observe(el); else live(el); el.addEventListener('click', () => { if (!reduce) replay(el); }); }
   for (const check of document.querySelectorAll('.check')) {
     const lanes = Array.from(check.querySelectorAll('.lane')), human = check.querySelector('.check-human'), rec = check.querySelector('.check-rec');

@@ -441,6 +441,7 @@ SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
     + phone('gate', '入口', SCR_GATE, jp('確認を通った案件と商品だけが届く。|受けるかは、あなたが決める。'))
     + phone('stmt', '明細', SCR_STMT, jp('いつ、何で、いくら。|記録はあなたのもの。')) +
     '            </div>\n'
+    '            <div class="phones-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>\n'
     '          </div>')
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
                         lead2=jp('あなたの収益の、全部の入口に。\n費用はかからない。|やめるのも自由。')) + \
@@ -524,6 +525,7 @@ SCREENS_ENT = ('<div class="screens3 reveal">\n'
     + phone('check', '確認', SCR_CHECK, jp('公開前に、きまりに照らす。|複数のAIが確かめ、一致しなければ止まる。|最後は人が決める。'))
     + phone('rec', '記録', SCR_REC, jp('何を、どのきまりで、誰が、いつ。|変えられない形で残り、|記録は企業のもの。')) +
     '            </div>\n'
+    '            <div class="phones-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>\n'
     '            <div class="decide"><p>' + jp('決めるのは、あなたです。|会議でゼロから悩む必要はありません。') + '</p><span class="pill yes">はい：この内容で進める</span><span class="pill">いいえ：条件を変えて、組み直す</span></div>\n'
     '            <p class="gate-note">' + jp('確認を通った案件と商品だけが、|クリエイターの入口に届きます。') + '</p>\n'
     '            <div class="terms">\n'
