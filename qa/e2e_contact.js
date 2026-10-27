@@ -34,7 +34,7 @@ const OUT = process.env.QA_OUT || 'qa/out';
     });
   }
   await p.goto(BASE + '/contact.html', { waitUntil: 'load' }); await p.waitForTimeout(1200);
-  await p.fill('#cName', 'E2E 通し確認'); await p.fill('#cLocal', 'e2e'); await p.selectOption('#cDomain', '__other'); await p.fill('#cDomainOther', 'example.com');
+  await p.fill('#cName', 'E2E 通し確認'); await p.fill('#cEmail', 'e2e@example.com');   // メールは 1 欄（DEC-20261027-18）
   await p.selectOption('#cType', { index: 1 }); await p.fill('#cMsg', '自動確認（dry_run）。メールは送信されません。');
   await p.click('#confirmBtn');
   const tsRead = () => p.evaluate(() => { const t = window.__reyzContact; return t ? { state: t.state, token: !!t.token, error: t.error, widget: t.widget !== null, boxHeight: (document.getElementById('turnstileBox') || {}).offsetHeight || 0 } : null; });

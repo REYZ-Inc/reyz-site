@@ -62,31 +62,8 @@
           <form class="panel reveal" id="contactForm" novalidate>
             <div class="step" id="stepForm">
               <label>お名前（個人名または会社名）<input id="cName" name="name" type="text" autocomplete="name" required></label>
-              <label>ご担当者<input id="cPerson" name="person" type="text" autocomplete="off" placeholder="法人の場合"></label>
-              <div class="field" role="group" aria-labelledby="emailLabel">
-                <span class="field-label" id="emailLabel">メールアドレス</span>
-                <div class="email-row">
-                  <input id="cLocal" name="email_local" type="text" autocapitalize="off" spellcheck="false" autocomplete="off" aria-label="メールアドレス（@より前）" required>
-                  <span class="at" aria-hidden="true">@</span>
-                  <select id="cDomain" name="email_domain" aria-label="メールアドレスのドメイン" required>
-                    <option value="">選択</option>
-                    <option>gmail.com</option>
-                    <option>icloud.com</option>
-                    <option>yahoo.co.jp</option>
-                    <option>outlook.jp</option>
-                    <option>outlook.com</option>
-                    <option>hotmail.com</option>
-                    <option>docomo.ne.jp</option>
-                    <option>au.com</option>
-                    <option>ezweb.ne.jp</option>
-                    <option>softbank.ne.jp</option>
-                    <option>i.softbank.jp</option>
-                    <option value="__other">その他（入力）</option>
-                  </select>
-                </div>
-                <input id="cDomainOther" name="email_domain_other" type="text" autocapitalize="off" spellcheck="false" autocomplete="off" aria-label="ドメインを入力" placeholder="example.co.jp" hidden>
-                <input id="cEmail" name="email" type="email" hidden tabindex="-1">
-              </div>
+              <!-- メールは 1 欄（DEC-20261027-18。@ 以降の選択式は模擬ユーザー 4/4 が指摘） -->
+              <label>メールアドレス<input id="cEmail" name="email" type="email" spellcheck="false" autocomplete="email" inputmode="email" required></label>
               <label>ご用件
                 <select id="cType" name="type" required>
                   <option value="">選択してください</option>
@@ -111,6 +88,8 @@
                   </optgroup>
                 </select>
               </label>
+              <!-- ご担当者は企業の用件のときだけ表示（DEC-20261027-18） -->
+              <label id="personLabel" hidden>ご担当者<input id="cPerson" name="person" type="text" autocomplete="off"></label>
               <label>内容<textarea id="cMsg" name="message" required></textarea></label>
               <input id="cWebsite" name="website" type="text" tabindex="-1" autocomplete="off" hidden>
               <div class="ctas tight">

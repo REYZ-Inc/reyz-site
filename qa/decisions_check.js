@@ -35,7 +35,6 @@ const MANUAL = {
   'DEC-20261027-13': '提供の束 4 つ：目視',
   'DEC-20261027-14': '会社情報を常時表示：目視',
   'DEC-20261027-15': '困りごと・はじめ方・TikTok を常時表示：v13_check の creator copy が固定文を守る。たたんでいないことは目視',
-  'DEC-20261027-18': '問い合わせの体裁（メール 1 欄・ご担当者の条件表示・LINE なし）：次の PR で form_check を追従',
   'DEC-20261027-20': '保留（事実待ち）' };
 
 const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
