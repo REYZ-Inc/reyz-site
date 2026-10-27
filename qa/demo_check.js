@@ -29,7 +29,7 @@ const EXPECT = {
     F(`${name}: taken state`, JSON.stringify(out.gate.pressed) === JSON.stringify(['true:受けた', 'false:受ける', 'true:受けた']) && out.gate.badge === '2' && !out.gate.badgeHidden);
     await tap('#demoC [data-next="stmt"]'); await p.waitForTimeout(1600);
     out.stmt = await p.evaluate(() => ({ pane: document.querySelector('#demoC .pane:not([hidden])').dataset.p, rows: Array.from(document.querySelectorAll('#dmRows li')).map(li => li.className + ':' + li.innerText.replace(/\s+/g, ' ').trim()), sumHidden: document.getElementById('dmSum').hidden, fullW: Array.from(document.querySelectorAll('#demoC .pane:not([hidden]) .scr-bar.full i')).map(i => Math.round(i.getBoundingClientRect().width / i.parentElement.getBoundingClientRect().width * 100)) }));
-    F(`${name}: statement rows (${JSON.stringify(out.stmt.rows)})`, out.stmt.pane === 'stmt' && out.stmt.rows.length === 2 && out.stmt.rows[0] === ':案件 全額あなたへ' && out.stmt.rows[1] === ':LIVE支援 費用 0' && !out.stmt.sumHidden);
+    F(`${name}: statement rows（「100%」「全額」は正本 §8 で揃ってから: 書かない） (${JSON.stringify(out.stmt.rows)})`, out.stmt.pane === 'stmt' && out.stmt.rows.length === 2 && out.stmt.rows[0] === ':案件 手数料 0' && out.stmt.rows[1] === ':LIVE支援 費用 0' && !out.stmt.sumHidden);
     F(`${name}: bars filled (${JSON.stringify(out.stmt.fullW)})`, out.stmt.fullW.length === 2 && out.stmt.fullW.every(w => w >= 99));
     await tap('#demoC .tab[data-t="gate"]'); await tap('#demoC .take[data-k="案件"]'); await tap('#demoC .tab[data-t="stmt"]');
     F(`${name}: untake removes the row`, await p.evaluate(() => document.querySelectorAll('#dmRows li:not(.empty)').length === 1 && document.querySelector('#demoC .tab[data-t="stmt"] .n').textContent === '1'));

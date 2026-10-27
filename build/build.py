@@ -449,7 +449,7 @@ SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
               '                  <button class="go-btn" type="button" data-next="stmt">明細を見る</button>\n') +
     demo_pane('dc', 3, 'stmt',
               '                  <ul class="stmt-rows" id="dmRows"><li class="empty">' + jp('入口で「受ける」と、|ここに並ぶ。') + '</li></ul>\n'
-              '                  <div class="stmt-sum" id="dmSum" hidden><div class="scr-row"><b>報酬</b><span class="scr-bar full"><i></i></span><em>100%</em></div><div class="scr-row"><b>手数料</b><span class="scr-bar"><i></i></span><em>0</em></div><div class="scr-row"><b>費用</b><span class="scr-bar"><i></i></span><em>0</em></div></div>\n'
+              '                  <div class="stmt-sum" id="dmSum" hidden><div class="scr-row"><b>報酬</b><span class="scr-bar full"><i></i></span><em>あなたへ</em></div><div class="scr-row"><b>手数料</b><span class="scr-bar"><i></i></span><em>0</em></div><div class="scr-row"><b>費用</b><span class="scr-bar"><i></i></span><em>0</em></div></div>\n'
               '                  <p class="pane-note">' + jp('記録はあなたのもの。|いつでも持ち出せる。') + '</p>\n'
               '                  <button class="go-btn ghost" type="button" data-next="map">最初から</button>\n') +
     '              </div></div>\n'

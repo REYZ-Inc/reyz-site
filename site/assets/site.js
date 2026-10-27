@@ -390,13 +390,13 @@
 
   /* ================================================================
      DEMOS — 2026-10-27 CEO「体験イメージを持てるか」: 3 つの画面を 1 台で実際に触る（設計上の見本）。
-       creator（/creator）: 地図（Home で作ったもの）→ 入口で「受ける」→ 明細に並ぶ（報酬は全額・手数料 0・費用 0）。
+       creator（/creator）: 地図（Home で作ったもの）→ 入口で「受ける」→ 明細に並ぶ（報酬から引かない: 手数料 0・費用 0）。
        company（/creative）: 地図 → 確認（例を選ぶ → 提供元の異なる複数の AI → 一致しないものは止まる → 直して再確認 → 人が はい／いいえ）→ 記録に 1 行。
        文は正本のまま。名前・社名・金額は置かない。motion 抑制時は待たずに結果を出す。
      ================================================================ */
   for (const demo of document.querySelectorAll('.demo')) {
     const who = demo.dataset.demo, tabs = Array.from(demo.querySelectorAll('.tab')), panes = Array.from(demo.querySelectorAll('.pane'));
-    const echo = demo.parentElement.querySelector('.echo'), ECHO = who === 'creator' ? { map: 'あなたの地図。', gate: '受けるかは、あなた。', stmt: '全額、あなたへ。' } : { map: '目的から、逆算。', check: '選ぶと、動く。', go: '確かめている。', stop: '止まる。', pass: '通る。', rec: '残る。' };
+    const echo = demo.parentElement.querySelector('.echo'), ECHO = who === 'creator' ? { map: 'あなたの地図。', gate: '受けるかは、あなた。', stmt: '報酬から、引かない。' } : { map: '目的から、逆算。', check: '選ぶと、動く。', go: '確かめている。', stop: '止まる。', pass: '通る。', rec: '残る。' };
     const say = k => { if (!echo || !ECHO[k]) return; echo.textContent = ECHO[k]; echo.classList.remove('is-live'); void echo.offsetWidth; echo.classList.add('is-live'); };
     const badge = (key, n) => { const t = tabs.find(x => x.dataset.t === key); const b = t && t.querySelector('.n'); if (!b) return; b.textContent = String(n); b.hidden = n === 0; };
     const show = (key, focus) => {
@@ -426,7 +426,7 @@
         if (!on.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = '入口で「受ける」と、ここに並ぶ。'; rows.append(li); }
         for (const b of on) { const li = document.createElement('li'); const name = document.createElement('b'); name.textContent = b.dataset.k;
           const bar = document.createElement('span'); bar.className = 'scr-bar' + (b.dataset.v === 'full' ? ' full' : ''); bar.append(document.createElement('i'));
-          const em = document.createElement('em'); em.textContent = b.dataset.v === 'full' ? '全額あなたへ' : '費用 0'; li.append(name, bar, em); rows.append(li); }
+          const em = document.createElement('em'); em.textContent = b.dataset.v === 'full' ? '手数料 0' : '費用 0'; li.append(name, bar, em); rows.append(li); }
         sum.hidden = !on.length; badge('stmt', on.length);
       };
       for (const b of takes) b.addEventListener('click', () => { const now = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(now)); b.textContent = now ? '受けた' : '受ける'; draw(); });
