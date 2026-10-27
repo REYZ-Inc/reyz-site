@@ -296,6 +296,7 @@
   if (mapper) {
     const groups = Array.from(mapper.querySelectorAll('.mq'));
     const card = document.getElementById('mapCard'), note = document.getElementById('mapNote'), noteLive = document.getElementById('mapNoteLive');
+    const screens = document.getElementById('mapScreens'); if (screens) { const h = screens.getAttribute('href'); screens.dataset.creator = h; screens.dataset.company = h.replace(/^creator(\.html)?#model$/, 'creative$1#decide'); }   // 本番は拡張子なし、試写は .html つき: 元の href から両方を組む
     const out = { goal: document.getElementById('mapGoal'), place: document.getElementById('mapPlace'), step: document.getElementById('mapStep') };
     const ans = {};
     // 文節（「、」「。」「）」の直後と「（」の直前）でだけ折り返す（build.py の jp() と同じ規則＋括弧）
@@ -320,6 +321,7 @@
       if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); note.hidden = who !== 'creator'; noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
         drawRoute(); card.classList.remove('is-live'); void card.offsetWidth; card.classList.add('is-live');   // 地図を引き直す（線が点を結んでいく）
         try { sessionStorage.setItem('reyz.map.r', JSON.stringify({ who, goal: r.goal, place: r.place, step: r.step })); } catch (err) { /* 保持できないときは見本の地図のまま */ }   // /creator・/creative の 1 画面目にそのまま入る
+        if (screens) screens.setAttribute('href', who === 'company' ? screens.dataset.company : screens.dataset.creator);   // 地図 → その人の枝の 3 つの画面へ
         if (!render.shown) { render.shown = true; const h = card.querySelector('h3'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
           // 地図ができたことが分かるように、カードの頭まで送る（最後の答えの直下に出ると気づきにくい）
           const top = card.getBoundingClientRect().top + window.scrollY - 84; if (card.getBoundingClientRect().top > window.innerHeight * 0.55) window.scrollTo({ top, behavior: reduce ? 'instant' : 'smooth' }); } }
@@ -415,8 +417,15 @@
       if (e.key === 'ArrowRight') j = (i + 1) % tabs.length; else if (e.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length; else if (e.key === 'Home') j = 0; else j = tabs.length - 1;
       show(tabs[j].dataset.t); tabs[j].focus(); e.preventDefault();
     });
+    // 最後の画面 → 相談: Home で作った地図があれば、ご用件と内容に引き継ぐ（相談用の 'reyz.map'。送るのは本人）
+    let carried = null;
+    for (const a of demo.querySelectorAll('a.consult')) a.addEventListener('click', () => {
+      const type = MAP_TEXT[who === 'creator' ? 'creator' : 'company'].type;   // ご用件は Home の地図と同じ
+      const body = carried ? '【あなたの地図（ホームで選んだ内容）】\n目的: ' + carried.goal + '\n今いる場所: ' + carried.place + '\n最初の一歩: ' + carried.step : '';
+      try { sessionStorage.setItem('reyz.map', JSON.stringify({ type, body })); } catch (err) { /* 引き継げないときは空のフォームへ */ }
+    });
     // 1 画面目: Home で作った地図があれば、見本の地図と入れ替える
-    try { const raw = sessionStorage.getItem('reyz.map.r'); if (raw) { const m = JSON.parse(raw); if (m && m.who === who && m.goal && m.place && m.step) {
+    try { const raw = sessionStorage.getItem('reyz.map.r'); if (raw) { const m = JSON.parse(raw); if (m && m.who === who && m.goal && m.place && m.step) { carried = m;
       const id = who === 'creator' ? 'dm' : 'dn'; const put = (k, v) => { const el = document.getElementById(id + k); if (el) el.textContent = v; };
       put('Place', m.place); put('Step', m.step); put('Goal', m.goal); put('From', 'ホームで作った、あなたの地図。'); const home = document.getElementById(id + 'Home'); if (home) home.hidden = true; demo.classList.add('has-map'); ECHO.map = 'あなたの地図。'; } } } catch (err) { /* 見本の地図のまま */ }
     say('map');
