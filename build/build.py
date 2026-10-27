@@ -229,7 +229,7 @@ MAP_Q = [
     ('make',  'creator', '企画・撮影・編集は',      [('share', '手伝ってほしい'), ('own', '自分でできる')]),
     ('value', 'creator', '近いのは',                [('last', '目標が変わっても続けたい'), ('start', 'まず始めたい')]),
     ('goal',  'company', '目的は',                  [('yes', '決まっている'), ('no', 'まだ整理できていない')]),
-    ('focus', 'company', '力を入れたいのは',        [('media', '映像・SNS'), ('ops', '業務の効率化・AI'), ('abroad', '海外への販売・発信'), ('check', '公開前の確認（表現・法令）')]),
+    ('focus', 'company', '力を入れたいのは',        [('media', '映像・SNS'), ('ops', '業務の効率化・AI'), ('abroad', '海外への販売・発信')]),
     ('first', 'company', '最初に整えたいのは',       [('law', '公開前のチェック（表現・法令）'), ('speed', '速さと、少ない人数で回す体制')]),
 ]
 def mapper():
@@ -299,7 +299,7 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h1><span>無限の可能性を</span><span>かたちに</span></h1>
           <p class="hero-sub">From Japan, <em>beyond.</em></p>
-          <p class="lead hero-lead">{jp('クリエイターの収入づくりと、|企業の映像・SNS・AIの仕事を、|AIと人で支える会社です。')}</p>
+          <p class="lead hero-lead">{jp('クリエイターから一円も取らず、|収入と活動を3つの画面にまとめる基盤。\n企業には、公開前の確認と、|決定ごとの記録を。\n確認を通った案件と商品だけが、|クリエイターの入口に届く。')}</p>
           <a class="cue" href="#origin" aria-label="下へ"><span class="cue-line"></span><span class="cue-dot"></span></a>
         </div>
       </div>
