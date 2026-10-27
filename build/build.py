@@ -727,7 +727,7 @@ page('legal.html', 'Privacy & Legal — REYZ Inc.', '株式会社レイズの法
 # 旧 URL を 404 にせず、meta refresh と canonical で /creative へ送る。sitemap には載せない（PAGES に加えない）。検索には noindex
 _works_to = 'creative.html' if os.environ.get('KEEP_HTML_LINKS') == '1' else '/creative'
 with open(os.path.join(ROOT, 'works.html'), 'w', encoding='utf-8') as f:
-    f.write(f'''<!doctype html>
+    f.write(f'''<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
