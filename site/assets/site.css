@@ -760,3 +760,19 @@ html.no-js .check-human .dot.human { background: var(--accent); }
 html.no-js .film.story .prog i::after { width: 100%; }
 
 @media (min-width: 721px) { .phones-dots { display: none; } }
+
+/* 模擬ユーザー検証（2026-10-27）の是正 */
+.cue { display: grid; justify-items: center; gap: 0; margin-top: 1.4rem; min-width: 44px; min-height: 44px; align-content: end; }
+.cue-line { display: block; width: 1px; height: 28px; background: linear-gradient(180deg, transparent, var(--accent)); }
+.cue-dot { display: block; width: 6px; height: 6px; margin-top: 2px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(247, 21, 172, 0.8); animation: cueDown 2.6s ease-in-out infinite; }
+@keyframes cueDown { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(6px); opacity: 0.5; } }
+.site-header.scrolled ~ main .cue { opacity: 0; transition: opacity 0.5s; }
+.yn .pill::before { display: none; }
+.yn { gap: 0.2rem; font-size: 0.86rem; color: var(--text-3); }
+.yn .pill { min-height: 0; color: var(--text-3); }
+.yn .pill + .pill::before { content: "／"; display: inline; width: auto; height: auto; border: 0; margin-right: 0.2em; color: var(--text-3); }
+.check-human.on .yn .pill.yes { color: var(--accent); font-weight: 500; }
+.screens3 .decide .btn.primary { min-height: 44px; }
+.screens3 .pill::before { display: none; }
+.screens3 .pill { color: var(--text-3); }
+@media (prefers-reduced-motion: reduce) { .cue-dot { animation: none; } }
