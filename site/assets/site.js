@@ -318,7 +318,9 @@
       const r = compose(); mapper.dataset.done = r ? 'true' : 'false';
       if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); note.hidden = who !== 'creator'; noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
         drawRoute(); card.classList.remove('is-live'); void card.offsetWidth; card.classList.add('is-live');   // 地図を引き直す（線が点を結んでいく）
-        if (!render.shown) { render.shown = true; const h = card.querySelector('h3'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } } }
+        if (!render.shown) { render.shown = true; const h = card.querySelector('h3'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+          // 地図ができたことが分かるように、カードの頭まで送る（最後の答えの直下に出ると気づきにくい）
+          const top = card.getBoundingClientRect().top + window.scrollY - 84; if (card.getBoundingClientRect().top > window.innerHeight * 0.55) window.scrollTo({ top, behavior: reduce ? 'instant' : 'smooth' }); } }
       else { card.hidden = true; card.classList.remove('is-live'); render.shown = false; }
     };
     // 地図の線: 3 つの点（今いる場所 → 最初の一歩 → 目的）の中心を 1 本の線で結ぶ。縦並びなら直線、階段状なら S 字で。脈（route-pulse）はこの線の上を走る

@@ -223,14 +223,14 @@ TT_NOTE = jp('''※私達は、TikTok社から委託を受けて|運営してい
 # 選択肢は HTML、結果の文は site.js の MAP_TEXT（正本の文をそのまま）。この内容で相談する → contact.html（ご用件と内容を引き継ぐ）
 MAP_Q = [
     ('who',   'all',     'あなたは',          [('creator', 'クリエイター'), ('company', '企業')]),
-    ('goal',  'creator', '目的は',            [('yes', '言葉にできている'), ('no', 'まだ決まっていない')]),
-    ('place', 'creator', '活動する場所は',    [('yes', '決まっている'), ('no', 'まだ')]),
-    ('style', 'creator', 'やりたいのは',      [('live', 'ライブ配信'), ('post', '動画や投稿')]),
-    ('make',  'creator', '制作は',            [('share', 'REYZと分けたい'), ('own', '自分の体制がある')]),
-    ('value', 'creator', '大事にしたいのは',  [('last', '目標が変わっても続くこと'), ('start', 'まず始めること')]),
-    ('goal',  'company', '目的は',            [('yes', '決まっている'), ('no', 'まだ整理できていない')]),
-    ('focus', 'company', '力を入れたいのは',  [('media', '映像・SNS'), ('ops', '業務の効率化・AI'), ('abroad', '越境・販路')]),
-    ('first', 'company', '最初に整えたいのは', [('law', '表現と法令の確認'), ('speed', '速さと省人化')]),
+    ('goal',  'creator', 'やりたいことは',          [('yes', '決まっている'), ('no', 'まだ探している')]),
+    ('place', 'creator', '配信や投稿をする場所は',  [('yes', '決まっている'), ('no', 'まだ')]),
+    ('style', 'creator', '主にやりたいのは',        [('live', 'ライブ配信'), ('post', '動画や投稿')]),
+    ('make',  'creator', '企画・撮影・編集は',      [('share', '手伝ってほしい'), ('own', '自分でできる')]),
+    ('value', 'creator', '近いのは',                [('last', '目標が変わっても続けたい'), ('start', 'まず始めたい')]),
+    ('goal',  'company', '目的は',                  [('yes', '決まっている'), ('no', 'まだ整理できていない')]),
+    ('focus', 'company', '力を入れたいのは',        [('media', '映像・SNS'), ('ops', '業務の効率化・AI'), ('abroad', '海外への販売・発信')]),
+    ('first', 'company', '最初に整えたいのは',       [('law', '公開前のチェック（表現・法令）'), ('speed', '速さと、少ない人数で回す体制')]),
 ]
 def mapper():
     qs = []
@@ -252,7 +252,7 @@ def mapper():
             '              </div>\n'
             '              <p class="map-note" id="mapNote" hidden>' + jp('費用はかからない。|REYZはクリエイターの報酬から|手数料を取らない。|やめるのも自由。') + '</p>\n'
             f'              <p class="map-note" id="mapNoteLive" hidden>{TT_NOTE}</p>\n'
-            '              <p class="map-fine">' + jp('設計上の見本です。|相談で、あなたの言葉に合わせて|作り直します。') + '</p>\n'
+            '              <p class="map-fine">' + jp('これは設計上の見本（例）です。|相談で、あなたの言葉に合わせて|作り直します。') + '</p>\n'
             '              <div class="ctas tight"><a class="btn primary" id="mapGo" href="contact.html">この内容で相談する</a><button type="button" class="btn" id="mapReset">最初から</button></div>\n'
             '            </div>\n'
             '          </div>')
@@ -299,7 +299,7 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h1><span>無限の可能性を</span><span>かたちに</span></h1>
           <p class="hero-sub">From Japan, <em>beyond.</em></p>
-          <p class="lead hero-lead">{jp('クリエイターの収入と、|企業の「伝わる」を、|AIと人で設計する。')}</p>
+          <p class="lead hero-lead">{jp('クリエイターの収入づくりと、|企業の映像・SNS・AIの仕事を、|AIと人で支える会社です。')}</p>
         </div>
       </div>
     </section>
@@ -309,7 +309,8 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h2>ひとつの意志から。</h2>
           <p class="lead">REYZは、クリエイターと企業の「やりたい」を、<br>かたちにします。</p>
-          <div class="ctas"><a class="btn primary" href="creative.html">企業の方へ</a><a class="btn" href="creator.html">クリエイターの方へ</a></div>
+          <p class="lead">映像制作、SNSアカウントの運用、<br>仕事の仕組みづくり、判断の支え。</p>
+          <div class="ctas"><a class="btn" href="creator.html">クリエイターの方へ</a><a class="btn" href="creative.html">企業の方へ</a></div>
         </div>
       </div>
     </section>
@@ -347,7 +348,7 @@ home = f'''    <section class="chapter" id="infinity">
       <div class="wrap chapter-stack">
         {slot('AI')}
         <div class="copy wide">
-          <div class="head"><p class="eyebrow">REYZ PLATFORM · AI Infrastructure</p><h2>AIが支える。</h2><p class="lead">AIに任せた判断を、<br>あとから説明できる状態に。</p></div>
+          <div class="head"><p class="eyebrow">REYZ PLATFORM · AI Infrastructure</p><h2>AIが支える。</h2><p class="lead">AIが確かめ、人が決め、記録が残る。<br>だから、あとから説明できる。</p></div>
 {CHECK}
 {PROOF}
           <p class="more"><a class="go" href="ai.html">AI</a></p>
@@ -450,7 +451,7 @@ section('pain', 'For you', 'こんな困りごとに', '',
                jp('企画、撮影、編集、毎日の投稿。|ひとりで抱えきれず、|活動のペースと質が落ちる。'),
                jp('目指すものや暮らしが変わったとき、|活動を何から変えればいいか|分からない。'),
                jp('事務所に入ると報酬から引かれたり、|辞めるときに制限がかかるのが|不安。')])) + \
-section('model', 'How it works for you', '仕組み', jp('あなたから、|一円も取らない。'), MODEL + SCREENS_CREATOR) + \
+section('model', 'How it works for you', '仕組み', jp('あなたから、|一円も取らない。'), MODEL + SCREENS_CREATOR + more('contact.html', '相談する')) + \
 section('services', 'Services', '提供すること', '',
         '<div class="items reveal">\n'
         '            <div class="item">\n'
@@ -527,7 +528,6 @@ SCREENS_ENT = ('<div class="screens3 reveal">\n'
     '            </div>\n'
     '            <div class="phones-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>\n'
     '            <div class="decide"><p>' + jp('決めるのは、あなたです。|会議でゼロから悩む必要はありません。') + '</p><span class="pill yes">はい：この内容で進める</span><span class="pill">いいえ：条件を変えて、組み直す</span></div>\n'
-    '            <p class="gate-note">' + jp('確認を通った案件と商品だけが、|クリエイターの入口に届きます。') + '</p>\n'
     '            <div class="terms">\n'
     '              <p class="terms-head">はっきり言えること</p>\n'
     '              <ul>\n'
@@ -557,7 +557,7 @@ section('show', 'Video × SNS', '映像とSNSの、かたち。', jp('「きれ�
                ('いつ、何を、どう', '進め方を決めて渡す。'),
                ('制作と投稿', '映像をつくり、出す。'),
                ('記録で報告', '何が効いたかを、事実で。'),
-               ('目標が変わったら', '組み直して、続きから。')])) + \
+               ('目標が変わったら', '組み直して、続きから。')]) + more('contact.html', '相談する')) + \
 section('services', 'Services', 'REYZがすること', '',
         items_fold([('目的を言葉にし、進め方を決める', jp('何のために、いつまでに、何を。|目的を正確に汲み取り、|いつ、何を、どう進めるかを決めて渡します。\n目的が変わったら、|進め方を組み直して続けます。')),
                ('最小の人数で、最大の利益を', jp('調査、台本、一次制作、進行管理、集計。|人がやらなくていい仕事を|AIと仕組みに移します。\n人は決めることと伝えることに集中し、|少ない人数で利益を生む体制をつくります。')),
@@ -568,11 +568,11 @@ section('services', 'Services', 'REYZがすること', '',
                ('サイトと業務の仕組みづくり', jp('映像とSNSの受け皿になるサイトから、|社内で使う仕組みまで。\n使う人と仕事の流れから、|必要なものを整理してつくります。')),
                ('クリエイターとの販売設計', jp('クリエイターと連動した|販売の設計と運用。|国内からアジアへの越境販売まで。')),
                ('公開前の確認', jp('ステマ規制、景品表示法、|医療広告ガイドライン、薬機法に照らし、|提供元の異なる複数のAIが確かめ、|人が決め、記録を残します。\n公的なきまりとの照合であり、|法律の鑑定ではありません。')),
-               ('事務所・代理店の方へ', jp('クリエイター事務所、代理店、制作会社の方へ。\n3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。'), 'consensus.html', 'REYZ CONSENSUSについて'),
+               ('事務所・代理店の方へ', jp('クリエイター事務所、代理店、制作会社の方へ。\n3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。\n確認を通った案件と商品だけが、|クリエイターの入口に届きます。'), 'consensus.html', 'REYZ CONSENSUSについて'),
                ('AIを仕事に入れる', jp('仕事の流れの設計から|実際の運用までを、|自社の仕組み「REYZ PLATFORM」で。'), 'ai.html', 'REYZ PLATFORMについて')], 1)) + \
 section('decide', 'Decide', '判断を、地図で。', jp('経営者も担当者も、|「はい」か「いいえ」を|選ぶだけにします。'),
         SCREENS_ENT +
-        sub(jp('人がやらなくていい仕事を、|AIと仕組みへ。')) + SHIFT) + \
+        sub(jp('人がやらなくていい仕事を、|AIと仕組みへ。')) + SHIFT + more('contact.html', '相談する')) + \
 section('promise', 'Our promise', 'REYZの約束', '', PROMISE) + \
 section('how', 'How it works', '任せ方', jp('いきなり大きな契約を結ぶ必要はありません。\n合わなければ、そこで終えて構いません。'),
         steps([('01', '相談する', jp('今の状況と、|やりたいことを聞かせてください。\nまだ言葉になっていなくても、|構いません。')),
