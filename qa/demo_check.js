@@ -15,12 +15,13 @@ const EXPECT = {
   const t = s => (s || '').replace(/ /g, ' ').trim();
   for (const [name, vp] of [['m390', { width: 390, height: 844, isMobile: true, hasTouch: true }], ['d1440', { width: 1440, height: 900 }]]) {
     const ctx = await b.newContext({ viewport: { width: vp.width, height: vp.height }, isMobile: !!vp.isMobile, hasTouch: !!vp.hasTouch }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(String(e)));
-    const tap = async sel => { await p.evaluate(s => document.querySelector(s).scrollIntoView({ block: 'center', behavior: 'instant' }), sel); await p.waitForTimeout(120); await p.click(sel, { force: true }); await p.waitForTimeout(120); };
+    // 読込直後 1.5 秒は先頭位置を保つ（start-at-top）ため、その後に操作する。押す前に位置が止まっていることを確かめる（章の本文は粒子の明瞭度で数 px 動く）
+    const tap = async sel => { await p.evaluate(s => document.querySelector(s).scrollIntoView({ block: 'center', behavior: 'instant' }), sel); let prev = null; for (let i = 0; i < 10; i++) { await p.waitForTimeout(100); const cur = await p.$eval(sel, el => { const r = el.getBoundingClientRect(); return Math.round(r.top) + ':' + Math.round(scrollY); }); if (cur === prev) break; prev = cur; } await p.click(sel, { force: true }); await p.waitForTimeout(120); };
     const pick = async (q, aud, v) => tap(`.mq[data-q="${q}"][data-for="${aud}"] .opt[data-v="${v}"]`);
     // 1) 地図なし: /creator の 1 画面目は見本の地図
-    await p.goto(base + 'creator.html', { waitUntil: 'load' }); await p.waitForTimeout(1700);
-    out.creatorSample = await p.evaluate(() => ({ place: document.getElementById('dmPlace').innerText, from: document.getElementById('dmFrom').innerText, pane: document.querySelector('#demoC .pane:not([hidden])').dataset.p, tabs: Array.from(document.querySelectorAll('#demoC .tab')).map(x => x.getAttribute('aria-selected')) }));
-    F(`${name}: creator sample map`, t(out.creatorSample.place) === EXPECT.sampleMap.creator && t(out.creatorSample.from).startsWith('見本の地図です') && out.creatorSample.pane === 'map' && JSON.stringify(out.creatorSample.tabs) === JSON.stringify(['true', 'false', 'false']));
+    await p.goto(base + 'creator.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
+    out.creatorSample = await p.evaluate(() => ({ place: document.getElementById('dmPlace').innerText, from: document.getElementById('dmFrom').innerText, homeHidden: document.getElementById('dmHome').hidden, pane: document.querySelector('#demoC .pane:not([hidden])').dataset.p, tabs: Array.from(document.querySelectorAll('#demoC .tab')).map(x => x.getAttribute('aria-selected')) }));
+    F(`${name}: creator sample map`, t(out.creatorSample.place) === EXPECT.sampleMap.creator && t(out.creatorSample.from) === '見本の地図です。' && out.creatorSample.homeHidden === false && out.creatorSample.pane === 'map' && JSON.stringify(out.creatorSample.tabs) === JSON.stringify(['true', 'false', 'false']));
     F(`${name}: all visible controls >= 44px`, await p.evaluate(() => Array.from(document.querySelectorAll('#demoC button')).filter(el => !el.closest('[hidden]')).every(el => { const r = el.getBoundingClientRect(); return r.height >= 44 && r.width >= 44; })));
     // 2) 入口で「受ける」→ 明細に並ぶ（押し直すと外れる）
     await tap('#demoC [data-next="gate"]'); F(`${name}: gate pane`, await p.evaluate(() => document.querySelector('#demoC .pane:not([hidden])').dataset.p === 'gate' && document.querySelector('#demoC .tab[data-t="gate"]').getAttribute('aria-selected') === 'true'));
@@ -33,17 +34,22 @@ const EXPECT = {
     F(`${name}: bars filled (${JSON.stringify(out.stmt.fullW)})`, out.stmt.fullW.length === 2 && out.stmt.fullW.every(w => w >= 99));
     await tap('#demoC .tab[data-t="gate"]'); await tap('#demoC .take[data-k="案件"]'); await tap('#demoC .tab[data-t="stmt"]');
     F(`${name}: untake removes the row`, await p.evaluate(() => document.querySelectorAll('#dmRows li:not(.empty)').length === 1 && document.querySelector('#demoC .tab[data-t="stmt"] .n').textContent === '1'));
+    // 「最初から」: 受けたものも戻る（模擬ユーザー r1: 数字が残るのが引っかかる）
+    await tap('#demoC [data-next="map"]'); F(`${name}: 最初から resets takes`, await p.evaluate(() => document.querySelector('#demoC .pane:not([hidden])').dataset.p === 'map' && document.querySelectorAll('#demoC .take[aria-pressed="true"]').length === 0 && document.querySelector('#demoC .tab[data-t="stmt"] .n').hidden && document.querySelectorAll('#dmRows li.empty').length === 1));
+    // 上の点そのもの（タブの上端）を押しても切り替わる（模擬ユーザー r2: 「記録」の丸を押しても反応なし）
+    { const box = await p.$eval('#demoC .tab[data-t="stmt"]', el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + 7 }; }); await p.evaluate(s => document.querySelector(s).scrollIntoView({ block: 'center', behavior: 'instant' }), '#demoC .tabs'); const b2 = await p.$eval('#demoC .tab[data-t="stmt"]', el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + 7 }; }); await p.mouse.click(b2.x, b2.y); await p.waitForTimeout(150);
+      F(`${name}: tab dot is tappable`, await p.evaluate(() => document.querySelector('#demoC .pane:not([hidden])').dataset.p === 'stmt')); }
     // 3) Home で地図をつくる → /creator・/creative の 1 画面目にそのまま入る
-    await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(1700);
+    await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     await pick('who', 'all', 'creator'); await pick('goal', 'creator', 'yes'); await pick('place', 'creator', 'yes'); await pick('style', 'creator', 'live'); await pick('make', 'creator', 'share'); await pick('value', 'creator', 'last');
-    await p.goto(base + 'creator.html', { waitUntil: 'load' }); await p.waitForTimeout(1700);
-    out.creatorMap = await p.evaluate(() => ({ place: document.getElementById('dmPlace').innerText, step: document.getElementById('dmStep').innerText, goal: document.getElementById('dmGoal').innerText, from: document.getElementById('dmFrom').innerText, has: document.getElementById('demoC').classList.contains('has-map') }));
-    F(`${name}: creator map carried`, t(out.creatorMap.place) === EXPECT.creator.place && t(out.creatorMap.step) === EXPECT.creator.step && t(out.creatorMap.goal) === EXPECT.creator.goal && t(out.creatorMap.from) === 'ホームで作った、あなたの地図。' && out.creatorMap.has);
-    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(1700);
+    await p.goto(base + 'creator.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
+    out.creatorMap = await p.evaluate(() => ({ place: document.getElementById('dmPlace').innerText, step: document.getElementById('dmStep').innerText, goal: document.getElementById('dmGoal').innerText, from: document.getElementById('dmFrom').innerText, has: document.getElementById('demoC').classList.contains('has-map'), homeHidden: document.getElementById('dmHome').hidden }));
+    F(`${name}: creator map carried`, t(out.creatorMap.place) === EXPECT.creator.place && t(out.creatorMap.step) === EXPECT.creator.step && t(out.creatorMap.goal) === EXPECT.creator.goal && t(out.creatorMap.from) === 'ホームで作った、あなたの地図。' && out.creatorMap.has && out.creatorMap.homeHidden === true);
+    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     F(`${name}: creator map does not leak into company demo`, await p.evaluate(() => !document.getElementById('demoE').classList.contains('has-map') && document.getElementById('dnFrom').innerText.replace(/ /g, ' ').startsWith('見本の地図です')));
-    await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(1700);
+    await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     await pick('who', 'all', 'company'); await pick('goal', 'company', 'no'); await pick('focus', 'company', 'ops'); await pick('first', 'company', 'speed');
-    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(1700);
+    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     out.companyMap = await p.evaluate(() => ({ place: document.getElementById('dnPlace').innerText, step: document.getElementById('dnStep').innerText, goal: document.getElementById('dnGoal').innerText, from: document.getElementById('dnFrom').innerText }));
     F(`${name}: company map carried`, t(out.companyMap.place) === EXPECT.company.place && t(out.companyMap.step) === EXPECT.company.step && t(out.companyMap.goal) === EXPECT.company.goal && t(out.companyMap.from) === 'ホームで作った、あなたの地図。');
     F(`${name}: all visible controls >= 44px (company)`, await p.evaluate(() => Array.from(document.querySelectorAll('#demoE button')).filter(el => !el.closest('[hidden]')).every(el => { const r = el.getBoundingClientRect(); return r.height >= 44 && r.width >= 44; })));
@@ -57,21 +63,21 @@ const EXPECT = {
     F(`${name}: fixed passes (${JSON.stringify(out.pass)})`, out.pass.run === 'pass' && JSON.stringify(out.pass.lanes) === JSON.stringify(['on ok', 'on ok', 'on ok']) && out.pass.v === '3つのAIが一致。通りました。' && out.pass.cut && out.pass.fixed === 'No.1（調査名・時期・対象を添える）' && !out.pass.fixedHidden && !out.pass.humanHidden);
     await tap('#deHuman [data-d="はい"]'); await p.waitForTimeout(400);
     out.rec = await p.evaluate(() => ({ pane: document.querySelector('#demoE .pane:not([hidden])').dataset.p, rows: Array.from(document.querySelectorAll('#deRec li')).map(li => li.innerText.replace(/\s+/g, ' ').trim()), badge: document.querySelector('#demoE .tab[data-t="rec"] .n').textContent, run: document.getElementById('demoE').dataset.run, postHidden: document.getElementById('dePost').hidden }));
-    F(`${name}: record line (${JSON.stringify(out.rec)})`, out.rec.pane === 'rec' && out.rec.rows.length === 1 && /^「業界No\.1」と書いた紹介 \d\d:\d\d No\.1表示の4要件 ・ AI 止 → 直して通 ・ 人 はい$/.test(out.rec.rows[0]) && out.rec.badge === '1' && out.rec.run === '' && out.rec.postHidden);
+    F(`${name}: record line (${JSON.stringify(out.rec)})`, out.rec.pane === 'rec' && out.rec.rows.length === 1 && /^「業界No\.1」と書いた紹介 \d\d:\d\d No\.1表示の4要件 ・ AI 止まった → 直して通った ・ 人 はい$/.test(out.rec.rows[0]) && out.rec.badge === '1' && out.rec.run === '' && out.rec.postHidden);
     // 「必ず効く」→ 3 つとも × で止まる／「#PR」→ 通る → 「いいえ」も記録に残る
     await tap('#deP3 [data-next="check"]'); await tap('#demoE .sample[data-s="cure"]'); await p.waitForTimeout(2500);
     F(`${name}: cure stops with all ng`, await p.evaluate(() => document.getElementById('demoE').dataset.run === 'stop' && document.querySelectorAll('#deLanes .lane.ng').length === 3 && document.getElementById('deV').innerText === '3つのAIが×。止まりました。' && document.getElementById('deWhy').innerText === '効果を断定している（薬機法第66条・健康増進法）。'));
     await tap('#demoE .sample[data-s="pr"]'); await p.waitForTimeout(2500);
     F(`${name}: PR passes`, await p.evaluate(() => document.getElementById('demoE').dataset.run === 'pass' && document.querySelectorAll('#deLanes .lane.ok').length === 3 && document.getElementById('deWhy').innerText === 'ステマ告示に照らしました。'));
     await tap('#deHuman [data-d="いいえ"]'); await p.waitForTimeout(400);
-    F(`${name}: second record first (newest on top)`, await p.evaluate(() => { const r = Array.from(document.querySelectorAll('#deRec li')).map(li => li.innerText.replace(/\s+/g, ' ').trim()); return r.length === 2 && /^#PR をつけた、新商品の紹介 \d\d:\d\d ステマ告示 ・ AI 通 ・ 人 いいえ$/.test(r[0]) && document.querySelector('#demoE .tab[data-t="rec"] .n').textContent === '2'; }));
+    F(`${name}: second record first (newest on top)`, await p.evaluate(() => { const r = Array.from(document.querySelectorAll('#deRec li')).map(li => li.innerText.replace(/\s+/g, ' ').trim()); return r.length === 2 && /^#PR をつけた、新商品の紹介 \d\d:\d\d ステマ告示 ・ AI 通った ・ 人 いいえ$/.test(r[0]) && document.querySelector('#demoE .tab[data-t="rec"] .n').textContent === '2'; }));
     F(`${name}: no horizontal overflow`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     F(`${name}: no page errors`, errs.length === 0);
     await ctx.close();
   }
   // 5) motion 抑制: 待たずに結果が出る
   { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' }); const p = await ctx.newPage();
-    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(1700);
+    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     await p.evaluate(() => { document.querySelector('#demoE [data-next="check"]').click(); document.querySelector('#demoE .sample[data-s="no1"]').click(); });
     F('reduce: immediate stop', await p.evaluate(() => document.getElementById('demoE').dataset.run === 'stop' && !document.getElementById('deFix').hidden));
     await ctx.close(); }

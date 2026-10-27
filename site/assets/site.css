@@ -559,8 +559,8 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 .screens3 .echo { display: none; }   /* PC だけ: 画面の状態を一語で返す（止まる／通る／残る） */
 .demo { width: min(100%, 24rem); margin: 1.6rem auto 0; }
 .tabs { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 0.9rem; }
-.tabs::before { content: ""; position: absolute; left: 16.66%; right: 16.66%; top: calc(0.3rem + 5px); height: 1px; background: var(--line-2); }
-.tab { position: relative; display: grid; justify-items: center; gap: 0.45rem; min-height: 44px; padding: 0.3rem 0 0; color: var(--text-3); font-size: 0.8rem; letter-spacing: 0.1em; line-height: 1.4; transition: color 0.4s; }
+.tabs::before { content: ""; position: absolute; left: 16.66%; right: 16.66%; top: calc(0.55rem + 5px); height: 1px; background: var(--line-2); pointer-events: none; }
+.tab { position: relative; z-index: 1; display: grid; justify-items: center; gap: 0.45rem; min-height: 48px; padding: 0.55rem 0 0; color: var(--text-3); font-size: 0.8rem; letter-spacing: 0.1em; line-height: 1.4; transition: color 0.4s; }
 .tab::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--bg); transition: background 0.4s, box-shadow 0.4s, border-color 0.4s; }
 .tab[aria-selected="true"] { color: var(--text); }
 .tab[aria-selected="true"]::before { background: var(--accent); border-color: transparent; box-shadow: 0 0 8px rgba(247, 21, 172, 0.8); }
@@ -578,6 +578,8 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 @keyframes paneIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .pane-cap { color: var(--text); font-size: 0.86rem; letter-spacing: 0.02em; }
 .pane-note { color: var(--text-3); font-size: 0.74rem; line-height: 1.7; }
+.pane-link { display: inline-flex; align-items: center; min-height: 44px; margin-top: -0.6rem; color: var(--text-2); font-size: 0.78rem; letter-spacing: 0.02em; text-decoration: none; border-bottom: 1px solid var(--line-2); align-self: start; }
+.pane-link:hover { color: var(--text); border-color: var(--accent); }
 .go-btn { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 1rem; border: 1px solid var(--accent); border-radius: 10px; background: rgba(247, 21, 172, 0.12); color: var(--text); font-size: 0.84rem; letter-spacing: 0.04em; transition: background 0.3s, border-color 0.3s; }
 .go-btn:hover { background: rgba(247, 21, 172, 0.22); }
 .go-btn.yes { background: var(--accent); color: var(--bg); font-weight: 500; }
@@ -770,7 +772,7 @@ html.no-js .film .ttl, html.no-js .film .lower, html.no-js .film.story.k1 .s1, h
 .section .check { max-width: 40rem; }
 @media (min-width: 900px) { .section .check { --bw: min(62rem, calc(100vw - 2 * var(--gutter) - 24px)); width: var(--bw); max-width: none; margin-inline: calc((100% - var(--bw)) / 2); } }
 /* JavaScript なし: 見本と確認は完成状態で表示 */
-html.no-js .demo .tabs, html.no-js .demo .go-btn, html.no-js .demo .take, html.no-js .demo .samples { display: none; }
+html.no-js .demo .tabs, html.no-js .demo .go-btn, html.no-js .demo .take, html.no-js .demo .samples, html.no-js .demo .pane-link { display: none; }
 html.no-js .demo .pane[hidden] { display: flex !important; }
 html.no-js .demo .stmt-sum[hidden], html.no-js .demo .check-lanes[hidden] { display: grid !important; }
 html.no-js .phone-screen { grid-template-rows: auto; }

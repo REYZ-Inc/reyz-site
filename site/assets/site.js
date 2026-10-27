@@ -179,7 +179,8 @@
     let lastA = null, lastB = null, prevPos = null;
     function syncCopy(k, clarity) {
       if (!k.copy || reduce) return; const v = clarity.toFixed(3); if (k.copy.dataset.c === v) return; k.copy.dataset.c = v;
-      k.copy.style.opacity = v; k.copy.style.transform = clarity >= 0.999 ? '' : `translateY(${((1 - clarity) * 14).toFixed(1)}px)`;
+      // 語が溶けている間も本文は読める下限（0.35）を残す。2026-10-27 模擬ユーザー 2/2「章の間で止まると文字が薄くて読めない」
+      k.copy.style.opacity = (clarity >= 0.999 ? 1 : 0.35 + 0.65 * clarity).toFixed(3); k.copy.style.transform = clarity >= 0.999 ? '' : `translateY(${((1 - clarity) * 14).toFixed(1)}px)`;
     }
     function draw(now) {
       const t0 = performance.now(); const dt = lastNow ? Math.min(now - lastNow, 100) : 16.7; lastNow = now;
@@ -417,7 +418,7 @@
     // 1 画面目: Home で作った地図があれば、見本の地図と入れ替える
     try { const raw = sessionStorage.getItem('reyz.map.r'); if (raw) { const m = JSON.parse(raw); if (m && m.who === who && m.goal && m.place && m.step) {
       const id = who === 'creator' ? 'dm' : 'dn'; const put = (k, v) => { const el = document.getElementById(id + k); if (el) el.textContent = v; };
-      put('Place', m.place); put('Step', m.step); put('Goal', m.goal); put('From', 'ホームで作った、あなたの地図。'); demo.classList.add('has-map'); ECHO.map = 'あなたの地図。'; } } } catch (err) { /* 見本の地図のまま */ }
+      put('Place', m.place); put('Step', m.step); put('Goal', m.goal); put('From', 'ホームで作った、あなたの地図。'); const home = document.getElementById(id + 'Home'); if (home) home.hidden = true; demo.classList.add('has-map'); ECHO.map = 'あなたの地図。'; } } } catch (err) { /* 見本の地図のまま */ }
     say('map');
     if (who === 'creator') {
       // 入口 → 明細: 「受ける」を押したものだけが明細に並ぶ（押し直すと外れる）
@@ -431,6 +432,7 @@
         sum.hidden = !on.length; badge('stmt', on.length);
       };
       for (const b of takes) b.addEventListener('click', () => { const now = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(now)); b.textContent = now ? '受けた' : '受ける'; draw(); });
+      demo.resetCheck = () => { for (const b of takes) { b.setAttribute('aria-pressed', 'false'); b.textContent = '受ける'; } draw(); };   // 「最初から」: 受けたものも戻す
       draw();
     } else {
       // 確認: 例を選ぶ → 3 つの AI が確かめる → 一致しなければ止まる（理由を添える）→ 直して再確認 → 人が決める → 記録に 1 行
@@ -463,7 +465,7 @@
         const what = document.createElement('b'); what.textContent = d.name;
         const when = document.createElement('span'); when.className = 'when'; when.textContent = hh + ':' + mm;
         const how = document.createElement('span'); how.className = 'how';
-        how.append(d.rule + ' ・ AI ' + (d.ng.length ? '止 → 直して通' : '通') + ' ・ 人 '); const em = document.createElement('em'); em.textContent = b.dataset.d; how.append(em);
+        how.append(d.rule + ' ・ AI ' + (d.ng.length ? '止まった → 直して通った' : '通った') + ' ・ 人 '); const em = document.createElement('em'); em.textContent = b.dataset.d; how.append(em);
         li.append(what, when, how); rec.prepend(li); count++; badge('rec', count);
         demo.resetCheck(); show('rec', true);
       });

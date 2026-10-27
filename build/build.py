@@ -425,19 +425,20 @@ def demo_tabs(prefix, keys):
 def demo_pane(prefix, n, key, inner):
     return (f'                <div class="pane{" is-on" if n == 1 else ""}" id="{prefix}P{n}" role="tabpanel" aria-labelledby="{prefix}T{n}" data-p="{key}" tabindex="-1"{"" if n == 1 else " hidden"}>\n{inner}'
             '                </div>\n')
-def demo_map(prefix, place, step, goal, note, nxt, label):
+def demo_map(prefix, place, step, goal, nxt, label):
     return ('                  <div class="scr-map big"><span class="scr-line"></span>'
             f'<div class="scr-node"><i></i><b>今いる場所</b><span id="{prefix}Place">{place}</span></div>'
             f'<div class="scr-node"><i></i><b>最初の一歩</b><span id="{prefix}Step">{step}</span></div>'
             f'<div class="scr-node goal"><i></i><b>目的</b><span id="{prefix}Goal">{goal}</span></div></div>\n'
-            f'                  <p class="pane-note" id="{prefix}From">{note}</p>\n'
+            f'                  <p class="pane-note" id="{prefix}From">見本の地図です。</p>\n'
+            f'                  <a class="pane-link" id="{prefix}Home" href="index.html#map">ホームで、あなたの地図をつくる →</a>\n'
             f'                  <button class="go-btn" type="button" data-next="{nxt}">{label}</button>\n')
 SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
     '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・入口・明細。') + '</h3><p class="cap">' + jp('触って確かめられます。|名前や金額は入れていません。') + '</p><p class="echo" aria-hidden="true">地図から、始める。</p></div>\n'
     '            <div class="demo" id="demoC" data-demo="creator">\n' + demo_tabs('dc', [('map', '地図'), ('gate', '入口'), ('stmt', '明細')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
     demo_pane('dc', 1, 'map', demo_map('dm', '場所は決まっている。費用ゼロのLIVE支援と、商品紹介・案件を重ねる段階。', 'どこで、何を、いつ出すかをAIと一緒に決める。', '言葉にできている目的を、活動の順番にする。',
-                                      jp('見本の地図です。|ホームで選ぶと、あなたの地図が入ります。'), 'gate', 'この地図で、入口へ')) +
+                                      'gate', 'この地図で、入口へ')) +
     demo_pane('dc', 2, 'gate',
               '                  <p class="pane-cap">確認を通ったものだけが、届く。</p>\n'
               '                  <ul class="offers">'
@@ -451,7 +452,7 @@ SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
               '                  <ul class="stmt-rows" id="dmRows"><li class="empty">' + jp('入口で「受ける」と、|ここに並ぶ。') + '</li></ul>\n'
               '                  <div class="stmt-sum" id="dmSum" hidden><div class="scr-row"><b>報酬</b><span class="scr-bar full"><i></i></span><em>あなたへ</em></div><div class="scr-row"><b>手数料</b><span class="scr-bar"><i></i></span><em>0</em></div><div class="scr-row"><b>費用</b><span class="scr-bar"><i></i></span><em>0</em></div></div>\n'
               '                  <p class="pane-note">' + jp('記録はあなたのもの。|いつでも持ち出せる。') + '</p>\n'
-              '                  <button class="go-btn ghost" type="button" data-next="map">最初から</button>\n') +
+              '                  <button class="go-btn ghost" type="button" data-next="map" data-reset="1">最初から</button>\n') +
     '              </div></div>\n'
     '            </div>\n'
     '          </div>')
@@ -537,7 +538,7 @@ SCREENS_ENT = ('<div class="screens3 reveal">\n'
     '            <div class="demo" id="demoE" data-demo="company" data-run="">\n' + demo_tabs('de', [('map', '地図'), ('check', '確認'), ('rec', '記録')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
     demo_pane('de', 1, 'map', demo_map('dn', '事業と表現をつなぐ段階。映像制作・SNS運用と、クリエイターとの販売設計を重ねる。', '公開前に4つの法令（ステマ規制・景表法・医療広告・薬機法）に照らして確認する流れを組み込み、判断の材料を揃える。', '決まっている目的から逆算し、最短で届く手段と順番を決める。',
-                                      jp('見本の地図です。|ホームで選ぶと、あなたの地図が入ります。'), 'check', 'この地図で、確認へ')) +
+                                      'check', 'この地図で、確認へ')) +
     demo_pane('de', 2, 'check',
               '                  <p class="pane-cap">投稿の例を、ひとつ選ぶ。</p>\n'
               '                  <div class="samples" role="group" aria-label="投稿の例">'
@@ -578,7 +579,7 @@ section('pain', 'For you', 'こんな困りごとに', '',
         pains([jp('映像制作やSNSの運用を始めたい、見直したい。|でも、いつ、何を、どう進めれば|目的につながるのか、迷っている。'),
                jp('人を増やさずに、利益を増やしたい。|でも、制作、確認、運用に時間を取られ、|本来の仕事に集中できていない。'),
                jp('提案や選択肢が多すぎて、|会議のたびに「結局どちらに進むか」を|決めきれず、速度が落ちている。'),
-               jp('案件の表現チェック（ステマ規制・景表法）を|人手でやっていて、量に追いつかない。')])) + \
+               jp('案件の表現チェック|（ステマ規制・景表法）を|人手でやっていて、|量に追いつかない。')])) + \
 section('show', 'Video × SNS', '映像とSNSの、かたち。', jp('「きれい」で終わらせない。|目的から逆算してつくります。'),
         SHOWCASE +
         sub(jp('横の映像と、縦の映像を、|ひとつの設計で。')) +
