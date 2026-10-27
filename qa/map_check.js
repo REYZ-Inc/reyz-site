@@ -14,9 +14,10 @@ const EXPECT = {
   const b = await chromium.launch(); const fails = []; const F = (k, v) => { if (!v) fails.push(k); return v; }; const out = {};
   for (const [name, vp] of [['m390', { width: 390, height: 844, isMobile: true, hasTouch: true }], ['d1440', { width: 1440, height: 900 }]]) {
     const ctx = await b.newContext({ viewport: { width: vp.width, height: vp.height }, isMobile: !!vp.isMobile, hasTouch: !!vp.hasTouch }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(String(e)));
-    await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(400);
+    await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(1700);   // 読込直後 1.5 秒は先頭位置を保つ（start-at-top）ため、その後に操作する
     const t = s => s.replace(/ /g, ' ').trim();
-    const pick = async (q, aud, v) => { const sel = `.mq[data-q="${q}"][data-for="${aud}"] .opt[data-v="${v}"]`; await p.locator(sel).scrollIntoViewIfNeeded(); await p.click(sel); await p.waitForTimeout(120); };
+    // 章の本文は粒子の明瞭度に合わせて数 px 動く（transform）ため「静止待ち」はしない: 位置へ即時スクロールし、そのまま押す
+    const pick = async (q, aud, v) => { const sel = `.mq[data-q="${q}"][data-for="${aud}"] .opt[data-v="${v}"]`; await p.evaluate(s => document.querySelector(s).scrollIntoView({ block: 'center', behavior: 'instant' }), sel); await p.waitForTimeout(150); await p.click(sel, { force: true }); await p.waitForTimeout(120); };
     const visibleQs = () => p.evaluate(() => Array.from(document.querySelectorAll('.mq')).filter(g => !g.hidden).map(g => g.dataset.for + ':' + g.dataset.q));
     // 最初は「あなたは」だけ、結果は隠れている
     F(`${name}: only who at start`, JSON.stringify(await visibleQs()) === JSON.stringify(['all:who']) && await p.evaluate(() => document.getElementById('mapCard').hidden));
@@ -42,7 +43,7 @@ const EXPECT = {
     await pick('who', 'all', 'company'); await pick('goal', 'company', 'no'); await pick('focus', 'company', 'ops'); await pick('first', 'company', 'speed');
     out.company = await p.evaluate(() => { const t = el => el.innerText.replace(/ /g, ' ').trim(); return { hidden: document.getElementById('mapCard').hidden, goal: t(document.getElementById('mapGoal')), place: t(document.getElementById('mapPlace')), step: t(document.getElementById('mapStep')), noteHidden: document.getElementById('mapNote').hidden, liveHidden: document.getElementById('mapNoteLive').hidden }; });
     F(`${name}: company card`, !out.company.hidden && out.company.goal === EXPECT.company.goal && out.company.place === EXPECT.company.place && out.company.step === EXPECT.company.step && out.company.noteHidden && out.company.liveHidden);
-    await p.locator('#mapGo').scrollIntoViewIfNeeded(); await Promise.all([p.waitForNavigation({ waitUntil: 'load' }), p.click('#mapGo')]); await p.waitForTimeout(300);
+    await p.evaluate(() => document.getElementById('mapGo').scrollIntoView({ block: 'center', behavior: 'instant' })); await p.waitForTimeout(150); await Promise.all([p.waitForNavigation({ waitUntil: 'load' }), p.click('#mapGo', { force: true })]); await p.waitForTimeout(300);
     out.contact = await p.evaluate(() => ({ url: location.pathname, type: document.getElementById('cType').value, msg: document.getElementById('cMsg').value, stored: sessionStorage.getItem('reyz.map') }));
     F(`${name}: contact url`, /contact$/.test(out.contact.url)); F(`${name}: type carried`, out.contact.type === EXPECT.company.type);
     F(`${name}: message carried`, out.contact.msg.startsWith('【あなたの地図（ホームで選んだ内容）】\n目的: ' + EXPECT.company.goal) && out.contact.msg.includes('最初の一歩: ' + EXPECT.company.step));
