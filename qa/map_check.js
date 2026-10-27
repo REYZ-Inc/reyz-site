@@ -26,6 +26,9 @@ const EXPECT = {
     await pick('goal', 'creator', 'yes'); await pick('place', 'creator', 'yes'); await pick('style', 'creator', 'live'); await pick('make', 'creator', 'share'); await pick('value', 'creator', 'last');
     out.creator = await p.evaluate(() => { const t = el => el.innerText.replace(/ /g, ' ').trim(); return { hidden: document.getElementById('mapCard').hidden, goal: t(document.getElementById('mapGoal')), place: t(document.getElementById('mapPlace')), step: t(document.getElementById('mapStep')), noteHidden: document.getElementById('mapNote').hidden, note: t(document.getElementById('mapNote')), liveHidden: document.getElementById('mapNoteLive').hidden, live: t(document.getElementById('mapNoteLive')), pressed: Array.from(document.querySelectorAll('.opt[aria-pressed="true"]')).map(b => b.dataset.v) }; });
     F(`${name}: creator card shown`, !out.creator.hidden);
+    // 地図の線: 3 つの点を結ぶ path が引かれている（長さ > 0、点は 3 つ）
+    const route = await p.evaluate(() => { const path = document.querySelector('#mapRoute path'); return { len: path ? path.getTotalLength() : 0, dots: document.querySelectorAll('#mapRoute .dot').length, live: document.getElementById('mapCard').classList.contains('is-live') }; });
+    F(`${name}: route drawn (${JSON.stringify(route)})`, route.len > 50 && route.dots === 3 && route.live);
     F(`${name}: creator goal text`, out.creator.goal === EXPECT.creator.goal); F(`${name}: creator place text`, out.creator.place === EXPECT.creator.place); F(`${name}: creator step text`, out.creator.step === EXPECT.creator.step);
     F(`${name}: creator note`, !out.creator.noteHidden && out.creator.note === EXPECT.creator.note);
     F(`${name}: LIVE note is the fixed text`, !out.creator.liveHidden && out.creator.live === EXPECT.creator.live);

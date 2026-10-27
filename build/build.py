@@ -823,7 +823,7 @@ with open(os.path.join(ROOT, 'robots.txt'), 'w', encoding='utf-8') as f:
     f.write(f'User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n')
 with open(os.path.join(ROOT, 'sitemap.xml'), 'w', encoding='utf-8') as f:
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-            ''.join(f'  <url><loc>{SITE_URL}/{clean(p)}</loc></url>\n' for p in PAGES) + '</urlset>\n')
+            ''.join(f'  <url><loc>{SITE_URL}/{clean(p)}</loc></url>\n' for p in PAGES if p != 'works.html') + '</urlset>\n')   # /works は 2026-10-27 CEO「作品例を記載しない」により導線・sitemap から外す（ファイルは旧 URL のために残す）
 # Cloudflare Pages / Netlify が読む付属設定（他のホスティングでは無視される）
 host = SITE_URL.split('//', 1)[1]
 with open(os.path.join(ROOT, '_headers'), 'w', encoding='utf-8') as f:
