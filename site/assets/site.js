@@ -396,7 +396,7 @@
      ================================================================ */
   for (const demo of document.querySelectorAll('.demo')) {
     const who = demo.dataset.demo, tabs = Array.from(demo.querySelectorAll('.tab')), panes = Array.from(demo.querySelectorAll('.pane'));
-    const echo = demo.parentElement.querySelector('.echo'), ECHO = who === 'creator' ? { map: 'あなたの地図。', gate: '受けるかは、あなた。', stmt: '報酬から、引かない。' } : { map: '目的から、逆算。', check: '選ぶと、動く。', go: '確かめている。', stop: '止まる。', pass: '通る。', rec: '残る。' };
+    const echo = demo.parentElement.querySelector('.echo'), ECHO = who === 'creator' ? { map: '地図から、始める。', gate: '受けるかは、あなた。', stmt: '報酬から、引かない。' } : { map: '目的から、逆算。', check: '選ぶと、動く。', go: '確かめている。', stop: '止まる。', pass: '通る。', rec: '残る。' };
     const say = k => { if (!echo || !ECHO[k]) return; echo.textContent = ECHO[k]; echo.classList.remove('is-live'); void echo.offsetWidth; echo.classList.add('is-live'); };
     const badge = (key, n) => { const t = tabs.find(x => x.dataset.t === key); const b = t && t.querySelector('.n'); if (!b) return; b.textContent = String(n); b.hidden = n === 0; };
     const show = (key, focus) => {
@@ -417,7 +417,8 @@
     // 1 画面目: Home で作った地図があれば、見本の地図と入れ替える
     try { const raw = sessionStorage.getItem('reyz.map.r'); if (raw) { const m = JSON.parse(raw); if (m && m.who === who && m.goal && m.place && m.step) {
       const id = who === 'creator' ? 'dm' : 'dn'; const put = (k, v) => { const el = document.getElementById(id + k); if (el) el.textContent = v; };
-      put('Place', m.place); put('Step', m.step); put('Goal', m.goal); put('From', 'ホームで作った、あなたの地図。'); demo.classList.add('has-map'); } } } catch (err) { /* 見本の地図のまま */ }
+      put('Place', m.place); put('Step', m.step); put('Goal', m.goal); put('From', 'ホームで作った、あなたの地図。'); demo.classList.add('has-map'); ECHO.map = 'あなたの地図。'; } } } catch (err) { /* 見本の地図のまま */ }
+    say('map');
     if (who === 'creator') {
       // 入口 → 明細: 「受ける」を押したものだけが明細に並ぶ（押し直すと外れる）
       const rows = document.getElementById('dmRows'), sum = document.getElementById('dmSum'), takes = Array.from(demo.querySelectorAll('.take'));

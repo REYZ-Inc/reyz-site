@@ -433,7 +433,7 @@ def demo_map(prefix, place, step, goal, note, nxt, label):
             f'                  <p class="pane-note" id="{prefix}From">{note}</p>\n'
             f'                  <button class="go-btn" type="button" data-next="{nxt}">{label}</button>\n')
 SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
-    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・入口・明細。') + '</h3><p class="cap">' + jp('触って確かめられます。|名前や金額は入れていません。') + '</p><p class="echo" aria-hidden="true">あなたの地図。</p></div>\n'
+    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・入口・明細。') + '</h3><p class="cap">' + jp('触って確かめられます。|名前や金額は入れていません。') + '</p><p class="echo" aria-hidden="true">地図から、始める。</p></div>\n'
     '            <div class="demo" id="demoC" data-demo="creator">\n' + demo_tabs('dc', [('map', '地図'), ('gate', '入口'), ('stmt', '明細')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
     demo_pane('dc', 1, 'map', demo_map('dm', '場所は決まっている。費用ゼロのLIVE支援と、商品紹介・案件を重ねる段階。', 'どこで、何を、いつ出すかをAIと一緒に決める。', '言葉にできている目的を、活動の順番にする。',
