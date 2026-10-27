@@ -288,7 +288,7 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h1><span>無限の可能性を</span><span>かたちに</span></h1>
           <p class="hero-sub">From Japan, <em>beyond.</em></p>
-          <p class="lead hero-lead">{jp('クリエイターから一円も取らず、|収入と活動を3つの画面にまとめる基盤。\n企業には、公開前の確認と、|決定ごとの記録を。\n確認を通った案件と商品だけが、|クリエイターの入口に届く。')}</p>
+          <p class="lead hero-lead">{jp('クリエイターには、一円も取らずに、|収入と活動をまとめる3つの画面を。\n企業には、公開するすべてに、|地図・確認・記録の3つの画面を。\n確認を通った案件と商品だけが、|企業からクリエイターへ届く。')}</p>
           <a class="cue" href="#origin" aria-label="下へ"><span class="cue-line"></span><span class="cue-dot"></span></a>
         </div>
       </div>
