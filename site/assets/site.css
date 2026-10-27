@@ -740,3 +740,12 @@ html.no-js .film .ttl, html.no-js .film .lower, html.no-js .film.story.k1 .s1, h
 
 .section .check { max-width: 40rem; }
 @media (min-width: 900px) { .section .check { --bw: min(62rem, calc(100vw - 2 * var(--gutter) - 24px)); width: var(--bw); max-width: none; margin-inline: calc((100% - var(--bw)) / 2); } }
+/* JavaScript なし: 見本と確認は完成状態で表示 */
+html.no-js .scr-card.ok, html.no-js .scr-ai em, html.no-js .scr-decide span.y { opacity: 1; transform: none; }
+html.no-js .scr-ai s { transform: none; }
+html.no-js .scr-bar.full i { width: 100%; }
+html.no-js .scr-map .scr-line::after { display: none; }
+html.no-js .lane .wire { transform: none; }
+html.no-js .lane .mark::before { content: "\2713"; }
+html.no-js .check-human .dot.human { background: var(--accent); }
+html.no-js .film.story .prog i::after { width: 100%; }
