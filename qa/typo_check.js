@@ -2,7 +2,7 @@
 const { chromium } = require('playwright'); const path = require('path'); const fs = require('fs');
 (async () => {
   const b = await chromium.launch(); const out = {};
-  for (const f of ['__viewer_sim.html', 'index.html', 'creator.html', 'creative.html', 'ai.html', 'consensus.html', 'contact.html', 'legal.html', 'works.html']) {
+  for (const f of ['__viewer_sim.html', 'index.html', 'creator.html', 'creative.html', 'ai.html', 'consensus.html', 'contact.html', 'legal.html']) {
     const p = await b.newPage({ viewport: { width: 390, height: 844 } }); await p.goto('file://' + path.resolve('site/' + f), { waitUntil: 'load' }); await p.waitForTimeout(1200);
     out[f] = await p.evaluate(() => {
       const lum = c => { const m = c.match(/[\d.]+/g).map(Number); const a = m[3] === undefined ? 1 : m[3]; const [r, g, b] = m; return Math.round((0.2126 * r + 0.7152 * g + 0.0722 * b) * a); };

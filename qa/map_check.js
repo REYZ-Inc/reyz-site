@@ -1,3 +1,4 @@
+// DEC-20261027-04（Home の地図 → 3 つの画面 → 相談の連動）
 // Home 章 3「あなたの地図」: 選択 → 結果（正本の文のまま）→ 「この内容で相談する」→ contact にご用件・内容が引き継がれる。
 // 使い方: node qa/map_check.js site  → JSON { fails: [...] }（fails が空なら PASS）
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');

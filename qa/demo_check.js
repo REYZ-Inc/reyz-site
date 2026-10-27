@@ -1,3 +1,4 @@
+// DEC-20261027-04（押す・選ぶ・引き継ぐの深さ）・DEC-20261027-16（見本の 1 画面目「地図」を残す）
 // /creator・/creative の「3 つの画面」見本（1 台の画面を実際に触る）: Home の地図が 1 画面目に入る／入口で「受ける」と明細に並ぶ／確認は 止まる → 直して通る → 人が決める → 記録に 1 行。
 // 使い方: node qa/demo_check.js site  → JSON { fails: [...] }（fails が空なら PASS）
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');
