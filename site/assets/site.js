@@ -538,21 +538,16 @@
     try { const raw = sessionStorage.getItem('reyz.map'); if (raw) { const m = JSON.parse(raw); sessionStorage.removeItem('reyz.map');
       const sel = $('cType'); if (m.type && Array.from(sel.options).some(o => o.textContent === m.type)) sel.value = m.type;
       const msg = $('cMsg'); if (m.body && !msg.value) msg.value = m.body + '\n\n'; } } catch (err) { /* 引き継ぎなし */ }
-    // メールアドレス: @より前（入力）＋ドメイン（選択。会社ドメイン等は「その他」で入力）。貼り付けで全体が入った場合は自動で分割
-    const local = $('cLocal'), domainSel = $('cDomain'), domainOther = $('cDomainOther'), emailHidden = $('cEmail');
-    const LOCAL_RE = /^[A-Za-z0-9._%+\-]+$/, DOMAIN_RE = /^[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
-    const syncOther = () => { const other = domainSel.value === '__other'; domainOther.hidden = !other; domainOther.required = other; if (other && document.activeElement === domainSel) domainOther.focus(); };
-    domainSel.addEventListener('change', syncOther); syncOther();
-    const splitPasted = () => { const v = local.value.trim(); const at = v.indexOf('@'); if (at < 0) return; const l = v.slice(0, at), d = v.slice(at + 1).toLowerCase(); local.value = l; const opt = Array.from(domainSel.options).find(o => o.value === d); if (opt) { domainSel.value = d; } else { domainSel.value = '__other'; domainOther.value = d; } syncOther(); };
-    local.addEventListener('change', splitPasted); local.addEventListener('blur', splitPasted); local.addEventListener('paste', () => setTimeout(splitPasted, 0));
-    const domain = () => (domainSel.value === '__other' ? domainOther.value.trim().toLowerCase() : domainSel.value);
-    const email = () => (local.value.trim() && domain()) ? local.value.trim() + '@' + domain() : '';
-    const validateEmail = () => {
-      local.setCustomValidity(''); domainOther.setCustomValidity('');
-      if (local.value.trim() && !LOCAL_RE.test(local.value.trim())) local.setCustomValidity('@より前の部分に使えない文字が含まれています。');
-      if (domainSel.value === '__other' && domainOther.value.trim() && !DOMAIN_RE.test(domainOther.value.trim())) domainOther.setCustomValidity('ドメインの形式を確認してください（例: example.co.jp）。');
-      emailHidden.value = email();
-    };
+    // メールアドレスは 1 欄（DEC-20261027-18）。形式は type=email の判定に加え、ドメインに「.」があることを確かめる
+    const emailInput = $('cEmail');
+    const EMAIL_RE = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
+    const email = () => emailInput.value.trim().toLowerCase();
+    const validateEmail = () => { emailInput.setCustomValidity(''); if (email() && !EMAIL_RE.test(email())) emailInput.setCustomValidity('メールアドレスの形式を確認してください（例: name@example.co.jp）。'); };
+    // ご担当者は企業の用件を選んだときだけ（DEC-20261027-18）。クリエイター・その他では隠し、値も空にする
+    const typeSel = $('cType'), personLabel = $('personLabel'), personInput = $('cPerson');
+    const syncPerson = () => { const o = typeSel.selectedOptions[0]; const corp = !!(o && o.parentElement && o.parentElement.tagName === 'OPTGROUP' && o.parentElement.label === '企業の方'); personLabel.hidden = !corp; if (!corp) personInput.value = ''; };
+    typeSel.addEventListener('change', syncPerson); syncPerson();
+    emailInput.addEventListener('input', validateEmail);   // 直しながら消える
     const fields = () => ({ name: $('cName').value.trim(), person: $('cPerson').value.trim(), email: email(), type: $('cType').value, msg: $('cMsg').value.trim() });
     const text = f => '[REYZ お問い合わせ]\nご用件: ' + f.type + '\nお名前: ' + f.name + (f.person ? '\nご担当者: ' + f.person : '') + '\nメール: ' + f.email + '\n内容:\n' + f.msg;
     const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -612,7 +607,7 @@
     };
     // 入力 → 確認（履歴に1段積む: 戻るボタンで入力へ）
     form.addEventListener('submit', e => {
-      e.preventDefault(); status.textContent = ''; splitPasted(); validateEmail();
+      e.preventDefault(); status.textContent = ''; validateEmail();
       if (!form.reportValidity()) { status.textContent = '未入力または形式の誤りがある項目があります。'; return; }
       const f = fields(); list.textContent = '';
       for (const k of ['name', 'person', 'email', 'type', 'msg']) { if (!f[k]) continue; const row = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = LABELS[k]; const dd = document.createElement('dd'); dd.textContent = f[k]; row.append(dt, dd); list.append(row); }
