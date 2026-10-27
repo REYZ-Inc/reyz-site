@@ -70,6 +70,34 @@
         </div>
       </div>
     </section>
+    <section class="chapter" id="map">
+      <div class="wrap chapter-stack">
+        <div class="slot" data-word="map" aria-hidden="true"></div>
+        <div class="copy">
+          <div class="head"><p class="eyebrow">Your map</p><h2>あなたの地図を、<br>ここで。</h2><p class="lead"><span class="ph">いくつか選ぶと、</span><span class="ph">目的・今いる場所・最初の一歩を、</span><span class="ph">地図にして返します。</span></p></div>
+          <div class="mapper reveal" id="mapper">
+            <div class="mq" role="group" aria-labelledby="mq-all-who" data-q="who" data-for="all"><p class="q" id="mq-all-who">あなたは</p><div class="opts"><button type="button" class="opt" data-v="creator" aria-pressed="false">クリエイター</button><button type="button" class="opt" data-v="company" aria-pressed="false">企業</button></div></div>
+            <div class="mq" role="group" aria-labelledby="mq-creator-goal" data-q="goal" data-for="creator" hidden><p class="q" id="mq-creator-goal">目的は</p><div class="opts"><button type="button" class="opt" data-v="yes" aria-pressed="false">言葉にできている</button><button type="button" class="opt" data-v="no" aria-pressed="false">まだ決まっていない</button></div></div>
+            <div class="mq" role="group" aria-labelledby="mq-creator-place" data-q="place" data-for="creator" hidden><p class="q" id="mq-creator-place">活動する場所は</p><div class="opts"><button type="button" class="opt" data-v="yes" aria-pressed="false">決まっている</button><button type="button" class="opt" data-v="no" aria-pressed="false">まだ</button></div></div>
+            <div class="mq" role="group" aria-labelledby="mq-creator-style" data-q="style" data-for="creator" hidden><p class="q" id="mq-creator-style">やりたいのは</p><div class="opts"><button type="button" class="opt" data-v="live" aria-pressed="false">ライブ配信</button><button type="button" class="opt" data-v="post" aria-pressed="false">動画や投稿</button></div></div>
+            <div class="mq" role="group" aria-labelledby="mq-creator-make" data-q="make" data-for="creator" hidden><p class="q" id="mq-creator-make">制作は</p><div class="opts"><button type="button" class="opt" data-v="share" aria-pressed="false">REYZと分けたい</button><button type="button" class="opt" data-v="own" aria-pressed="false">自分の体制がある</button></div></div>
+            <div class="mq" role="group" aria-labelledby="mq-creator-value" data-q="value" data-for="creator" hidden><p class="q" id="mq-creator-value">大事にしたいのは</p><div class="opts"><button type="button" class="opt" data-v="last" aria-pressed="false">目標が変わっても続くこと</button><button type="button" class="opt" data-v="start" aria-pressed="false">まず始めること</button></div></div>
+            <div class="mq" role="group" aria-labelledby="mq-company-goal" data-q="goal" data-for="company" hidden><p class="q" id="mq-company-goal">目的は</p><div class="opts"><button type="button" class="opt" data-v="yes" aria-pressed="false">決まっている</button><button type="button" class="opt" data-v="no" aria-pressed="false">まだ整理できていない</button></div></div>
+            <div class="mq" role="group" aria-labelledby="mq-company-focus" data-q="focus" data-for="company" hidden><p class="q" id="mq-company-focus">力を入れたいのは</p><div class="opts"><button type="button" class="opt" data-v="media" aria-pressed="false">映像・SNS</button><button type="button" class="opt" data-v="ops" aria-pressed="false">業務の効率化・AI</button><button type="button" class="opt" data-v="abroad" aria-pressed="false">越境・販路</button></div></div>
+            <div class="mq" role="group" aria-labelledby="mq-company-first" data-q="first" data-for="company" hidden><p class="q" id="mq-company-first">最初に整えたいのは</p><div class="opts"><button type="button" class="opt" data-v="law" aria-pressed="false">表現と法令の確認</button><button type="button" class="opt" data-v="speed" aria-pressed="false">速さと省人化</button></div></div>
+            <div class="map-card" id="mapCard" hidden>
+              <div class="sheet-head"><p class="eyebrow">Your map · 設計上の見本</p><h3>あなたの地図</h3></div>
+              <dl class="map-rows"><div><dt>目的</dt><dd id="mapGoal"></dd></div><div><dt>今いる場所</dt><dd id="mapPlace"></dd></div><div><dt>最初の一歩</dt><dd id="mapStep"></dd></div></dl>
+              <p class="map-note" id="mapNote" hidden><span class="ph">費用はかからない。</span><span class="ph">REYZはクリエイターの報酬から</span><span class="ph">手数料を取らない。</span><span class="ph">やめるのも自由。</span></p>
+              <p class="map-note" id="mapNoteLive" hidden><span class="ph">※私達は、</span><span class="ph">TikTok社から委託を受けて</span><span class="ph">運営しているため、</span><br><span class="ph">ライバーさんの収益から</span><span class="ph">手数料を搾取する</span><span class="ph">モデルではありません。</span></p>
+              <p class="map-fine"><span class="ph">設計上の見本です。</span><span class="ph">相談で、</span><span class="ph">あなたの言葉に合わせて</span><span class="ph">作り直します。</span></p>
+              <div class="ctas tight"><a class="btn primary" id="mapGo" href="contact">この内容で相談する</a><button type="button" class="btn" id="mapReset">最初から</button></div>
+            </div>
+          </div>
+          <noscript><p class="lead"><span class="ph">この体験はJavaScriptが有効な環境で動きます。</span><br><a href="creator">クリエイターの方へ</a>　<a href="creative">企業の方へ</a></p></noscript>
+        </div>
+      </div>
+    </section>
     <section class="chapter" id="creator">
       <div class="wrap chapter-stack">
         <div class="slot" data-word="Creator" aria-hidden="true"></div>
@@ -96,7 +124,7 @@
         <a class="gate copy" href="ai">
           <p class="eyebrow">REYZ PLATFORM · AI Infrastructure</p>
           <h2>AIが支える。</h2>
-          <p class="lead">AIに任せた判断を、あとから説明できる状態に。</p>
+          <p class="lead">AIに任せた判断を、<br>あとから説明できる状態に。</p>
           <span class="go">AI</span>
         </a>
       </div>
@@ -105,7 +133,7 @@
       <div class="wrap chapter-stack">
         <div class="slot" data-word="Continue" aria-hidden="true"></div>
         <div class="head copy">
-          <h2>目的が変わっても、続く。</h2>
+          <h2>目的が変わっても、<br>続く。</h2>
           <p class="lead">人の目的は変わります。<br>REYZは、変わる前提で進め方をつくり、<br>変わったら組み直して続けます。<br>やり直しではなく、続きから。<br>クリエイターにも、企業にも。</p>
         </div>
       </div>

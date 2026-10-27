@@ -96,7 +96,7 @@ test('handle: 正常系 — Turnstile → token → 控え → 確認メール�
   assert.match(copy, /^From: REYZ Inc\. <no-reply@reyz\.inc>\r\nTo: contact@reyz\.inc\r\nReply-To: taro@example\.co\.jp\r\n/);
   assert.equal(decodeSubject(copy), '[REYZ お問い合わせ] AI基盤「Z」・SaaS導入｜株式会社テスト');
   const copyText = decodeBody(copy);
-  for (const s of ['受付: 2026-09-28 18:30 JST', 'ご用件: AI基盤「Z」・SaaS導入', 'お名前: 株式会社テスト', 'ご担当者様: 山田', 'メール: taro@example.co.jp', '内容:\n導入の相談です。\n2行目', '国: JP / Ray: ray1', 'ボット対策: 検証済み']) assert.ok(copyText.includes(s), s);
+  for (const s of ['受付: 2026-09-28 18:30 JST', 'ご用件: AI基盤「Z」・SaaS導入', 'お名前: 株式会社テスト', 'ご担当者: 山田', 'メール: taro@example.co.jp', '内容:\n導入の相談です。\n2行目', '国: JP / Ray: ray1', 'ボット対策: 検証済み']) assert.ok(copyText.includes(s), s);
   assert.ok(!copyText.includes('未検証'));
   assert.match(conf, /^From: REYZ Inc\. <no-reply@reyz\.inc>\r\nTo: taro@example\.co\.jp\r\nReply-To: contact@reyz\.inc\r\n/);
   assert.equal(decodeSubject(conf), '【REYZ】お問い合わせを受け付けました');
@@ -107,7 +107,7 @@ test('handle: 正常系 — Turnstile → token → 控え → 確認メール�
   const res2 = await handle(post({ ...good(), person: '' }), env(), deps(f));
   assert.equal(res2.status, 200);
   assert.deepEqual(f.calls.slice(4).map(c => c.url), [TURNSTILE_URL, GMAIL_URL, GMAIL_URL]);
-  assert.ok(!decodeBody(decodeRaw(f.calls[5].init)).includes('ご担当者様'));
+  assert.ok(!decodeBody(decodeRaw(f.calls[5].init)).includes('ご担当者'));
   // 期限が近づくと取り直す
   now += 3541 * 1000;
   await handle(post(good()), env(), deps(f));

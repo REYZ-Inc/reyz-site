@@ -41,7 +41,7 @@
     if (!canvas || !slots.length) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     let vw = 0, vh = 0, dpr = 1, N = 0, alphaGlobal = 1, skip = 1, lastNow = 0;
-    let px, py, psize, palpha, pphase, sprites = [], frameCost = [];
+    let px, py, psize, palpha, pphase, sprites = [], frameCost = [], skipChecked = false;
     let keys = [];             // { el, copy, word, box, cx, cy, kin, kout, soff, pts (local, centred), am }
     const bornAt = performance.now(); // intro: the first word gathers over ~1.2s and its copy appears with it
     let streamPts = null, streamLoop = null;   // local thread shapes (chapter travel / footer ∞), re-generated on layout
@@ -91,8 +91,8 @@
       const d = c.getImageData(0, 0, W, H).data, cand = []; for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) if (d[(y * W + x) * 4] > 128) cand.push(x, y);
       const M = cand.length / 2, out = new Float32Array(N * 2);
       if (!M) return out;
-      const idx = Array.from({ length: M }, (_, i) => i); idx.sort((p, q) => (cand[p * 2 + 1] - cand[q * 2 + 1]) || (cand[p * 2] - cand[q * 2]));
-      for (let i = 0; i < N; i++) { const k = idx[Math.floor(i * M / N)]; out[i * 2] = cand[k * 2] - W / 2 + (rnd(i, 1) - 0.5) * 2.4; out[i * 2 + 1] = cand[k * 2 + 1] - H / 2 + (rnd(i, 2) - 0.5) * 2.4; }
+      // cand is already in row-major order (y outer, x inner): sample it evenly, no sort needed
+      for (let i = 0; i < N; i++) { const k = Math.floor(i * M / N); out[i * 2] = cand[k * 2] - W / 2 + (rnd(i, 1) - 0.5) * 2.4; out[i * 2 + 1] = cand[k * 2 + 1] - H / 2 + (rnd(i, 2) - 0.5) * 2.4; }
       return out;
     }
     // the travel form: a thin vertical thread the cloud dissolves into while it moves between chapters
@@ -101,9 +101,34 @@
       const wobble = vw < 820 ? 1.2 : 2.2; for (let i = 0; i < N; i++) { const g = (rnd(i, 12) + rnd(i, 13) + rnd(i, 14) - 1.5) * 1.6; out[i * 2] = g * wobble; out[i * 2 + 1] = -len / 2 + len * (i / N) + (rnd(i, 15) - 0.5) * 6; }
       return out;
     }
-    const GEN = { infinity: (w, h) => lemniscate(w, h, 1), loop: (w, h) => lemniscate(w, h, 0.9), seed, ripple, line };
-    const ALPHA = { seed: 0.85, line: 0.42, loop: 0.9, ripple: 0.9 };
+    // the map: three points（今いる場所 → 最初の一歩 → 目的）joined by one track（正本 §10・§13: 紙の形ではなく、3 つの点が線で結ばれる軌道）
+    function map(w, h) {
+      const out = new Float32Array(N * 2), ax = w * 0.4, ay = h * 0.32;
+      const P = [[-ax, ay], [0, -ay * 0.15], [ax, -ay]], dotR = Math.min(w, h) * 0.075, nDot = Math.floor(N * 0.16);
+      for (let i = 0; i < N; i++) {
+        const k = i % 3;
+        if (i < nDot * 3) { const r = dotR * Math.pow(rnd(i, 31), 0.6), a = rnd(i, 32) * Math.PI * 2; out[i * 2] = P[k][0] + Math.cos(a) * r; out[i * 2 + 1] = P[k][1] + Math.sin(a) * r * 0.9; }
+        else { const t = (i - nDot * 3) / (N - nDot * 3), seg = t < 0.5 ? 0 : 1, u = (t - seg * 0.5) * 2, g = (rnd(i, 33) + rnd(i, 34) + rnd(i, 35) - 1.5) * 2.4;
+          out[i * 2] = P[seg][0] + (P[seg + 1][0] - P[seg][0]) * u + g * 0.6; out[i * 2 + 1] = P[seg][1] + (P[seg + 1][1] - P[seg][1]) * u + g * 1.6; }
+      }
+      return out;
+    }
+    const GEN = { infinity: (w, h) => lemniscate(w, h, 1), loop: (w, h) => lemniscate(w, h, 0.9), seed, ripple, line, map };
+    const ALPHA = { seed: 0.85, line: 0.42, loop: 0.9, ripple: 0.9, map: 0.9 };
     const shapeFor = (word, w, h) => (GEN[word] ? GEN[word](w, h) : text(word, w, h));
+    // shapes are sampled on first use (the chapter in view and the next one), the rest in idle time; identical sizes reuse the
+    // sample, so a re-layout (fonts loaded, toolbar resize) costs nothing for the words that did not move
+    const shapeCache = new Map();
+    function shapeOf(k) {
+      if (k.pts) return k.pts;
+      const id = k.word + '|' + N + '|' + k.box.w + '|' + k.box.h; let p = shapeCache.get(id);
+      if (!p) { if (shapeCache.size > 48) shapeCache.clear(); p = shapeFor(k.word, k.box.w, k.box.h); shapeCache.set(id, p); }
+      k.pts = p; return p;
+    }
+    let warming = false;
+    const idle = window.requestIdleCallback ? (f => window.requestIdleCallback(f, { timeout: 1500 })) : (f => setTimeout(f, 120));
+    function warm() { const k = keys.find(k => !k.pts); if (!k) { warming = false; return; } shapeOf(k); idle(warm); }
+    function startWarm() { if (warming) return; warming = true; idle(warm); }
 
     function layout() {
       vw = window.innerWidth; vh = window.innerHeight; dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -116,15 +141,16 @@
         sprites = [makeSprite(1.3), makeSprite(2.1)]; layout.done = false;
       }
       keys = slots.map(el => { const r = rectPage(el); const w = el.dataset.word; const stack = el.parentElement; const copy = stack ? stack.querySelector('.copy') : null;
-        return { el, copy, word: w, box: r, cx: 0, cy: 0, kin: 0, kout: 0, soff: 0, pts: shapeFor(w, r.w, r.h), am: ALPHA[w] || 1 }; });
+        return { el, copy, word: w, box: r, cx: 0, cy: 0, kin: 0, kout: 0, soff: 0, pts: null, am: ALPHA[w] || 1 }; });
       const first = keys[0].box; alphaGlobal = clamp(Math.sqrt((first.w * first.h) / (520 * 390)), 0.6, 1);
       streamPts = stream(Math.min(vh * 0.62, 460));
       const loop = keys.find(k => k.word === 'loop'); streamLoop = stream(loop ? loop.box.h * 1.4 : Math.min(vh * 0.4, 300));
       measureKeys();
       if (!layout.done) { // first paint: gather into the first shape from a loose scatter (static when motion is reduced)
-        layout.done = true; const k0 = keys[0]; const sc = reduce ? 0 : 1;
-        for (let i = 0; i < N; i++) { px[i] = k0.cx + k0.pts[i * 2] + (rnd(i, 21) - 0.5) * vw * 0.9 * sc; py[i] = k0.cy - window.scrollY + k0.pts[i * 2 + 1] + (rnd(i, 22) - 0.5) * vh * 0.9 * sc; }
+        layout.done = true; const k0 = keys[0], P0 = shapeOf(k0); const sc = reduce ? 0 : 1;
+        for (let i = 0; i < N; i++) { px[i] = k0.cx + P0[i * 2] + (rnd(i, 21) - 0.5) * vw * 0.9 * sc; py[i] = k0.cy - window.scrollY + P0[i * 2 + 1] + (rnd(i, 22) - 0.5) * vh * 0.9 * sc; }
       }
+      startWarm();
     }
     // scroll marks, all in scrollY terms:
     //   kin  — the word is fully formed (its slot centred in the viewport)
@@ -183,7 +209,7 @@
       const ease = (reduce || snap) ? 1 : 1 - Math.pow(0.86, dt / 16.67), breath = reduce ? 0 : 2.4;
       ctx.clearRect(0, 0, vw, vh); ctx.globalCompositeOperation = 'lighter';
       const R = 110, R2 = R * R, pointerOn = pointer.active && fine && !reduce;
-      const P = A.pts, Q = B.pts, firstHalf = fa < 1 || fb === 0;
+      const P = shapeOf(A), Q = B === A ? P : shapeOf(B), firstHalf = fa < 1 || fb === 0;
       for (let i = 0; i < N; i++) {
         const i2 = i * 2, ph = pphase[i], br = Math.sin(now * 0.0018 + ph) * breath;
         let lx, ly;
@@ -197,7 +223,8 @@
         const sp = sprites[psize[i]]; ctx.globalAlpha = palpha[i] * am * alphaGlobal; ctx.drawImage(sp.c, x - sp.s / 2, y - sp.s / 2, sp.s, sp.s);
       }
       ctx.globalAlpha = 1;
-      frameCost.push(performance.now() - t0); if (frameCost.length >= 90) { const avg = frameCost.reduce((a, c) => a + c, 0) / frameCost.length; skip = avg > 9 ? 2 : 1; frameCost.length = 0; }
+      // a slow device draws every second particle: decided after the first 24 frames, then re-checked every 90
+      frameCost.push(performance.now() - t0); if (frameCost.length >= (skipChecked ? 90 : 24)) { const avg = frameCost.reduce((a, c) => a + c, 0) / frameCost.length; skip = avg > 9 ? 2 : 1; frameCost.length = 0; skipChecked = true; }
     }
     let raf = 0, running = true;
     function loop(now) { if (!running) return; draw(now); raf = requestAnimationFrame(loop); }
@@ -218,7 +245,7 @@
     if (reduce) window.addEventListener('scroll', () => draw(performance.now()), { passive: true });
     layout(); remember();
     if (reduce) draw(performance.now()); else start();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { layout(); remember(); if (reduce) draw(performance.now()); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { shapeCache.clear(); layout(); remember(); if (reduce) draw(performance.now()); });
   })(); } catch (err) { /* the field is decorative: never let it take the page down */ }
 
   /* ================================================================
@@ -239,8 +266,78 @@
   if (fine) document.querySelectorAll('.gate').forEach(card => card.addEventListener('pointermove', e => { const r = card.getBoundingClientRect(); card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%'); card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%'); }, { passive: true }));
 
   /* ================================================================
+     MAP — Home 章 3「あなたの地図」。選ぶたびに次の問いが現れ、揃ったら 目的／今いる場所／最初の一歩 を返す。
+           文は事業正本（クリエイター正本 v1.0.1 §10・企業正本 v1.0.0 §13）のまま。
+           「この内容で相談する」→ contact（ご用件と内容を sessionStorage で引き継ぐ。送るのは本人）。
+     ================================================================ */
+  const MAP_TEXT = {
+    creator: {
+      goal: { yes: '言葉にできている目的を、活動の順番にする。', no: 'まず、目指すものをあなたの言葉で確かめる。' },
+      place: { 'yes:live': '場所は決まっている。費用ゼロのLIVE支援と、商品紹介・案件を重ねる段階。',
+               'yes:post': '場所は決まっている。案件や商品の紹介、ファンへの直販で収益をつくる段階。',
+               'no:live': 'LIVEから始める。合う場所と時間を決め、費用ゼロで立ち上げる段階。',
+               'no:post': 'あなたに合う場所を先に決め、案件や商品の紹介から始める段階。' },
+      step: { 'share:last': '企画・撮影・編集をREYZと分け、目標が変わっても続く進め方を決める。',
+              'share:start': '企画・撮影・編集を、REYZと分ける。',
+              'own:last': '目標が変わっても止まらない進め方を、AIと一緒に決める。',
+              'own:start': 'どこで、何を、いつ出すかをAIと一緒に決める。' },
+      type: '活動・収益化の相談', order: ['goal', 'place', 'style', 'make', 'value'] },
+    company: {
+      goal: { yes: '決まっている目的から逆算し、最短で届く手段と順番を決める。', no: 'まず、何を優先すれば一番利益が残るかを一緒に整理する。' },
+      place: { media: '事業と表現をつなぐ段階。映像制作・SNS運用と、クリエイターとの販売設計を重ねる。',
+               ops: '定型業務をAIと仕組みへ移し、最小の人数で最大の利益を生む体制をつくる段階。',
+               abroad: '国内の基盤を固めながら、アジアへの越境販売と多言語での発信を設計する段階。' },
+      step: { law: '公開前に4つの法令（ステマ規制・景表法・医療広告・薬機法）に照らして確認する流れを組み込み、判断の材料を揃える。',
+              speed: '経営と現場が「はい」か「いいえ」で迷わず決められるよう、判断の材料を揃える。' },
+      type: '目的の整理と進め方の相談', order: ['goal', 'focus', 'first'] }
+  };
+  const mapper = document.getElementById('mapper');
+  if (mapper) {
+    const groups = Array.from(mapper.querySelectorAll('.mq'));
+    const card = document.getElementById('mapCard'), note = document.getElementById('mapNote'), noteLive = document.getElementById('mapNoteLive');
+    const out = { goal: document.getElementById('mapGoal'), place: document.getElementById('mapPlace'), step: document.getElementById('mapStep') };
+    const ans = {};
+    // 文節（「、」「。」の直後）でだけ折り返す（build.py の jp() と同じ規則）
+    const phrase = (el, text) => { el.textContent = ''; for (const t of text.split(/(?<=[、。])/)) { if (!t) continue; const sp = document.createElement('span'); sp.className = 'ph'; sp.textContent = t; el.append(sp); } };
+    const groupOf = (q, aud) => groups.find(g => g.dataset.q === q && g.dataset.for === aud);
+    const compose = () => {
+      const who = ans.who, T = MAP_TEXT[who]; if (!T) return null;
+      if (who === 'creator') {
+        if (!(ans.goal && ans.place && ans.style && ans.make && ans.value)) return null;
+        return { goal: T.goal[ans.goal], place: T.place[ans.place + ':' + ans.style], step: T.step[ans.make + ':' + ans.value], live: ans.style === 'live', type: T.type };
+      }
+      if (!(ans.goal && ans.focus && ans.first)) return null;
+      return { goal: T.goal[ans.goal], place: T.place[ans.focus], step: T.step[ans.first], live: false, type: T.type };
+    };
+    const render = () => {
+      const who = ans.who;
+      for (const g of groups) { const aud = g.dataset.for; g.hidden = !(aud === 'all' || aud === who); }
+      if (who) { const order = MAP_TEXT[who].order; let open = true;
+        for (const q of order) { const g = groupOf(q, who); if (!g) continue; g.hidden = !open; if (open && !ans[q]) open = false; } }
+      for (const g of groups) for (const b of g.querySelectorAll('.opt')) b.setAttribute('aria-pressed', String(ans[g.dataset.q] === b.dataset.v && (g.dataset.for === 'all' || g.dataset.for === who)));
+      const r = compose(); mapper.dataset.done = r ? 'true' : 'false';
+      if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); note.hidden = who !== 'creator'; noteLive.hidden = !r.live; card.hidden = false;
+        if (!render.shown) { render.shown = true; const h = card.querySelector('h3'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } } }
+      else { card.hidden = true; render.shown = false; }
+    };
+    mapper.addEventListener('click', e => {
+      const b = e.target.closest('.opt'); if (!b) return; const g = b.closest('.mq'); const q = g.dataset.q;
+      if (q === 'who' && ans.who !== b.dataset.v) { for (const k of Object.keys(ans)) delete ans[k]; }
+      else if (ans[q] !== b.dataset.v) { const order = MAP_TEXT[ans.who] ? MAP_TEXT[ans.who].order : []; const i = order.indexOf(q); for (const k of order.slice(i + 1)) delete ans[k]; }
+      ans[q] = b.dataset.v; render();
+    });
+    const reset = document.getElementById('mapReset'); if (reset) reset.addEventListener('click', () => { for (const k of Object.keys(ans)) delete ans[k]; render(); const first = groups[0].querySelector('.opt'); if (first) first.focus({ preventScroll: true }); });
+    const go = document.getElementById('mapGo'); if (go) go.addEventListener('click', () => {
+      const r = compose(); if (!r) return;
+      const body = '【あなたの地図（ホームで選んだ内容）】\n目的: ' + r.goal + '\n今いる場所: ' + r.place + '\n最初の一歩: ' + r.step;
+      try { sessionStorage.setItem('reyz.map', JSON.stringify({ type: r.type, body })); } catch (err) { /* 引き継げないときは空のフォームへ */ }
+    });
+    render();
+  }
+
+  /* ================================================================
      WORKS — YouTube はクリックまで iframe を読み込まない（サムネイル＋再生マーク）。再生中は1本だけ。
-             mp4 はファイルが無ければ自ら非表示。全部消えたら「準備中」の注記だけが残る
+             mp4 はファイルが無ければ自ら非表示
      ================================================================ */
   const works = document.getElementById('works');
   if (works) {
@@ -292,7 +389,11 @@
     const $ = id => document.getElementById(id);
     const stepForm = $('stepForm'), stepConfirm = $('stepConfirm'), stepDone = $('stepDone'), status = $('status'), sendStatus = $('sendStatus'), list = $('confirmList'), copyLabel = $('copyLabel'), copyArea = $('copyArea'), sendBtn = $('sendBtn'), mailBtn = $('mailBtn'), doneNote = $('doneNote');
     const line = $('contactLine'); if (line && CONFIG.contactEmail) { line.textContent = 'お問い合わせ: ' + CONFIG.contactEmail; line.hidden = false; }
-    const LABELS = { name: 'お名前', person: 'ご担当者様', email: 'メールアドレス', type: 'ご用件', msg: '内容' };
+    const LABELS = { name: 'お名前', person: 'ご担当者', email: 'メールアドレス', type: 'ご用件', msg: '内容' };
+    // Home 章 3「あなたの地図」から来たとき: ご用件と内容を引き継ぐ（本人が確認して送る。引き継いだら消す）
+    try { const raw = sessionStorage.getItem('reyz.map'); if (raw) { const m = JSON.parse(raw); sessionStorage.removeItem('reyz.map');
+      const sel = $('cType'); if (m.type && Array.from(sel.options).some(o => o.textContent === m.type)) sel.value = m.type;
+      const msg = $('cMsg'); if (m.body && !msg.value) msg.value = m.body + '\n\n'; } } catch (err) { /* 引き継ぎなし */ }
     // メールアドレス: @より前（入力）＋ドメイン（選択。会社ドメイン等は「その他」で入力）。貼り付けで全体が入った場合は自動で分割
     const local = $('cLocal'), domainSel = $('cDomain'), domainOther = $('cDomainOther'), emailHidden = $('cEmail');
     const LOCAL_RE = /^[A-Za-z0-9._%+\-]+$/, DOMAIN_RE = /^[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
@@ -309,7 +410,7 @@
       emailHidden.value = email();
     };
     const fields = () => ({ name: $('cName').value.trim(), person: $('cPerson').value.trim(), email: email(), type: $('cType').value, msg: $('cMsg').value.trim() });
-    const text = f => '[REYZ お問い合わせ]\nご用件: ' + f.type + '\nお名前: ' + f.name + (f.person ? '\nご担当者様: ' + f.person : '') + '\nメール: ' + f.email + '\n内容:\n' + f.msg;
+    const text = f => '[REYZ お問い合わせ]\nご用件: ' + f.type + '\nお名前: ' + f.name + (f.person ? '\nご担当者: ' + f.person : '') + '\nメール: ' + f.email + '\n内容:\n' + f.msg;
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     /* Turnstile（ボット対策）。状態: off（サイトキー未設定）/ pending / blocked（スクリプトが読めない）/ rendered / ok（トークン取得）/ error:<code> / render-error / unsupported
@@ -399,8 +500,8 @@
       const f = fields(); const body = text(f); sendBtn.disabled = true; copyLabel.hidden = true; if (mailBtn) mailBtn.hidden = true;
       if (!CONFIG.formEndpoint) {   // 送信先が未設定: 文面をコピーして案内（公開前の暫定挙動）
         const note = CONFIG.lineUrl ? 'メールまたはLINEでお送りください。' : 'メールでお送りください。';
-        try { await navigator.clipboard.writeText(body); fallback('送信先を準備中のため、文面をコピーしました。' + note, body); }
-        catch (err) { fallback('送信先を準備中です。下の文面をコピーして' + note, body); copyArea.focus(); copyArea.select(); }
+        try { await navigator.clipboard.writeText(body); fallback('この環境からは送信できないため、文面をコピーしました。' + note, body); }
+        catch (err) { fallback('この環境からは送信できません。下の文面をコピーして' + note, body); copyArea.focus(); copyArea.select(); }
         return;
       }
       if (tsBox && tsBox.offsetHeight > 20 && !ts.token) { sendStatus.textContent = '上の確認（ボット対策）を完了してから「送信」を押してください。'; sendBtn.disabled = false; return; }
