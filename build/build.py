@@ -160,13 +160,6 @@ def pains(lst):
 def stages(lst):
     """ページ冒頭の構成予告（01 誰のため … 04 任せ方）"""
     return '<ol class="stages reveal">\n' + '\n'.join(f'            <li><span class="n">{n:02d}</span><strong>{t}</strong><span>{p}</span></li>' for n, (t, p) in enumerate(lst, 1)) + '\n          </ol>'
-def cycle(lst):
-    """続け方（把握→設計→制作・投稿→記録で報告→目標が変わったら組み直す）。最後の項目は輪を閉じる"""
-    out = []
-    for n, (t, p) in enumerate(lst, 1):
-        cls = ' class="loop"' if n == len(lst) else ''
-        out.append(f'            <li{cls}><span class="n">{n:02d}</span><strong>{t}</strong><span>{p}</span></li>')
-    return '<ol class="cycle reveal">\n' + '\n'.join(out) + '\n          </ol>'
 def sub(h3, lead=''):
     """セクション内の小見出し＋導入文"""
     return f'\n          <h3 class="sub reveal">{h3}</h3>' + (f'\n          <p class="lead reveal">{lead}</p>' if lead else '')
@@ -262,11 +255,7 @@ MAPPER = mapper()
 # 書くのは確認できる事実だけ: 公開リポジトリ REYZ-Inc/reyz-site（変更ごとの自動検査・人の承認。ブランチ保護＋必須チェック＋CEO の merge）、決定の通し番号つき記録（2026-09〜、2026-10-23 時点で 517 番）、設計書の版。人数・規模・「共生」は書かない（2026-09-26 除外文言）
 PROOF = ('<div class="proof reveal">\n'
     '            <p class="proof-head">' + jp('REYZ自身が、|この仕組みで動いています。') + '</p>\n'
-    '            <ol class="proof-list">\n'
-    '              <li><strong>このサイト</strong><p>' + jp('変更ごとに自動の検査と人の承認を通って公開。|記録は公開。') + '</p><a class="go" href="https://github.com/REYZ-Inc/reyz-site/pulls?q=is%3Apr+is%3Amerged" rel="noopener">変更の記録（GitHub・英語）</a></li>\n'
-    '              <li><strong>会社の決定</strong><p>' + jp('複数のAIが検証し、人が決め、通し番号つきで記録。|記録の通し番号は、2026年10月23日時点で517。') + '</p></li>\n'
-    '              <li><strong>事業の設計書</strong><p>' + jp('同じ流れで、版を重ねる。') + '</p></li>\n'
-    '            </ol>\n'
+    '            <a class="go" href="https://github.com/REYZ-Inc/reyz-site/pulls?q=is%3Apr+is%3Amerged" rel="noopener">変更の記録（GitHub・英語）</a>\n'
     '          </div>')
 
 # ------------------------------------------------------------------ HOME 章「AI」の道具「確認」: 提供元の異なる複数の AI が確かめ → 人が はい／いいえ → 記録。一致しなければ止まる。
@@ -310,7 +299,6 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h2>ひとつの意志から。</h2>
           <p class="lead">REYZは、クリエイターと企業の「やりたい」を、<br>かたちにします。</p>
-          <p class="lead">映像制作、SNSアカウントの運用、<br>仕事の仕組みづくり、判断の支え。</p>
           <div class="ctas"><a class="btn" href="creator.html">クリエイターの方へ</a><a class="btn" href="creative.html">企業の方へ</a></div>
         </div>
       </div>
@@ -319,7 +307,7 @@ home = f'''    <section class="chapter" id="infinity">
       <div class="wrap chapter-stack">
         {slot('map')}
         <div class="copy wide">
-          <div class="head"><p class="eyebrow">Your map</p><h2>あなたの地図を、<br>ここで。</h2><p class="lead">{jp('いくつか選ぶと、|地図にして返します。')}</p></div>
+          <div class="head"><p class="eyebrow">Your map</p><h2>あなたの地図を、<br>ここで。</h2></div>
 {MAPPER}
           <noscript><p class="lead">{jp('この体験はJavaScriptが有効な環境で動きます。')}<br><a href="creator.html">クリエイターの方へ</a>　<a href="creative.html">企業の方へ</a></p></noscript>
         </div>
@@ -362,7 +350,7 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h2>目的が変わっても、<br>続く。</h2>
 {CONTINUE}
-          <p class="lead">変わったら、組み直して続けます。<br>やり直しではなく、続きから。</p>
+          <p class="lead">やり直しではなく、続きから。</p>
         </div>
       </div>
     </section>
@@ -402,7 +390,6 @@ MODEL = ('<div class="model reveal">\n'
     '            <div class="fund flowmap">\n'
     '              <div class="flow"><span class="from">' + jp('プラットフォーム・|企業') + '</span><span class="fl-lane" aria-hidden="true"><i></i><i></i><i></i></span><span class="to">REYZ</span><span class="what">報酬・利用料</span></div>\n'
     '              <div class="flow zero"><span class="from">あなた</span><span class="fl-lane" aria-hidden="true"></span><span class="to">REYZ</span><span class="what">0円</span></div>\n'
-    '              <p>' + jp('あなたの報酬からは、引きません。') + '</p>\n'
     '            </div>\n'
     '            <div class="terms">\n'
     '              <p class="terms-head">はっきり決めていること</p>\n'
@@ -434,7 +421,7 @@ def demo_map(prefix, place, step, goal, nxt, label):
             f'                  <a class="pane-link" id="{prefix}Home" href="index.html#map">ホームで、あなたの地図をつくる →</a>\n'
             f'                  <button class="go-btn" type="button" data-next="{nxt}">{label}</button>\n')
 SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
-    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・入口・明細。') + '</h3><p class="cap">' + jp('触って確かめられます。|名前や金額は入れていません。') + '</p><p class="echo" aria-hidden="true">地図から、始める。</p></div>\n'
+    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・入口・明細。') + '</h3><p class="echo" aria-hidden="true">地図から、始める。</p></div>\n'
     '            <div class="demo" id="demoC" data-demo="creator">\n' + demo_tabs('dc', [('map', '地図'), ('gate', '入口'), ('stmt', '明細')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
     demo_pane('dc', 1, 'map', demo_map('dm', '場所は決まっている。費用ゼロのLIVE支援と、商品紹介・案件を重ねる段階。', 'どこで、何を、いつ出すかをAIと一緒に決める。', '言葉にできている目的を、活動の順番にする。',
@@ -472,18 +459,7 @@ section('services', 'Services', '提供すること', '',
         f'              <p>{TT_P2}</p>\n'
         f'              <p class="note">{TT_NOTE}</p>\n'
         '            </div>\n'
-        '            <div class="item">\n'
-        f'              <h3>{VD_H3}</h3>\n'
-        f'              <p>{VD_P}</p>\n'
-        '            </div>\n'
-        + fold('あなたを知るところから', jp('''得意なこと、今のフォロワー、|生活のリズム、目指す収入。
-まずあなたを正確に知り、|目的をあなたの言葉で確かめます。''')) + '\n'
-        + fold('合う場所と、順番を決める', jp('''TikTok、YouTube、Instagram、ライブ配信。
-あなたに合う場所と、|いつ、何を、どう出すかを決めて渡します。
-迷う時間をなくします。''')) + '\n'
-        + fold('目標が変わっても、続ける', jp('''伸びているかを一緒に見て、|次の一手を決めます。
-目標が変わったら、|進め方を組み直して続けます。
-これまでのファンと作品を活かして、|続きから。''')) + '\n'
+        + fold(VD_H3, VD_P) + '\n'
         + fold('SNSアカウントの運用支援', jp('''投稿の計画、制作、分析、改善。
 ライブ配信の企画と継続まで、|あなたの活動に合わせて、|続けられる形で支えます。''')) + '\n'
         + fold('表現と案件・広告の確認', jp('''発信の内容や、タイアップ・広告の表現に|問題がないかを公開前に確かめます。
@@ -534,7 +510,7 @@ SHOWCASE = ('<div class="showcase reveal">\n'
 # 確認を実際に通す見本（正本 §3-1・§11）: 投稿の例を選ぶ → 提供元の異なる複数の AI が確かめる → 一致しないものは止まる → 直して再確認 → 人が はい／いいえ → 記録に 1 行。
 # 公的ガイドラインと自主基準への照合の例であり、法律の鑑定ではない（正本 §11「今すぐ書いてよい」の添え書き）
 SCREENS_ENT = ('<div class="screens3 reveal">\n'
-    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・確認・記録。') + '</h3><p class="cap">' + jp('投稿の例を選ぶと、確認が動きます。|公的ガイドラインと自主基準への照合の例で、|法律の鑑定ではありません。') + '</p><p class="echo" aria-hidden="true">目的から、逆算。</p></div>\n'
+    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・確認・記録。') + '</h3><p class="cap">' + jp('公的ガイドラインと自主基準への|照合の例。|法律の鑑定ではありません。') + '</p><p class="echo" aria-hidden="true">目的から、逆算。</p></div>\n'
     '            <div class="demo" id="demoE" data-demo="company" data-run="">\n' + demo_tabs('de', [('map', '地図'), ('check', '確認'), ('rec', '記録')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
     demo_pane('de', 1, 'map', demo_map('dn', '事業と表現をつなぐ段階。映像制作・SNS運用と、クリエイターとの販売設計を重ねる。', '公開前に4つの法令（ステマ規制・景表法・医療広告・薬機法）に照らして確認する流れを組み込み、判断の材料を揃える。', '決まっている目的から逆算し、最短で届く手段と順番を決める。',
@@ -581,14 +557,7 @@ section('pain', 'For you', 'こんな困りごとに', '',
                jp('提案や選択肢が多すぎて、|会議のたびに「結局どちらに進むか」を|決めきれず、速度が落ちている。'),
                jp('案件の表現チェック|（ステマ規制・景表法）を|人手でやっていて、|量に追いつかない。')])) + \
 section('show', 'Video × SNS', '映像とSNSの、かたち。', jp('「きれい」で終わらせない。|目的から逆算してつくります。'),
-        SHOWCASE +
-        sub(jp('横の映像と、縦の映像を、|ひとつの設計で。')) +
-        sub(jp('つくって終わりにしない。|続け方。')) +
-        cycle([('目的と相手を知る', '何のために、誰に。'),
-               ('いつ、何を、どう', '進め方を決めて渡す。'),
-               ('制作と投稿', '映像をつくり、出す。'),
-               ('記録で報告', '何が効いたかを、事実で。'),
-               ('目標が変わったら', '組み直して、続きから。')]) + more('contact.html', '相談する')) + \
+        SHOWCASE + more('contact.html', '相談する')) + \
 section('services', 'Services', 'REYZがすること', '',
         items_fold([('目的を言葉にし、進め方を決める', jp('何のために、いつまでに、何を。|目的を正確に汲み取り、|いつ、何を、どう進めるかを決めて渡します。\n目的が変わったら、|進め方を組み直して続けます。')),
                ('最小の人数で、最大の利益を', jp('調査、台本、一次制作、進行管理、集計。|人がやらなくていい仕事を|AIと仕組みに移します。\n人は決めることと伝えることに集中し、|少ない人数で利益を生む体制をつくります。')),

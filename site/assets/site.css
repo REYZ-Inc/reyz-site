@@ -278,12 +278,6 @@ html.no-js .reveal { animation: none; }
 .pains li { display: grid; grid-template-columns: auto 1fr; gap: 0.9rem; align-items: start; padding: 1rem 1.1rem; border-left: 2px solid var(--accent); background: rgba(255, 255, 255, 0.03); }
 .pains .n { font-family: var(--font-en); font-size: 0.7rem; letter-spacing: 0.24em; color: var(--text-3); padding-top: 0.35em; font-variant-numeric: tabular-nums; }
 .pains p { color: var(--text); font-size: 0.96em; line-height: 1.85; }
-.stages { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; max-width: 40rem; }
-.stages li { display: grid; gap: 0.25rem; padding: 0.9rem 0.9rem 1rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); }
-.stages .n { font-family: var(--font-en); font-size: 0.68rem; letter-spacing: 0.24em; color: var(--accent); font-variant-numeric: tabular-nums; }
-.stages strong { font-weight: 500; font-size: 0.92rem; letter-spacing: 0.03em; line-height: 1.5; }
-.stages span:last-child { color: var(--text-3); font-size: 0.8rem; line-height: 1.6; }
-@media (max-width: 720px) { .stages { grid-template-columns: 1fr; gap: 0.4rem; } .stages li { grid-template-columns: auto 1fr; grid-template-areas: 'n t' 'n p'; column-gap: 0.8rem; } .stages .n { grid-area: n; padding-top: 0.3em; } .stages strong { grid-area: t; } .stages span:last-child { grid-area: p; } }
 .showcase { display: grid; grid-template-columns: 1fr; gap: 0.8rem; margin-top: 2.4rem; max-width: 40rem; }
 .frame { position: relative; margin: 0; overflow: hidden; border: 1px solid var(--line-2); background:
     radial-gradient(circle at 22% 30%, rgba(247, 21, 172, 0.22), transparent 55%),
@@ -302,14 +296,6 @@ html.no-js .reveal { animation: none; }
 .frame.tall figcaption > span:last-child { font-size: 0.74rem; }
 .phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; align-content: start; }
 @media (max-width: 720px) { .phones { grid-template-columns: 1fr; gap: 0.5rem; } .frame.tall { aspect-ratio: auto; min-height: 0; display: grid; grid-template-columns: 4.2rem 1fr; align-items: center; border-radius: 10px; } .frame.tall::before { position: static; inset: auto; width: auto; height: 100%; min-height: 6.5rem; opacity: 1; border-right: 1px solid var(--line); background: radial-gradient(circle at 50% 35%, rgba(247, 21, 172, 0.45), transparent 60%), linear-gradient(180deg, #0a0a0f, #1a1020); } .frame.tall figcaption { padding: 0.8rem 0.9rem; background: rgba(6, 6, 9, 0.6); } .frame.tall strong { font-size: 0.92rem; } .frame.tall figcaption > span:last-child { font-size: 0.8rem; } }
-.cycle { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; max-width: 40rem; counter-reset: c; }
-.cycle li { position: relative; display: grid; gap: 0.3rem; padding: 0.9rem 0.8rem 1rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); }
-.cycle li:not(:last-child)::after { content: "\2192"; position: absolute; right: -0.65rem; top: 0.85rem; color: var(--accent); font-size: 0.8rem; }
-.cycle .n { font-family: var(--font-en); font-size: 0.66rem; letter-spacing: 0.24em; color: var(--text-3); font-variant-numeric: tabular-nums; }
-.cycle strong { font-weight: 500; font-size: 0.86rem; letter-spacing: 0.02em; line-height: 1.5; }
-.cycle li > span:last-child { color: var(--text-3); font-size: 0.78rem; line-height: 1.6; }
-.cycle li.loop { border-color: rgba(247, 21, 172, 0.5); }
-@media (max-width: 720px) { .cycle { grid-template-columns: 1fr; } .cycle li:not(:last-child)::after { content: "\2193"; right: auto; left: 0.9rem; top: auto; bottom: -1.05rem; } .cycle { gap: 1.1rem; } }
 .onesheet { margin-top: 2.4rem; max-width: 40rem; padding: 1.5rem 1.4rem 1.4rem; border: 1px solid var(--line-2); background: #0c0c12; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); text-align: left; }
 .onesheet .sheet-head { display: grid; gap: 0.3rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
 .onesheet h3 { font-size: 1.1rem; font-weight: 500; letter-spacing: 0.05em; }
@@ -382,15 +368,13 @@ html.no-js .reveal { animation: none; }
 
 /* ---- 2026-10-26 表現（CEO「表現で解決せよ」）: 初画面の一言、REYZ 自身がこの仕組みで動いている事実、約束の具体、地図の次の画面 ---- */
 .hero-lead { margin-top: 1.1rem; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.9; color: var(--text-2); }
-.proof { margin-top: 1.6rem; max-width: 40rem; text-align: left; }
+/* REYZ 自身がこの仕組みで動いている事実: 一文と、公開リポジトリへのリンク */
+.proof { display: grid; justify-items: center; gap: 0.2rem; margin: 1.6rem auto 0; max-width: 48rem; }
 .proof-head { font-size: 1.02rem; font-weight: 500; letter-spacing: 0.04em; color: var(--text); line-height: 1.7; text-align: center; }
-.proof-list { list-style: none; margin: 0.9rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
-.proof-list li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.2rem 1rem; align-items: start; padding: 0.9rem 1rem; border: 1px solid var(--line-2); }
-.proof-list strong { font-weight: 500; letter-spacing: 0.04em; color: var(--text); line-height: 1.7; }
-.proof-list p { margin: 0; color: var(--text-2); font-size: 0.92rem; line-height: 1.8; }
-.proof-list .go { grid-column: 2; display: inline-flex; align-items: center; min-height: 44px; font-family: var(--font-jp); font-size: 0.86rem; letter-spacing: 0.08em; color: var(--text-2); transition: color 0.4s var(--ease); }
-.proof-list .go::after { content: "\2197"; margin-left: 0.5em; display: inline-block; }
-.proof-list .go:hover { color: var(--text); }
+.proof .go { display: inline-flex; align-items: center; min-height: 44px; font-size: 0.82rem; letter-spacing: 0.04em; color: var(--text-2); transition: color 0.4s; }
+.proof .go::after { content: "\2192"; margin-left: 0.5em; display: inline-block; transition: transform 0.5s var(--ease); }
+.proof .go:hover { color: var(--text); }
+.proof .go:hover::after { transform: translateX(0.4em); }
 #ai .more { margin-top: 1.4rem; }
 .terms { margin-top: 1.2rem; padding: 1.1rem 1.2rem; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.025); text-align: left; }
 .terms-head { font-family: var(--font-jp); font-size: 0.82rem; letter-spacing: 0.18em; color: var(--accent); }
@@ -407,7 +391,6 @@ html.no-js .reveal { animation: none; }
 .map-next li .n { font-family: var(--font-en); font-size: 0.66rem; letter-spacing: 0.24em; color: var(--accent); font-variant-numeric: tabular-nums; }
 .map-next li strong { font-weight: 500; letter-spacing: 0.06em; color: var(--text); }
 .map-next li span:last-child { color: var(--text-2); font-size: 0.82rem; line-height: 1.7; }
-@media (max-width: 560px) { .proof-list li { grid-template-columns: 1fr; } .proof-list .go { grid-column: 1; } .map-next ol { grid-template-columns: 1fr; } }
 
 /* ---------- 2026-10-26 G-UX8「点・線・記録」: 文で説明せず、仕組みそのものを目の前で動かす道具（CEO「表現で解決せよ」） ---------- */
 .copy.wide { max-width: 62rem; }
@@ -486,13 +469,6 @@ html.no-js .reveal { animation: none; }
   .ticks i:nth-child(n+37) { display: none; }
 }
 
-/* REYZ 自身がこの仕組みで動いている事実: 枠ではなく、記録の行として */
-.proof { margin-top: 1.6rem; max-width: 48rem; }
-.proof-list { gap: 0; }
-.proof-list li { padding: 0.95rem 0; border: 0; border-top: 1px solid var(--line); grid-template-columns: 8rem minmax(0, 1fr); }
-.proof-list li:last-child { border-bottom: 1px solid var(--line); }
-.proof-list strong::before { content: ""; display: inline-block; width: 2px; height: 0.85em; margin-right: 0.65em; vertical-align: -0.08em; background: var(--accent); }
-
 /* 続く: 線が折れても、続く */
 .bend { width: min(100%, 440px); margin: -0.2rem auto 0; }
 .bend svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -531,8 +507,6 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 .map-next li::before { content: ""; width: 6px; height: 6px; margin-top: 0.75em; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px rgba(247, 21, 172, 0.7); }
 .map-next li strong { min-width: 2.2em; }
 @media (min-width: 821px) { .map-next ol { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem 1.4rem; } }
-.proof { margin-inline: auto; }
-@media (max-width: 560px) { .proof-list li { grid-template-columns: 1fr; gap: 0.15rem; } }
 
 /* ---------- G-UX8 /creator・/creative: お金の流れ／3 つの画面の見本／映像の型／枠を外す ---------- */
 .vows li { padding: 0.9rem 0.2rem 0.9rem 1.3rem; border: 0; border-top: 1px solid var(--line); text-align: left; position: relative; font-size: 1.08rem; }
@@ -722,18 +696,7 @@ html.no-js .film .ttl, html.no-js .film .lower, html.no-js .film.story.k1 .s1, h
   .film .ttl, .film .lower, .film.story.k1 .s1, .film.story.k2 .s2, .film.story.k3 .s3 { opacity: 1; } .film.story .prog i::after { width: 100%; }
 }
 
-/* 枠を外す: 構成予告・続け方・困りごと */
-.stages li { border: 0; background: none; padding: 0.7rem 0 0.7rem 1.1rem; border-top: 1px solid var(--line); position: relative; }
-.stages li::before { content: ""; position: absolute; left: 0; top: 1.05rem; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px rgba(247, 21, 172, 0.7); }
-.stages .n { display: none; }
-.cycle { gap: 0; position: relative; }
-.cycle li { border: 0; background: none; padding: 1.1rem 0.8rem 0.6rem 0; position: relative; }
-.cycle li::before { content: ""; position: absolute; left: 0; top: 0.35rem; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 7px rgba(247, 21, 172, 0.75); }
-.cycle::before { content: ""; position: absolute; left: 0; right: 0; top: 0.65rem; height: 1px; background: var(--line-2); opacity: 0.6; }
-.cycle li:not(:last-child)::after { display: none; }
-.cycle li.loop { border: 0; }
-.cycle li.loop::before { outline: 1px solid rgba(247, 21, 172, 0.5); outline-offset: 3px; }
-@media (max-width: 720px) { .cycle { gap: 0; padding-left: 1.2rem; } .cycle::before { left: 3px; right: auto; top: 0.9rem; bottom: 0.9rem; width: 1px; height: auto; } .cycle li { padding: 0.55rem 0; } .cycle li::before { left: -1.2rem; top: 0.9rem; } }
+/* 枠を外す: 困りごと */
 .pains li { background: none; padding: 0.9rem 0 0.9rem 1.1rem; }
 @media (prefers-reduced-motion: reduce) {
   .flowmap .flow .fl-lane i, .scr-map .scr-line::after, .scr-bar.full i, .pane.is-live, .post, .post .pfix, .rec-rows li.new { animation: none; }
