@@ -54,7 +54,9 @@ def head(title, desc, fname='index.html'):
 def header(current):
     cur = lambda h: ' aria-current="page"' if h == current else ''
     links = '\n'.join(f'      <a href="{h}"{cur(h)}>{t}</a>' for h, t in NAV)
-    sheet = '\n'.join(f'    <a href="{h}"{cur(h)}>{t}</a>' for h, t in NAV)
+    # スマホのメニューだけ、CREATOR／CREATIVE に日本語の副題を添える（DEC-20261027-17。模擬ユーザー 3/4 が混同）。ナビ 5 項目と英語表記は不変
+    SUB = {'creator.html': 'クリエイターの方へ', 'creative.html': '企業の方へ'}
+    sheet = '\n'.join(f'    <a href="{h}"{cur(h)}><span class="l">{t}</span>' + (f'<small class="sub">{SUB[h]}</small>' if h in SUB else '') + '</a>' for h, t in NAV)
     return f'''  <a class="skip" href="#main">本文へ移動</a>
   <canvas id="field" aria-hidden="true"></canvas>
   <div class="grain" aria-hidden="true"></div>
@@ -686,12 +688,7 @@ section('form', 'Message', 'お問い合わせ', '担当者より直接ご返信
 page('contact.html', 'Contact — REYZ Inc.', 'REYZ Inc. へのお問い合わせ。', contact)
 
 # ------------------------------------------------------------------ LEGAL
-# WORKS は作品例ページと、個人情報の取り扱い（YouTube 埋め込みの注記）の両方が参照する
-WORKS = [
-]
-if os.environ.get('WORKS_JSON'):                                     # 検証用: 一時的な作品リストで組む
-    WORKS = json.load(open(os.environ['WORKS_JSON'], encoding='utf-8'))
-YT_NOTICE = '\n            <p>作品例ページでは YouTube の埋め込みプレイヤー（プライバシー強化モード）を利用しており、サムネイルの表示および再生時に接続情報が Google に送信されます。</p>' if any(w.get('yt') for w in WORKS) else ''
+# LEGAL（作品例ページは 2026-10-27 CEO「作品例を記載しない」により廃止。旧 URL /works は /creative への静的転送）
 legal_grid = f'''<div class="legal-grid reveal">
           <div class="legal-block">
             <h2>宅地建物取引業者</h2>
@@ -717,7 +714,7 @@ legal_grid = f'''<div class="legal-grid reveal">
           <div class="legal-block">
             <h2>個人情報の取り扱い</h2>
             <p>お問い合わせで取得した個人情報は、その対応の目的にのみ利用し、法令に基づく場合を除き第三者に提供しません。</p>
-            <p>本サイトはフォント配信に Google Fonts を利用しており、閲覧時にIPアドレス等の接続情報が Google に送信されます。</p>{YT_NOTICE}
+            <p>本サイトはフォント配信に Google Fonts を利用しており、閲覧時にIPアドレス等の接続情報が Google に送信されます。</p>
           </div>
         </div>'''
 legal = title_chapter('line', 'Privacy &amp; Legal', '法令に基づく表記', '') + f'''    <section class="section" id="notices">
@@ -726,54 +723,24 @@ legal = title_chapter('line', 'Privacy &amp; Legal', '法令に基づく表記',
 '''
 page('legal.html', 'Privacy & Legal — REYZ Inc.', '株式会社レイズの法令に基づく表記。宅地建物取引業者、古物営業法に基づく表記、表示に関する方針、個人情報の取り扱い。', legal)
 
-# ------------------------------------------------------------------ WORKS（作品例）
-# 作品は YouTube（推奨）または自社配信の mp4。ここに1行追加してビルドすると掲載される。
-#   YouTube: { 'yt': '<動画URL または 11桁ID>', 'title': '作品名', 'note': 'PV／2026', 'poster': 'assets/works/xx.jpg'(任意) }
-#            → クリックするまで YouTube の iframe は読み込まない（サムネイル＋再生マークだけ）。埋め込みは youtube-nocookie.com（プライバシー強化モード）。
-#            YouTube 側の条件: 公開 or 限定公開（非公開は不可）、動画の「埋め込みを許可する」が ON。
-#   mp4    : { 'src': 'assets/works/work-01.mp4', 'poster': 'assets/works/work-01.jpg', 'title': '作品名', 'note': 'PV／2026' }
-
-YT_ID = re.compile(r'^[A-Za-z0-9_-]{11}$')
-def yt_id(v):
-    """YouTube の URL（watch / youtu.be / shorts / embed / live）または ID → 11桁の ID。解釈できなければビルドを止める。"""
-    v = v.strip()
-    if YT_ID.match(v): return v
-    m = re.search(r'(?:youtu\.be/|[?&]v=|/shorts/|/embed/|/live/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])', v)
-    if not m: raise SystemExit(f'WORKS: YouTube の URL/ID を解釈できません: {v!r}')
-    return m.group(1)
-
-def works_list():
-    out = []
-    for i, w in enumerate(WORKS, 1):
-        title = w.get('title', '')
-        cap = ''
-        if title or w.get('note'):
-            cap = f'<figcaption><span class="n">{i:02d}</span>'
-            if title: cap += f'<span class="t">{html.escape(title)}</span>'
-            if w.get('note'): cap += f'<span class="d">{html.escape(w["note"])}</span>'
-            cap += '</figcaption>'
-        cap_line = ('\n            ' + cap) if cap else ''
-        if w.get('yt'):
-            vid = yt_id(w['yt'])
-            poster = html.escape(w['poster']) if w.get('poster') else f'https://i.ytimg.com/vi/{vid}/hqdefault.jpg'
-            data_poster = (' data-poster="' + html.escape(w['poster']) + '"') if w.get('poster') else ''
-            label = html.escape(f'再生: {title}' if title else '再生')
-            out.append('          <figure class="work" data-yt="' + vid + '"' + data_poster + '>\n'
-                       '            <a class="yt" href="https://www.youtube.com/watch?v=' + vid + '" target="_blank" rel="noopener" aria-label="' + label + '">'
-                       '<img src="' + poster + '" alt="" width="1280" height="720" loading="lazy" decoding="async"><span class="play" aria-hidden="true"></span></a>'
-                       + cap_line + '\n          </figure>')
-        else:
-            src = html.escape(w['src'])
-            poster = (' poster="' + html.escape(w['poster']) + '"') if w.get('poster') else ''
-            out.append('          <figure class="work" data-src="' + src + '">\n'
-                       '            <video controls playsinline preload="metadata"' + poster + '><source src="' + src + '" type="video/mp4"></video>'
-                       + cap_line + '\n          </figure>')
-    # 2026-10-23 CEO: 「準備中」「ご相談の際に」等の注記は書かない。作品が 0 件のときは一覧セクションを出さない
-    if not out: return ''
-    return section('list', 'Selected works', '映像', '', '<div class="works reveal" id="works">\n' + '\n'.join(out) + '\n        </div>')
-BACK = '    <section class="section" id="back"><div class="wrap"><div class="section-text"><h2 class="sr-only">戻る</h2><p class="more reveal"><a class="go" href="creator.html">クリエイターの方へ</a></p><p class="more reveal"><a class="go" href="creative.html">企業の方へ</a></p></div></div></section>\n'
-works = title_chapter('Works', 'Works', '作品例', '※個人情報の観点から一部のみ掲載', lead_cls='lead note') + works_list() + BACK
-page('works.html', 'Works — REYZ Inc.', 'REYZが企画・撮影・編集した映像作品の例。', works)
+# ------------------------------------------------------------------ /works → /creative の静的転送（DEC-20261027-19）
+# 旧 URL を 404 にせず、meta refresh と canonical で /creative へ送る。sitemap には載せない（PAGES に加えない）。検索には noindex
+_works_to = 'creative.html' if os.environ.get('KEEP_HTML_LINKS') == '1' else '/creative'
+with open(os.path.join(ROOT, 'works.html'), 'w', encoding='utf-8') as f:
+    f.write(f'''<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="refresh" content="0; url={_works_to}">
+  <link rel="canonical" href="{SITE_URL}/creative">
+  <title>REYZ Inc.</title>
+  <style>html{{background:#060609;color:#f4f4f6;font-family:system-ui,sans-serif}}body{{margin:0;min-height:100vh;display:grid;place-items:center}}a{{color:#f4f4f6}}</style>
+</head>
+<body><p><a href="{_works_to}">企業の方へ</a></p></body>
+</html>
+''')
 
 # ------------------------------------------------------------------ 公開用の付属ファイル
 not_found = title_chapter('loop', 'Not found', 'ページが見つかりません。', jp('URL が変わったか、|存在しないページです。')) + \
@@ -790,7 +757,7 @@ with open(os.path.join(ROOT, 'robots.txt'), 'w', encoding='utf-8') as f:
     f.write(f'User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n')
 with open(os.path.join(ROOT, 'sitemap.xml'), 'w', encoding='utf-8') as f:
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-            ''.join(f'  <url><loc>{SITE_URL}/{clean(p)}</loc></url>\n' for p in PAGES if p != 'works.html') + '</urlset>\n')   # /works は 2026-10-27 CEO「作品例を記載しない」により導線・sitemap から外す（ファイルは旧 URL のために残す）
+            ''.join(f'  <url><loc>{SITE_URL}/{clean(p)}</loc></url>\n' for p in PAGES) + '</urlset>\n')   # /works は 2026-10-27 CEO「作品例を記載しない」により導線・sitemap から外す（ファイルは旧 URL のために残す）
 # Cloudflare Pages / Netlify が読む付属設定（他のホスティングでは無視される）
 host = SITE_URL.split('//', 1)[1]
 with open(os.path.join(ROOT, '_headers'), 'w', encoding='utf-8') as f:

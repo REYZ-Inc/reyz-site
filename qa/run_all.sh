@@ -38,12 +38,13 @@ console.log("page×viewport:", n, "bad:", bad, "links broken:", broken); if (bad
 echo "== 5/7 start-at-top（直接 + 全リンク遷移）"
 node qa/start_top_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("transitions:",r.transitions,"fails:",r.fails.length);if(r.fails.length){console.log(JSON.stringify(r.fails,null,1));process.exit(1)}})'
 
-echo "== 6/7 acceptance（文言・メニュー・ブランド色・作品例）/ フォーム（入力→確認→送信）/ 行組み / 地図 / 3 つの画面"
+echo "== 6/7 acceptance（文言・メニュー・ブランド色・/works 転送）/ フォーム（入力→確認→送信）/ 行組み / 地図 / 決定台帳の写し / 3 つの画面"
 node qa/v13_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("acceptance fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/form_check.js site fallback | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("form(fallback) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/form_check.js site endpoint | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("form(endpoint) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/lines_check.js | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("lines fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/map_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("map(Home 章3) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
+node qa/decisions_check.js | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("decisions(決定台帳の写し) fails:",r.fails.length, "rows:", r.rows, "linked:", r.linked, "manual:", r.manual);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/demo_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("demo(3 つの画面) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 
 echo "== 7/7 viewer 骨格下の文字色（claude.ai artifact 再現）"
@@ -55,6 +56,6 @@ node -e 'const r = require(process.argv[1]); const n = Object.values(r).reduce((
 echo "== secret / 除外文言スキャン"
 if grep -rEn "ghp_|github_pat_|sk-[A-Za-z0-9]{8}|AKIA[0-9A-Z]{12}|PRIVATE KEY" site build tools qa --include=*.html --include=*.js --include=*.css --include=*.py --include=*.sh | grep -v "qa/run_all.sh"; then echo "FAIL: secret らしき文字列"; exit 1; fi
 if grep -rn "所属\|話してみる\|© 2026 REYZ\|人とAIの共生を前提に\|REYZの人とAIが共に" site/*.html; then echo "FAIL: 除外文言"; exit 1; fi
-# 2026-10-23 CEO: 状態語を書かない（本文・JS の文面とも）。2026-10-24 CEO: 「一枚」→「地図」、「ご担当者様」→「ご担当者」
+# DEC-20261023-01: 状態語を書かない（本文・JS の文面とも）。2026-10-24 CEO: 「一枚」→「地図」、「ご担当者様」→「ご担当者」
 if grep -rn "開発中\|準備中\|先行導入\|順次\|予定\|一枚\|ご担当者様" site/*.html site/assets/site.js; then echo "FAIL: 状態語・却下語"; exit 1; fi
 echo "ALL PASS"

@@ -1,4 +1,4 @@
-// v13 acceptance: brand Z colour, menu sheet (colour / X close / scroll close / Escape / link), works page (no note, not linked from /creator since 2026-10-27), creator copy, excluded strings.
+// v13 acceptance: brand Z colour, menu sheet (colour / X close / scroll close / Escape / link), works page (static redirect to /creative, not linked from /creator since 2026-10-27), creator copy, excluded strings.
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');
 const ROOT = path.resolve(process.argv[2]);
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
@@ -7,7 +7,7 @@ const PINK = 'rgb(247, 21, 172)', SHEET = 'rgb(28, 28, 28)';
 (async () => {
   await new Promise(r => server.listen(0, '127.0.0.1', r)); const base = `http://127.0.0.1:${server.address().port}/`;
   const b = await chromium.launch(); const out = { fails: [] }; const F = (k, v) => { if (!v) out.fails.push(k); return v; };
-  // 1) static: excluded strings, creator copy, 「所属」
+  // 1) static: excluded strings（DEC-20260926-05）, creator copy（DEC-20260927-02）, 「所属」
   const pages = fs.readdirSync(ROOT).filter(f => f.endsWith('.html'));
   const EXCL = ['話してみる', '© 2026 REYZ Inc.', '恵比寿ビジネスタワー10階</p>', 'このサイトは、REYZの人とAIが共に設計・制作しました。', '人とAIの共生を前提に、最小の組織で事業を運営しています。', '所属'];
   for (const pg of pages) { const h = fs.readFileSync(path.join(ROOT, pg), 'utf8'); for (const s of EXCL) if (h.includes(s)) { if (pg === 'legal.html' && s.startsWith('恵比寿')) continue; if (pg === 'index.html' && s.startsWith('恵比寿')) continue; out.fails.push(`excluded string "${s}" in ${pg}`); } }
@@ -25,8 +25,8 @@ const PINK = 'rgb(247, 21, 172)', SHEET = 'rgb(28, 28, 28)';
     // 既決の映像制作の文はたたまれている（2026-10-27）: 開いてから読む。文そのものは 1 文字も変えない
     const got = await p0.evaluate(() => { for (const d of document.querySelectorAll('details.item')) d.open = true; const ps = document.querySelectorAll('.item p'); const h3 = document.querySelectorAll('.item h3'); const st = document.querySelectorAll('.step p'); const t = el => el.innerText.replace(/\u00a0/g, ' ').trim(); return { 'services p1': t(ps[0]), 'services p2': t(ps[1]), 'services note': t(ps[2]), 'video h3': t(h3[1]), 'video p': t(ps[3]), 'step 01': t(st[0]), 'step 02': t(st[1]), 'step 03': t(st[2]), lead: t(document.querySelector('.head.copy .lead')), h1: t(document.querySelector('h1')), steps: document.querySelectorAll('.step').length, worksLink: !!document.querySelector('.item a.go[href="works"]') }; });
     for (const [k, v] of Object.entries(EXPECT)) F(`creator copy "${k}" = ${JSON.stringify(got[k])}`, got[k] === v);
-    F('creator lead', got.lead === 'あなたの活動を収入に変える設計を。'); F('creator h1', got.h1 === '「生き方」を職業に。'); F('3 steps', got.steps === 3); F('no works link (2026-10-27 CEO: 映像の作品例を記載しない)', !got.worksLink); await ctx0.close(); }
-  // company: business description (2026-09-27 CEO: generic, enterprise-facing; no service names, no real estate / reuse), no large company-name heading
+    F('creator lead', got.lead === 'あなたの活動を収入に変える設計を。'); F('creator h1', got.h1 === '「生き方」を職業に。'); F('3 steps', got.steps === 3); F('no works link (DEC-20261027-01: 映像の作品例を記載しない)', !got.worksLink); await ctx0.close(); }
+  // company: business description（DEC-20260927-01）(2026-09-27 CEO: generic, enterprise-facing; no service names, no real estate / reuse), no large company-name heading
   { const ctx0 = await b.newContext({ viewport: { width: 1440, height: 900 } }); const p0 = await ctx0.newPage(); await p0.goto(base + 'index.html', { waitUntil: 'load' });
     const got = await p0.evaluate(() => { const t = el => el.innerText.replace(/\u00a0/g, ' ').trim(); return { lead: t(document.querySelector('#reyz .biz-lead')), labels: Array.from(document.querySelectorAll('#reyz .biz .k')).map(t), items: Array.from(document.querySelectorAll('#reyz .biz .v')).map(t), visibleH2: Array.from(document.querySelectorAll('#reyz h2')).filter(h => h.getBoundingClientRect().width > 2).length, text: document.querySelector('#reyz').innerText }; });
     F('company lead', got.lead === 'クリエイターエコノミーとAIの交点に、\n人とAIが共に価値を生む事業基盤を築く。\n国内から世界へ、次の10年の標準をつくる。');
@@ -41,25 +41,22 @@ const PINK = 'rgb(247, 21, 172)', SHEET = 'rgb(28, 28, 28)';
   await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(600);
   out.brand = await p.evaluate(() => { const z = document.querySelector('.site-header .brand .z'); const b = document.querySelector('.site-header .brand'); const r = document.createRange(); r.selectNodeContents(b.querySelector('span')); return { z: getComputedStyle(z).color, rest: getComputedStyle(b).color, footerZ: document.querySelector('footer .brand .z') ? getComputedStyle(document.querySelector('footer .brand .z')).color : 'none', text: b.textContent.replace(/\s+/g, ' ').trim() }; });
   F('brand Z pink', out.brand.z === PINK); F('brand rest not pink', out.brand.rest !== PINK); F('brand text REYZ Inc.', out.brand.text === 'REYZ Inc.');
-  const menuState = () => p.evaluate(() => { const s = document.getElementById('sheet'), btn = document.getElementById('menuBtn'); const a = s.querySelector('a'); return { hidden: s.hidden, expanded: btn.getAttribute('aria-expanded'), label: btn.getAttribute('aria-label'), bg: getComputedStyle(s).backgroundColor, link: a ? getComputedStyle(a).color : null, links: Array.from(s.querySelectorAll('a')).map(x => x.textContent.trim()), bars: btn.querySelectorAll('.bar').length, barTransforms: Array.from(btn.querySelectorAll('.bar')).map(x => getComputedStyle(x).transform), scrollY: window.scrollY }; });
+  const menuState = () => p.evaluate(() => { const s = document.getElementById('sheet'), btn = document.getElementById('menuBtn'); const a = s.querySelector('a'); return { hidden: s.hidden, expanded: btn.getAttribute('aria-expanded'), label: btn.getAttribute('aria-label'), bg: getComputedStyle(s).backgroundColor, link: a ? getComputedStyle(a).color : null, links: Array.from(s.querySelectorAll('a')).map(x => (x.querySelector('.l') || x).textContent.trim()), subs: Array.from(s.querySelectorAll('a .sub')).map(x => x.textContent.trim()), bars: btn.querySelectorAll('.bar').length, barTransforms: Array.from(btn.querySelectorAll('.bar')).map(x => getComputedStyle(x).transform), scrollY: window.scrollY }; });
   const closed0 = await menuState(); F('menu initially hidden', closed0.hidden === true); F('3 bars', closed0.bars === 3);
   await p.click('#menuBtn'); await p.waitForTimeout(350); const open1 = await menuState(); out.menuOpen = open1;
-  F('menu opens', open1.hidden === false && open1.expanded === 'true'); F('sheet bg #1c1c1c', open1.bg === SHEET); F('sheet link pink', open1.link === PINK); F('menu items', JSON.stringify(open1.links) === JSON.stringify(['Creator', 'Creative', 'AI', 'Company', 'Contact'])); F('bars become X (transformed)', open1.barTransforms.filter(t => t !== 'none').length >= 2);
+  F('menu opens', open1.hidden === false && open1.expanded === 'true'); F('sheet bg #1c1c1c', open1.bg === SHEET); F('sheet link pink', open1.link === PINK); F('menu items', JSON.stringify(open1.links) === JSON.stringify(['Creator', 'Creative', 'AI', 'Company', 'Contact']));   // DEC-20260926-03（ナビ 5 項目）
+  F('menu subs (DEC-20261027-17)', JSON.stringify(open1.subs) === JSON.stringify(['クリエイターの方へ', '企業の方へ'])); F('bars become X (transformed)', open1.barTransforms.filter(t => t !== 'none').length >= 2);
   await p.click('#menuBtn'); await p.waitForTimeout(200); const closed1 = await menuState(); F('X closes menu', closed1.hidden === true && closed1.expanded === 'false' && closed1.label === 'メニューを開く');
   await p.click('#menuBtn'); await p.waitForTimeout(200); await p.evaluate(() => window.scrollTo({ top: 8, behavior: 'instant' })); await p.waitForTimeout(150); const small = await menuState(); F('8px scroll keeps menu (threshold 12px)', small.hidden === false);
   await p.evaluate(() => window.scrollTo({ top: 60, behavior: 'instant' })); await p.waitForTimeout(200); const scrolled = await menuState(); F('scroll closes menu', scrolled.hidden === true && scrolled.expanded === 'false');
   await p.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' })); await p.waitForTimeout(100); await p.click('#menuBtn'); await p.waitForTimeout(200); await p.keyboard.press('Escape'); await p.waitForTimeout(150); F('Escape closes menu', (await menuState()).hidden === true);
   await p.click('#menuBtn'); await p.waitForTimeout(200); await Promise.all([p.waitForNavigation({ waitUntil: 'load' }), p.click('#sheet a[href="creator"]')]); await p.waitForTimeout(400); F('menu link navigates to creator', p.url().endsWith('/creator')); F('menu closed after nav', (await menuState()).hidden === true);
-  // 3) works page — JS on: no "準備中" style note (2026-10-23 CEO), no figures without data, no page errors
-  await p.goto(base + 'works.html', { waitUntil: 'load' }); await p.waitForTimeout(900);
-  out.works = await p.evaluate(() => ({ note: !!document.getElementById('worksEmpty'), figs: document.querySelectorAll('.work').length, h1: document.querySelector('h1').getBoundingClientRect().height > 0, text: document.body.innerText }));
-  F('works: no empty note (JS on)', !out.works.note && out.works.figs === 0 && out.works.h1); F('works: no status words', !/準備中|ご相談の際に/.test(out.works.text));
-  await p.screenshot({ path: path.join(process.env.QA_OUT || path.dirname(__filename), 'works_m390.png') });
+  // 3) /works は /creative への静的転送（DEC-20261027-19。作品例は記載しない DEC-20261027-01）: 転送・canonical・noindex があり、「作品例」の見出しも状態語もない
+  { const w = fs.readFileSync(path.join(ROOT, 'works.html'), 'utf8');
+    F('works: meta refresh → /creative', /<meta http-equiv="refresh" content="0; url=(\/creative|creative\.html)">/.test(w));
+    F('works: canonical → /creative', w.includes('<link rel="canonical" href="https://reyz.inc/creative">')); F('works: noindex', w.includes('<meta name="robots" content="noindex">'));
+    F('works: no 作品例 / status words', !/作品例|準備中|ご相談の際に/.test(w)); }
   out.errors = errs; F('no page errors', errs.length === 0); await ctx.close();
-  // 4) works page — JS off
-  const ctx2 = await b.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false }); const p2 = await ctx2.newPage(); await p2.goto(base + 'works.html', { waitUntil: 'load' });
-  out.worksNoJs = await p2.evaluate(() => ({ note: !!document.getElementById('worksEmpty'), h1: document.querySelector('h1').getBoundingClientRect().height > 0 }));
-  F('works: no empty note (no JS)', !out.worksNoJs.note && out.worksNoJs.h1); await ctx2.close();
   // 5) desktop: sheet not used; nav visible with pink links; brand Z pink
   const ctx3 = await b.newContext({ viewport: { width: 1440, height: 900 } }); const p3 = await ctx3.newPage(); await p3.goto(base + 'index.html', { waitUntil: 'load' }); await p3.waitForTimeout(400);
   out.desktop = await p3.evaluate(() => ({ menuBtnShown: getComputedStyle(document.getElementById('menuBtn')).display !== 'none', navLink: getComputedStyle(document.querySelector('.site-header .nav a')).color, z: getComputedStyle(document.querySelector('.site-header .brand .z')).color, navShown: getComputedStyle(document.querySelector('.site-header .nav')).display !== 'none' }));
