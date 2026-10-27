@@ -162,7 +162,8 @@ def asks(lst):
         q, a = it[0], it[1]
         link = f'<a class="go" href="{it[2]}">{it[3]}</a>' if len(it) > 3 and it[2] else ''
         extra = it[4] if len(it) > 4 else ''
-        out.append(f'            <details class="ask"><summary><span class="n">{n:02d}</span><span class="q">{q}</span></summary><div class="ask-body"><p>{a}</p>{extra}{link}</div></details>')
+        body = f'<p>{a}</p>' if a else ''   # 答えが図（extra）そのものなら、同じ文を重ねない
+        out.append(f'            <details class="ask"><summary><span class="n">{n:02d}</span><span class="q">{q}</span></summary><div class="ask-body">{body}{extra}{link}</div></details>')
     return '<div class="asks reveal">\n' + '\n'.join(out) + '\n          </div>'
 def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     """lead2: 既決の導入文（lead）を変えずに、その下へ加える 2 行目（2026-10-26 正本 §10: /creator の冒頭）"""
@@ -383,7 +384,6 @@ SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
               '<li class="offer"><b>商品の紹介</b><button class="take" type="button" aria-pressed="false" data-k="商品の紹介" data-v="full">受ける</button></li>'
               '<li class="offer"><b>LIVE支援</b><button class="take" type="button" aria-pressed="false" data-k="LIVE支援" data-v="zero">受ける</button></li>'
               '</ul>\n'
-              '                  <p class="pane-note">受けるかは、あなたが決める。</p>\n'
               '                  <button class="go-btn" type="button" data-next="stmt">明細を見る</button>\n') +
     demo_pane('dc', 3, 'stmt',
               '                  <ul class="stmt-rows" id="dmRows"><li class="empty">' + jp('入口で「受ける」と、|ここに並ぶ。') + '</li></ul>\n'
@@ -397,9 +397,9 @@ creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に�
                         lead2='あなたの収益の、全部の入口に。') + \
 section('pain', 'For you', 'こんな困りごとに', '',
         asks([(jp('自分に合うSNSはどれか。|いつ、何を、どう出せば|目標に近づくのか、迷う。'), jp('合う場所と、いつ何を出すかを、|最初の地図で決めます。'), 'index.html#map', '地図をつくる'),
-              (jp('企画、撮影、編集、毎日の投稿。|ひとりで抱えきれず、|活動のペースと質が落ちる。'), jp('企画・撮影・編集は、REYZと分けられます。|投稿の計画から継続まで、支えます。')),
+              (jp('企画、撮影、編集、毎日の投稿。|ひとりで抱えきれず、|活動のペースと質が落ちる。'), jp('企画・撮影・編集は、|REYZと分けられます。')),
               (jp('目指すものや暮らしが変わったとき、|活動を何から変えればいいか|分からない。'), jp('目標が変わったら、|進め方を組み直して、続きから。')),
-              (jp('事務所に入ると報酬から引かれたり、|辞めるときに制限がかかるのが|不安。'), jp('費用ゼロ。報酬からの手数料ゼロ。|違約金なし。やめるのも自由。'), '#model', '仕組みを見る')])) + \
+              (jp('事務所に入ると報酬から引かれたり、|辞めるときに制限がかかるのが|不安。'), jp('報酬からは引きません。|やめるときの制限もありません。'), '#model', '仕組みを見る')])) + \
 section('model', 'How it works', '仕組み', '', MODEL + SCREENS_CREATOR) + \
 section('services', 'Services', '提供すること', '',
         '<div class="items reveal">\n'
@@ -411,15 +411,14 @@ section('services', 'Services', '提供すること', '',
         '            </div>\n'
         + fold(VD_H3, VD_P) + '\n'
         + fold('SNSアカウントの運用支援', jp('''投稿の計画、制作、分析、改善。
-ライブ配信の企画と継続まで、|あなたの活動に合わせて、|続けられる形で支えます。''')) + '\n'
-        + fold('AIと、最初の地図から', jp('''最初の相談で、|目的と今いる場所、最初の一歩を|地図にして返します。
+ライブ配信の企画と継続まで。''')) + '\n'
+        + fold('AIと、最初の地図から', jp('''最初の相談で、地図を返します。
 毎日の次の一手も、AIが材料を揃え、|決めるのはあなたです。''')) + '\n'
-        + fold('案件と商品の紹介', jp('''企業の案件や、商品の紹介。
-表現の確認を通ったものだけを、|入口に届けます。''')) + '\n'
-        + fold('ファンへの直販', jp('''知識、作品、会員権を、|あなたの価格で直接売れます。
-クリエイターの手数料は0%。|購入時のシステム利用料は、|買う人に明示します。''')) + '\n'
-        + fold('映像制作から、共同事業へ', jp('''映像をつくるところから始めて、
-一緒に事業をつくるところまで。''')) + '\n'
+        + fold('案件と商品の紹介', jp('''表現の確認を通ったものだけが、|入口に届きます。''')) + '\n'
+        + fold('ファンへの直販', jp('''知識、作品、会員権を、|あなたの価格で直接売れます。|手数料は0%。''')) + '\n'
+        # 正本 §5 層 4（共同 IP）: 共同制作物のみ共同所有。人格 IP・アカウントは本人のもの
+        + fold('映像制作から、共同事業へ', jp('''共同でつくったものだけを、共同所有。
+あなたのアカウントは、あなたのもの。''')) + '\n'
         '          </div>') + \
 section('how', 'How to start', 'はじめ方', '',
         steps([('01', '相談', jp('''まずは現在の状況を伺います。
@@ -455,7 +454,7 @@ SHOWCASE = ('<div class="showcase reveal">\n'
 # 確認を実際に通す見本（正本 §3-1・§11）: 投稿の例を選ぶ → 提供元の異なる複数の AI が確かめる → 一致しないものは止まる → 直して再確認 → 人が はい／いいえ → 記録に 1 行。
 # 公的ガイドラインと自主基準への照合の例であり、法律の鑑定ではない（正本 §11「今すぐ書いてよい」の添え書き）
 SCREENS_ENT = ('<div class="screens3 reveal">\n'
-    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><p class="cap">' + jp('公的ガイドラインと自主基準への|照合の例。|法律の鑑定ではありません。') + '</p><p class="echo" aria-hidden="true">目的から、逆算。</p></div>\n'
+    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><p class="cap">' + jp('公的なきまりと自主基準への|照合の例。|法律の鑑定ではありません。') + '</p><p class="echo" aria-hidden="true">目的から、逆算。</p></div>\n'
     '            <div class="demo" id="demoE" data-demo="company" data-run="">\n' + demo_tabs('de', [('map', '地図'), ('check', '確認'), ('rec', '記録')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
     demo_pane('de', 1, 'map', demo_map('dn', '事業と表現をつなぐ段階。映像制作・SNS運用と、クリエイターとの販売設計を重ねる。', '公開前に4つの法令（ステマ規制・景表法・医療広告・薬機法）に照らして確認する流れを組み込み、判断の材料を揃える。', '決まっている目的から逆算し、最短で届く手段と順番を決める。',
@@ -481,7 +480,7 @@ SCREENS_ENT = ('<div class="screens3 reveal">\n'
     '            <details class="terms">\n'
     '              <summary class="terms-head">はっきり言えること</summary>\n'
     '              <ul>\n'
-    '                <li>' + jp('公的なきまりと自主基準に照らして確かめ、|判断の材料を渡します。|法律の鑑定ではありません。') + '</li>\n'
+    '                <li>' + jp('公的なきまりと自主基準に照らして確かめ、|判断の材料を渡します。') + '</li>\n'   # 「法律の鑑定ではありません」は直上の添え書き（cap）が言う
     '                <li>' + jp('提供元の異なる複数のAIが確かめ、|一致しないものは止まります。|後戻りできない決定は、|人が「はい」か「いいえ」で決めます。') + '</li>\n'
     '                <li>' + jp('決定ごとの記録を残し、|企業が持ち出せます。') + '</li>\n'
     '                <li>' + jp('クリエイターの報酬から取りません。|報酬はREYZの口座を通しません。') + '</li>\n'
@@ -497,7 +496,7 @@ creative = title_chapter('Creative', 'For Enterprise', '「伝わる」を設計
                          jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。')) + \
 section('pain', 'For you', 'こんな困りごとに', '',
         asks([(jp('映像制作やSNSの運用を始めたい、見直したい。|でも、いつ、何を、どう進めれば|目的につながるのか、迷っている。'), jp('目的から逆算して、|映像とSNSをつくります。'), '#show', '映像の型を見る'),
-              (jp('人を増やさずに、利益を増やしたい。|でも、制作、確認、運用に時間を取られ、|本来の仕事に集中できていない。'), jp('人がやらなくていい仕事を、|AIと仕組みへ。'), '', '', SHIFT),
+              (jp('人を増やさずに、利益を増やしたい。|でも、制作、確認、運用に時間を取られ、|本来の仕事に集中できていない。'), '', '', '', SHIFT),   # 答えは「今 → REYZと」の図そのもの（図の中に同じ文がある）
               (jp('提案や選択肢が多すぎて、|会議のたびに「結局どちらに進むか」を|決めきれず、速度が落ちている。'), jp('判断の材料を地図にして、|「はい」か「いいえ」で決められる形に。'), '#decide', '地図を見る'),
               (jp('案件の表現チェック|（ステマ規制・景表法）を|人手でやっていて、|量に追いつかない。'), jp('公開前に複数のAIが確かめ、|人が決め、記録が残ります。'), '#decide', '確認を試す')])) + \
 section('show', 'Video × SNS', '映像とSNSの、かたち。', '', SHOWCASE) + \
@@ -510,14 +509,14 @@ section('services', 'Services', 'REYZがすること', '',
                ('ブランドと制作', jp('ブランドの方向づけ、|サイト・映像・SNSの制作と運用。\nこのサイトも、|自社で設計・制作しています。')),
                ('サイトと業務の仕組みづくり', jp('映像とSNSの受け皿になるサイトから、|社内で使う仕組みまで。\n使う人と仕事の流れから、|必要なものを整理してつくります。')),
                ('クリエイターとの販売設計', jp('クリエイターと連動した|販売の設計と運用。|国内からアジアへの越境販売まで。')),
-               ('公開前の確認', jp('ステマ規制、景品表示法、|医療広告ガイドライン、薬機法に照らし、|提供元の異なる複数のAIが確かめ、|人が決め、記録を残します。\n公的なきまりとの照合であり、|法律の鑑定ではありません。')),
-               ('事務所・代理店の方へ', jp('クリエイター事務所、代理店、制作会社の方へ。\n3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。\n確認を通った案件と商品だけが、|クリエイターの入口に届きます。'), 'consensus.html', 'REYZ CONSENSUSについて'),
+               ('公開前の確認', jp('ステマ規制、景品表示法、|医療広告ガイドライン、薬機法に照らし、|提供元の異なる複数のAIが確かめ、|人が決め、記録を残します。\n法律の鑑定ではありません。')),
+               ('事務所・代理店の方へ', jp('3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。'), 'consensus.html', 'REYZ CONSENSUSについて'),
                ('AIを仕事に入れる', jp('仕事の流れの設計から|実際の運用までを、|自社の仕組み「REYZ PLATFORM」で。'), 'ai.html', 'REYZ PLATFORMについて')], 0)) + \
 section('decide', 'Decide', '判断を、地図で。', '', SCREENS_ENT) + \
 section('how', 'How to start', '任せ方', jp('いきなり大きな契約を結ぶ必要はありません。\n合わなければ、そこで終えて構いません。'),
         steps([('01', '相談する', jp('今の状況と、やりたいことを。|言葉になっていなくても、構いません。')),
                ('02', '地図を受け取る', ''),
-               ('03', '「はい」か「いいえ」を決める', jp('始めたあとに目標が変わっても、|組み直して続けます。'))], cls='list') +
+               ('03', '「はい」か「いいえ」を決める', '')], cls='list') +
         more('contact.html', '相談する'))
 page('creative.html', 'Creative — REYZ Inc.', 'REYZの企業向けサービス。目的を言葉にして進め方を決め、動画・映像制作、SNSアカウントの運用支援、最小の人数で最大の利益を生む仕組みづくり、「はい」か「いいえ」で決められる判断の支えまで。目的が変わっても、続きます。', creative)
 
@@ -527,9 +526,10 @@ page('creative.html', 'Creative — REYZ Inc.', 'REYZの企業向けサービス
 # 名称（2026-10-03 CEO 決定）: AI 製品を集約するプラットフォームの名称であり、個別の柱の名前ではない。
 # 改名（2026-10-15 CEO 決定 NAMING-001）: Z-PLATFORM→REYZ PLATFORM、Z-DEVELOPER→REYZ DEVELOPER、Cross-AI Flow→REYZ CONSENSUS。ブランド層は全大文字。
 # 表示の規律（2026-10-23 CEO）: 開発中・準備中・順次・先行導入などの進行形の状態語は書かない。稼働・実績・顧客数を示す表現は、根拠を併記できるまで書かない（legal.html「表示に関する方針」）。
-ai_products = items_fold([('つなぐ — AI Orchestration', jp('複数のAIエージェントを、|ひとつの統制のもとで運用するための層。\n提供元の異なるAIを組み合わせ、|特定のAIに依存しない構成にします。')),
+# 2026-10-27 CEO「重複している」: 製品の本文は 1 文ずつ。「特定のAIに依存しない構成」「人の承認」「検証できる記録」は企業向け 4 項目（既決）が言う
+ai_products = items_fold([('つなぐ — AI Orchestration', jp('複数のAIエージェントを、|ひとつの統制のもとで運用するための層。')),
                           ('つくる — REYZ DEVELOPER', jp('開発経験がなくても、|自分の言葉で伝えることから|始められる開発・運用システム。\n公開して終わりではなく、|その後の運用と改善までを|対象にします。')),
-                          ('確かめ、進める — REYZ CONSENSUS', jp('提供元の異なる複数のAIが、|同じ内容を互いに検証し、|合意したものだけを次へ進めます。\n重要な変更には人の承認を必須とし、|すべての判断に、|確認できる記録を残します。'), 'consensus.html', 'REYZ CONSENSUSについて')], 0)
+                          ('確かめ、進める — REYZ CONSENSUS', jp('提供元の異なる複数のAIが、|同じ内容を互いに検証し、|合意したものだけを次へ進めます。'), 'consensus.html', 'REYZ CONSENSUSについて')], 0)
 ai = title_chapter('AI', 'REYZ PLATFORM · AI Infrastructure', 'AIが支える。',
                    jp('複数のAIエージェントを統合運用する|AI基盤「REYZ PLATFORM」。')) + \
 section('promise', 'Our promise', 'AIの3つの約束', '',
@@ -556,16 +556,16 @@ page('ai.html', 'AI — REYZ Inc.', 'REYZのAI製品を集約するプラット�
 consensus = title_chapter('Consensus', 'REYZ CONSENSUS', jp('確かめてから、|進める。'),
                           jp('提供元の異なる複数のAIが互いに検証し、|合意したものだけを次へ進める。')) + \
 section('what', 'What it is', '仕組み', '',
-        CHECK + items([('独立した検証', jp('作る側と確かめる側を分けます。\n記録の同一性と根拠を、|機械と、作る側から独立した検証者が確かめます。'))])) + \
+        CHECK + items([('独立した検証', jp('作る側と確かめる側を分けます。\n記録と根拠を、|機械と、作る側から独立した検証者が確かめます。'))])) + \
 section('how', 'How it works', '進め方', '',
         steps([('01', '伝える', jp('やりたいことを、|自分の言葉で伝えます。')),
-               ('02', '作り、確かめる', jp('複数のAIが作り、互いに検証し、|記録を残します。\n不確実なときは、|安全側で止まります。')),
-               ('03', '決めて、反映する', jp('責任者が決め、|承認を経たものだけが反映されます。\nAIだけの判断で、|本番は変わりません。'))], cls='list')) + \
+               ('02', '作り、確かめる', jp('複数のAIが作り、互いに検証し、|記録を残します。')),
+               ('03', '決めて、反映する', jp('責任者が決め、|承認を経たものだけが反映されます。'))], cls='list')) + \
 section('offer', 'Offering', '提供の形', '',
         items_fold([('企業向け', jp('自社のAI運用に、|検証と承認と記録の統制を組み込みます。')),
                ('自社ブランドでの提供', jp('表示名・配色・ロゴを変えて、|自社の製品として提供できます。\n判断の規則と記録の形式は、|変わりません。')),
                ('仕組みへの組み込み', jp('代理店や制作会社の仕事の流れ、|お使いのツールの中に、\n確認と記録を組み込めます。')),
-               ('記録は、企業のもの', jp('確認と決定の記録は、|企業のものです。\nいつでも持ち出せます。'))], 0) +
+               ('記録は、企業のもの', jp('いつでも持ち出せます。'))], 0) +
         more('contact.html', '相談する') + more('ai.html', 'REYZ PLATFORMについて'))
 page('consensus.html', 'REYZ CONSENSUS — REYZ Inc.', 'REYZ CONSENSUS — 提供元の異なる複数のAIが互いに検証し、合意したものだけを次へ進める。後戻りできない決定は人が行い、すべてに確認できる記録を残す、REYZ PLATFORMのAI運用の仕組み。', consensus)
 
@@ -610,13 +610,12 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
                     <option>目的の整理と進め方の相談</option>
                     <option>動画・映像制作</option>
                     <option>SNSアカウントの運用支援</option>
-                    <option>ブランディング・制作</option>
-                    <option>サイト・業務の仕組みづくり</option>
+                    <option>ブランドと制作</option>
+                    <option>サイトと業務の仕組みづくり</option>
                     <option>クリエイターとの販売設計</option>
-                    <option>表現・広告の確認</option>
                     <option>公開前の確認と記録（REYZ CONSENSUS）</option>
                     <option>自社ブランドでの提供・仕組みへの組み込み</option>
-                    <option>AIを仕事に使う（REYZ PLATFORM）</option>
+                    <option>AIを仕事に入れる（REYZ PLATFORM）</option>
                   </optgroup>
                   <optgroup label="その他">
                     <option>取材・提携</option>
@@ -624,13 +623,13 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
                   </optgroup>
                 </select>
               </label>
-              <label>内容（ご要望・質問・相談等）<textarea id="cMsg" name="message" required></textarea></label>
+              <label>内容<textarea id="cMsg" name="message" required></textarea></label>
               <input id="cWebsite" name="website" type="text" tabindex="-1" autocomplete="off" hidden>
               <div class="ctas tight">
                 <button class="btn primary" type="submit" id="confirmBtn">確認する</button>
               </div>
               <div class="status" id="status" role="status" aria-live="polite"></div>
-              <noscript><p class="lead">JavaScriptが無効の環境では送信できません。フッター記載の連絡先へお問い合わせください。</p></noscript>
+              <noscript><p class="lead">このフォームはJavaScriptが有効な環境で動きます。</p></noscript>
             </div>
             <div class="step" id="stepConfirm" hidden>
               <div class="head"><p class="eyebrow">Confirm</p><h3 id="confirmTitle" tabindex="-1">入力内容の確認</h3></div>
@@ -651,7 +650,7 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
             </div>
           </form>'''
 contact = title_chapter('ripple', 'Contact', 'その先を、<br>一緒に。', '') + \
-section('form', 'Message', 'お問い合わせ', '内容をお送りください。担当者より直接ご返信します。', form)
+section('form', 'Message', 'お問い合わせ', '担当者より直接ご返信します。', form)
 page('contact.html', 'Contact — REYZ Inc.', 'REYZ Inc. へのお問い合わせ。', contact)
 
 # ------------------------------------------------------------------ LEGAL
