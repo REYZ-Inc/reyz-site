@@ -265,25 +265,32 @@ html.no-js .reveal { animation: none; }
   .btn, .item .go, .item .go::after, .more .go, .more .go::after, .menu-btn .bar, .work .yt img, .work .play { transition: none; }
   .btn:hover { transform: none; }
 }
-/* ---------- 映像の枠（映像の型）と、仕事の移し方（今 → REYZと） ---------- */
-.showcase { display: grid; grid-template-columns: 1fr; gap: 0.8rem; margin-top: 2.4rem; max-width: 40rem; }
-.frame { position: relative; margin: 0; overflow: hidden; border: 1px solid var(--line-2); background:
-    radial-gradient(circle at 22% 30%, rgba(247, 21, 172, 0.22), transparent 55%),
-    radial-gradient(circle at 80% 72%, rgba(247, 21, 172, 0.08), transparent 50%),
-    linear-gradient(135deg, #0a0a0f 0%, #15151c 55%, #0a0a0f 100%); display: flex; align-items: flex-end; }
-.frame::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 28px 28px; }
-.frame.wide { aspect-ratio: 16 / 9; }
-.frame.tall { aspect-ratio: 9 / 16; border-radius: 14px; }
-.frame figcaption { position: relative; z-index: 1; display: grid; gap: 0.3rem; padding: 1rem 1.1rem; text-align: left; background: linear-gradient(180deg, transparent, rgba(6, 6, 9, 0.85) 45%); width: 100%; }
-.frame .tag { font-family: var(--font-en); font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
-.frame strong { font-weight: 500; font-size: 0.98rem; letter-spacing: 0.04em; line-height: 1.5; }
-.frame figcaption > span:last-child { color: var(--text-2); font-size: 0.82rem; line-height: 1.65; }
-.frame.tall figcaption { padding: 0.8rem 0.75rem; }
-.frame.tall strong { font-size: 0.86rem; }
-.frame.tall figcaption > span:last-child { font-size: 0.74rem; }
-.phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; align-content: start; }
-@media (max-width: 720px) { .phones { grid-template-columns: 1fr; gap: 0.5rem; } .frame.tall { aspect-ratio: auto; min-height: 0; display: grid; grid-template-columns: 4.2rem 1fr; align-items: center; border-radius: 10px; } .frame.tall::before { position: static; inset: auto; width: auto; height: 100%; min-height: 6.5rem; opacity: 1; border-right: 1px solid var(--line); background: radial-gradient(circle at 50% 35%, rgba(247, 21, 172, 0.45), transparent 60%), linear-gradient(180deg, #0a0a0f, #1a1020); } .frame.tall figcaption { padding: 0.8rem 0.9rem; background: rgba(6, 6, 9, 0.6); } .frame.tall strong { font-size: 0.92rem; } .frame.tall figcaption > span:last-child { font-size: 0.8rem; } }
+/* ---------- 映像の見本（言葉そのものを映像の時間で見せる）と、仕事の移し方（今 → REYZと） ---------- */
+.showcase { display: grid; gap: 1rem; margin-top: 2.4rem; max-width: 40rem; }
+.motion { position: relative; margin: 0; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: #08080c; display: flex; align-items: flex-end; }
+.motion .film { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.motion .film .bar { position: absolute; left: 0; right: 0; height: 9%; background: #000; }
+.motion .film .bar.t { top: 0; } .motion .film .bar.b { bottom: 0; }
+.motion .film .light { position: absolute; width: 70%; aspect-ratio: 1; border-radius: 50%; left: -10%; top: -20%; filter: blur(40px); background: radial-gradient(circle, rgba(247, 21, 172, 0.42), transparent 60%); animation: pan 14s var(--ease) infinite alternate; }
+.motion .film .light.l2 { left: 55%; top: 30%; width: 55%; opacity: 0.5; animation: pan2 14s var(--ease) infinite alternate; }
+@keyframes pan { from { transform: translate(-6%, 6%) scale(0.9); } to { transform: translate(34%, -4%) scale(1.08); } }
+@keyframes pan2 { from { transform: translate(10%, 8%); } to { transform: translate(-18%, -10%); } }
+.motion .words { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 8%; text-align: center; }
+.motion .words b { grid-area: 1 / 1; font-weight: 300; font-size: clamp(1.3rem, 5vw, 2.1rem); letter-spacing: 0.12em; line-height: 1.5; color: var(--text); opacity: 0; animation: word 9s var(--ease) infinite; }
+.motion .words .w2 { animation-delay: 3s; } .motion .words .w3 { animation-delay: 6s; }
+@keyframes word { 0% { opacity: 0; transform: translateY(10px); } 8%, 28% { opacity: 1; transform: none; } 36%, 100% { opacity: 0; transform: translateY(-8px); } }
+.motion figcaption { position: relative; z-index: 1; padding: 0.9rem 1.1rem; width: 100%; background: linear-gradient(180deg, transparent, rgba(6, 6, 9, 0.85) 45%); }
+.motion .tag { font-family: var(--font-en); font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.types { list-style: none; margin: 0; padding: 0; display: grid; }
+.types li { display: grid; grid-template-columns: 3.4rem 1fr; grid-template-areas: "t k" "t v"; gap: 0.1rem 0.6rem; padding: 0.9rem 0; border-top: 1px solid var(--line); align-items: baseline; }
+.types li:last-child { border-bottom: 1px solid var(--line); }
+.types .tag { grid-area: t; font-size: 0.74rem; letter-spacing: 0.16em; color: var(--accent); }
+.types b { grid-area: k; font-weight: 500; font-size: 0.98rem; letter-spacing: 0.04em; }
+.types .v { grid-area: v; color: var(--text-2); font-size: 0.88rem; line-height: 1.7; }
+@media (prefers-reduced-motion: reduce) {
+  .motion .film .light, .motion .words b { animation: none; }
+  .motion .words { display: flex; flex-direction: column; gap: 0.3rem; } .motion .words b { opacity: 1; font-size: 1rem; }
+}
 .shift { display: grid; gap: 0.7rem; margin-top: 2rem; max-width: 40rem; }
 .shift .row { display: grid; grid-template-columns: 5.5em 1fr; gap: 0.8rem; align-items: center; }
 .shift .k { font-size: 0.78rem; letter-spacing: 0.12em; color: var(--text-3); }
@@ -568,70 +575,6 @@ html.no-js .map-card .node, html.no-js .lane .wire, html.no-js .lane .mark { opa
 .rec-rows li .how em { font-style: normal; color: var(--text); }
 .rec-rows li.new { animation: recIn 1.6s var(--ease) 1 both; }
 @keyframes recIn { from { background: rgba(247, 21, 172, 0.2); } to { background: transparent; } }
-/* 映像の型: 動画の代わりに「映像の時間」を枠の中で再生する（横＝シネマ、縦＝ストーリー）。画面に入ったら 1 回、タップでもう一度 */
-.frame.study { border-color: var(--line); background: #08080c; }
-.frame.study::before { display: none; }
-.film { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.film .bar { position: absolute; left: 0; right: 0; height: 9%; background: #000; }
-.film .bar.t { top: 0; } .film .bar.b { bottom: 0; }
-.film .light { position: absolute; width: 70%; aspect-ratio: 1; border-radius: 50%; left: -10%; top: -20%; filter: blur(40px); background: radial-gradient(circle, rgba(247, 21, 172, 0.42), rgba(247, 21, 172, 0.06) 55%, transparent 70%); opacity: 0.9; }
-.film .light.l2 { left: 55%; top: 30%; width: 55%; opacity: 0.5; }
-.showcase.is-live .frame.wide .light { animation: pan 7s var(--ease) 1 forwards; }
-.showcase.is-live .frame.wide .light.l2 { animation: pan2 7s var(--ease) 1 forwards; }
-@keyframes pan { from { transform: translate(-6%, 6%) scale(0.9); } to { transform: translate(34%, -4%) scale(1.08); } }
-@keyframes pan2 { from { transform: translate(10%, 8%); } to { transform: translate(-18%, -10%); } }
-.film .ttl { position: absolute; left: 8%; top: 36%; display: grid; gap: 7px; width: 46%; opacity: 0; }
-.film .ttl b { display: block; height: 7px; border-radius: 3px; background: rgba(250, 250, 250, 0.85); }
-.film .ttl b:last-child { width: 62%; }
-.showcase.is-live .frame.wide .ttl { animation: fadeUp 1.2s var(--ease) 1.2s 1 forwards; }
-.film .lower { position: absolute; left: 8%; bottom: 34%; display: grid; gap: 4px; width: 34%; opacity: 0; }
-.film .lower b { display: block; height: 4px; border-radius: 2px; background: rgba(250, 250, 250, 0.45); }
-.film .lower b:first-child { width: 40%; background: var(--accent); height: 5px; }
-.showcase.is-live .frame.wide .lower { animation: fadeUp 1s var(--ease) 3.6s 1 forwards; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-/* 縦: ストーリー（進行バー ＋ 3 場面） */
-.film.story .prog { position: absolute; left: 6%; right: 6%; top: 5%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-.film.story .prog i { display: block; height: 3px; border-radius: 2px; background: rgba(250, 250, 250, 0.22); overflow: hidden; }
-.film.story .prog i::after { content: ""; display: block; height: 100%; width: 0; background: rgba(250, 250, 250, 0.9); }
-.showcase.is-live .film.story .prog i:nth-child(1)::after { animation: fill 2s linear 0.2s 1 forwards; }
-.showcase.is-live .film.story .prog i:nth-child(2)::after { animation: fill 2s linear 2.3s 1 forwards; }
-.showcase.is-live .film.story .prog i:nth-child(3)::after { animation: fill 2s linear 4.4s 1 forwards; }
-@keyframes fill { from { width: 0; } to { width: 100%; } }
-.film.story .scene { position: absolute; inset: 0; opacity: 0; }
-.film.story .scene b { display: block; border-radius: 3px; background: rgba(250, 250, 250, 0.5); }
-.film.story .s1 .hook { position: absolute; left: 12%; right: 12%; top: 16%; height: 9px; background: linear-gradient(90deg, var(--accent), rgba(247, 21, 172, 0.25)); }
-.film.story .s2 { display: grid; align-content: start; gap: 6px; padding: 24% 14% 0; }
-.film.story .s2 b { height: 5px; } .film.story .s2 b:nth-child(2) { width: 78%; } .film.story .s2 b:nth-child(3) { width: 52%; }
-.film.story .s3 .cta { position: absolute; left: 18%; right: 18%; top: 26%; height: 24px; border-radius: 12px; border: 1px solid var(--accent); background: rgba(247, 21, 172, 0.14); }
-.showcase.is-live .film.story .s1 { animation: scene 2.1s linear 0.2s 1 both; }
-.showcase.is-live .film.story .s2 { animation: scene 2.1s linear 2.3s 1 both; }
-.showcase.is-live .film.story .s3 { animation: scene 2.1s linear 4.4s 1 both; }
-/* 3 場面を通したあと、その型の場面に戻って止まる（企画型＝引き込み、ドキュメント型＝中身、導線直結型＝行動） */
-.showcase.is-live .film.story.k1 .s1 { animation: scene 2.1s linear 0.2s 1 both, holdOn 0.8s linear 6.6s 1 forwards; }
-.showcase.is-live .film.story.k2 .s2 { animation: scene 2.1s linear 2.3s 1 both, holdOn 0.8s linear 6.6s 1 forwards; }
-.showcase.is-live .film.story.k3 .s3 { animation: scene 2.1s linear 4.4s 1 both, holdOn 0.8s linear 6.6s 1 forwards; }
-@keyframes scene { 0% { opacity: 0; } 8%, 92% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes holdOn { 0% { opacity: 0; } 10%, 100% { opacity: 1; } }
-.film.story .light { width: 120%; left: -10%; top: 10%; opacity: 0.55; }
-.film.story.k2 .light { top: 35%; } .film.story.k3 .light { top: 55%; }
-.showcase.is-live .film.story .light { animation: drift 6.4s var(--ease) 1 forwards; }
-@keyframes drift { from { transform: translateY(14%); } to { transform: translateY(-14%); } }
-.frame figcaption { background: linear-gradient(180deg, transparent, rgba(6, 6, 9, 0.9) 40%); }
-html.no-js .film .ttl, html.no-js .film .lower, html.no-js .film.story.k1 .s1, html.no-js .film.story.k2 .s2, html.no-js .film.story.k3 .s3 { opacity: 1; }
-@media (max-width: 720px) {
-  .frame.tall.study { grid-template-columns: 1fr; border-radius: 10px; }
-  .frame.tall.study .film { position: relative; inset: auto; height: 3.4rem; border-bottom: 1px solid var(--line); }
-  .frame.tall.study .film .prog { top: 0.5rem; }
-  .frame.tall.study .film .s1 .hook { top: 1.5rem; height: 6px; }
-  .frame.tall.study .film .s2 { gap: 4px; padding: 1.15rem 14% 0; } .frame.tall.study .film .s2 b { height: 4px; }
-  .frame.tall.study .film .s3 .cta { top: 1.35rem; height: 18px; }
-  .frame.tall.study .film .light { display: none; }
-  .frame.tall.study figcaption { background: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .film .light, .film .ttl, .film .lower, .film.story .prog i::after, .film.story .scene { animation: none !important; }
-  .film .ttl, .film .lower, .film.story.k1 .s1, .film.story.k2 .s2, .film.story.k3 .s3 { opacity: 1; } .film.story .prog i::after { width: 100%; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .flowmap .flow .fl-lane i, .scr-map .scr-line::after, .scr-bar.full i, .pane.is-live, .post, .post .pfix, .rec-rows li.new { animation: none; }
@@ -726,3 +669,46 @@ details.terms ul { margin-top: 0.9rem; }
 .go-btn.consult { text-decoration: none; }
 html.no-js .ask, html.no-js details.terms { display: block; }
 html.no-js .ask summary::after, html.no-js details.terms > summary::after { display: none; }
+
+/* ---------- Home 章 2: 事業構造（クリエイター ― REYZ PLATFORM ― 企業）。各段がその事業のページへの入口 ---------- */
+.structure { display: grid; grid-template-columns: 1fr; margin: 2.2rem auto 0; max-width: 40rem; }
+.structure .node { display: grid; gap: 0.35rem; padding: 1.25rem 1.3rem 1.15rem; border: 1px solid var(--line-2); border-radius: 14px; color: inherit; text-decoration: none; background: rgba(255, 255, 255, 0.02); transition: border-color 0.4s, background 0.4s; }
+.structure .node:hover, .structure .node:focus-visible { border-color: rgba(247, 21, 172, 0.6); background: rgba(247, 21, 172, 0.05); outline: none; }
+.structure .node.reyz { border-color: rgba(247, 21, 172, 0.45); }
+.structure .who { font-size: 1.1rem; font-weight: 500; letter-spacing: 0.08em; }
+.structure .reyz .who { font-family: var(--font-en); font-size: 0.9rem; letter-spacing: 0.2em; color: var(--accent); }
+.structure .scr { font-size: 0.78rem; letter-spacing: 0.14em; color: var(--text-2); }
+.structure .what { margin-top: 0.2rem; color: var(--text); font-size: 0.98rem; line-height: 1.8; }
+.structure .go { margin-top: 0.35rem; font-family: var(--font-en); font-size: 0.72rem; letter-spacing: 0.16em; color: var(--text-2); transition: color 0.4s; }
+.structure .go::after { content: "\2192"; margin-left: 0.5em; display: inline-block; transition: transform 0.5s var(--ease); }
+.structure .node:hover .go { color: var(--text); } .structure .node:hover .go::after { transform: translateX(0.4em); }
+.structure .link { position: relative; display: block; width: 1px; height: 2.6rem; margin: 0 auto; background: linear-gradient(180deg, var(--line-2), rgba(247, 21, 172, 0.55), var(--line-2)); }
+.structure .pulse { position: absolute; left: 50%; top: 0; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); opacity: 0; }
+.structure .pulse.up { animation: pulseUp 3.2s linear infinite; }
+.structure .pulse.down { animation: pulseDown 3.2s linear 1.6s infinite; }
+@keyframes pulseUp { 0% { top: 100%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: -7px; opacity: 0; } }
+@keyframes pulseDown { 0% { top: -7px; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+.structure-cap { margin: 1.5rem auto 0; max-width: 40rem; text-align: center; color: var(--text-2); font-size: 0.92rem; line-height: 1.9; }
+@media (min-width: 960px) {
+  .structure { grid-template-columns: minmax(0, 1fr) 3.4rem minmax(0, 1fr) 3.4rem minmax(0, 1fr); max-width: 62rem; align-items: stretch; }
+  .structure .link { width: auto; height: 1px; align-self: center; margin: 0; background: linear-gradient(90deg, var(--line-2), rgba(247, 21, 172, 0.55), var(--line-2)); }
+  .structure .pulse { left: 0; top: 50%; margin: -3.5px 0 0 -3.5px; }
+  .structure .pulse.up { animation: pulseLeft 3.2s linear infinite; }
+  .structure .pulse.down { animation: pulseRight 3.2s linear 1.6s infinite; }
+  @keyframes pulseLeft { 0% { left: 100%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: 0; opacity: 0; } }
+  @keyframes pulseRight { 0% { left: 0; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+  .structure-cap { max-width: 62rem; }
+}
+/* ---------- /creator 入口: 6 つの収益 ---------- */
+.incomes { list-style: none; margin: 2.2rem 0 0; padding: 0; display: grid; max-width: 40rem; }
+.incomes li { display: grid; grid-template-columns: 2.4rem 1fr; grid-template-areas: "n k" "n v"; align-items: baseline; gap: 0.15rem 0.6rem; padding: 1rem 0; border-top: 1px solid var(--line); }
+.incomes li:last-child { border-bottom: 1px solid var(--line); }
+.incomes .n { grid-area: n; font-family: var(--font-en); font-size: 0.7rem; letter-spacing: 0.2em; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.incomes b { grid-area: k; font-weight: 500; font-size: 1.02rem; letter-spacing: 0.05em; }
+.incomes .v { grid-area: v; color: var(--text-2); font-size: 0.9rem; line-height: 1.8; }
+/* ---------- /creative REYZがすること: 提供の束（見出しと 1 行は常に見え、項目はたたむ） ---------- */
+.groups { display: grid; gap: 1.8rem; margin-top: 2.4rem; max-width: 40rem; }
+.group .g-head { display: grid; gap: 0.2rem; padding: 0 0 0.7rem; }
+.group .g-head b { font-size: 1.12rem; font-weight: 500; letter-spacing: 0.06em; }
+.group .g-head span { color: var(--text-2); font-size: 0.9rem; line-height: 1.8; }
+@media (prefers-reduced-motion: reduce) { .structure .pulse { animation: none !important; opacity: 0; } }

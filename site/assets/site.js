@@ -369,9 +369,7 @@
   const live = el => el.classList.add('is-live');
   const ioLive = ('IntersectionObserver' in window) ? new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { live(e.target); ioLive.unobserve(e.target); } }, { threshold: 0.35 }) : null;
   for (const el of document.querySelectorAll('.bend')) { if (reduce) { live(el); const svg = el.querySelector('svg'); if (svg) { try { svg.pauseAnimations(); } catch (err) { /* 無視 */ } } } else if (ioLive) ioLive.observe(el); else live(el); }
-  // 見本（3 つの画面・映像の型）は画面に入ったら 1 回だけ動き、そのまま止まる。タップでもう一度
-  const replay = el => { el.classList.remove('is-live'); void el.offsetWidth; el.classList.add('is-live'); };
-  for (const el of document.querySelectorAll('.showcase')) { if (reduce) live(el); else if (ioLive) ioLive.observe(el); else live(el); el.addEventListener('click', () => { if (!reduce) replay(el); }); }
+  // 映像の見本（.motion）は CSS だけで回る（言葉が 1 語ずつ現れる）。JS のフックは不要
   for (const check of document.querySelectorAll('.check')) {
     const lanes = Array.from(check.querySelectorAll('.lane')), human = check.querySelector('.check-human'), rec = check.querySelector('.check-rec');
     let timers = [], running = false, runIdx = 0;
