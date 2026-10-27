@@ -427,7 +427,7 @@
     // 1 画面目: Home で作った地図があれば、見本の地図と入れ替える
     try { const raw = sessionStorage.getItem('reyz.map.r'); if (raw) { const m = JSON.parse(raw); if (m && m.who === who && m.goal && m.place && m.step) { carried = m;
       const id = who === 'creator' ? 'dm' : 'dn'; const put = (k, v) => { const el = document.getElementById(id + k); if (el) el.textContent = v; };
-      put('Place', m.place); put('Step', m.step); put('Goal', m.goal); put('From', 'ホームで作った、あなたの地図。'); const home = document.getElementById(id + 'Home'); if (home) home.hidden = true; demo.classList.add('has-map'); ECHO.map = 'あなたの地図。'; } } } catch (err) { /* 見本の地図のまま */ }
+      put('Place', m.place); put('Step', m.step); put('Goal', m.goal); put('From', 'ホームで作った、あなたの地図。'); const from = document.getElementById(id + 'From'); if (from) from.hidden = false; const home = document.getElementById(id + 'Home'); if (home) home.hidden = true; demo.classList.add('has-map'); ECHO.map = 'あなたの地図。'; } } } catch (err) { /* 見本の地図のまま */ }
     say('map');
     if (who === 'creator') {
       // 入口 → 明細: 「受ける」を押したものだけが明細に並ぶ（押し直すと外れる）

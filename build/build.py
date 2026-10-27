@@ -245,20 +245,12 @@ def mapper():
             '                </dl>\n'
             '              </div>\n'
             f'              <p class="map-note" id="mapNoteLive" hidden>{TT_NOTE}</p>\n'
-            '              <p class="map-fine">' + jp('見本（例）です。|相談で、あなたの言葉で作り直します。') + '</p>\n'
             # 地図 → 3 つの画面（その人の枝のページの見本へ。地図はそのまま 1 画面目に入る）→ 相談、とつながる
             '              <p class="more tight"><a class="go" id="mapScreens" href="creator.html#model">この地図で、3つの画面へ</a></p>\n'
             '              <div class="ctas tight"><a class="btn primary" id="mapGo" href="contact.html">この内容で相談する</a><button type="button" class="btn" id="mapReset">最初から</button></div>\n'
             '            </div>\n'
             '          </div>')
 MAPPER = mapper()
-
-# ------------------------------------------------------------------ HOME 章「AI」: REYZ 自身がこの仕組みで動いている事実（企業正本 §11「REYZ 自身がこの仕組みで運営している（事実の範囲で）」。2026-10-26 CEO「表現で解決せよ」）
-# 書くのは確認できる事実だけ: 公開リポジトリ REYZ-Inc/reyz-site（変更ごとの自動検査・人の承認。ブランチ保護＋必須チェック＋CEO の merge）、決定の通し番号つき記録（2026-09〜、2026-10-23 時点で 517 番）、設計書の版。人数・規模・「共生」は書かない（2026-09-26 除外文言）
-PROOF = ('<div class="proof reveal">\n'
-    '            <p class="proof-head">' + jp('REYZ自身が、|この仕組みで動いています。') + '</p>\n'
-    '            <a class="go" href="https://github.com/REYZ-Inc/reyz-site/pulls?q=is%3Apr+is%3Amerged" rel="noopener">変更の記録（GitHub・英語）</a>\n'
-    '          </div>')
 
 # ------------------------------------------------------------------ HOME 章「AI」の道具「確認」: 提供元の異なる複数の AI が確かめ → 人が はい／いいえ → 記録。一致しなければ止まる。
 # 文で説明せず、仕組みそのものを目の前で動かす（2026-10-26 CEO「表現で解決せよ」）。数字は事実の範囲（通し番号 517・2026-10-23 時点）だけ。
@@ -315,8 +307,6 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="copy wide">
           <div class="head"><p class="eyebrow">REYZ PLATFORM</p><h2>AIが支える。</h2></div>
 {CHECK}
-{PROOF}
-          <p class="more"><a class="go" href="ai.html">AI</a></p>
         </div>
       </div>
     </section>
@@ -377,7 +367,7 @@ def demo_map(prefix, place, step, goal, nxt, label):
             f'<div class="scr-node"><i></i><b>今いる場所</b><span id="{prefix}Place">{place}</span></div>'
             f'<div class="scr-node"><i></i><b>最初の一歩</b><span id="{prefix}Step">{step}</span></div>'
             f'<div class="scr-node goal"><i></i><b>目的</b><span id="{prefix}Goal">{goal}</span></div></div>\n'
-            f'                  <p class="pane-note" id="{prefix}From">見本の地図です。</p>\n'
+            f'                  <p class="pane-note" id="{prefix}From" hidden></p>\n'
             f'                  <a class="pane-link" id="{prefix}Home" href="index.html#map">ホームで、あなたの地図をつくる →</a>\n'
             f'                  <button class="go-btn" type="button" data-next="{nxt}">{label}</button>\n')
 SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
@@ -410,7 +400,7 @@ section('pain', 'For you', 'こんな困りごとに', '',
               (jp('企画、撮影、編集、毎日の投稿。|ひとりで抱えきれず、|活動のペースと質が落ちる。'), jp('企画・撮影・編集は、REYZと分けられます。|投稿の計画から継続まで、支えます。')),
               (jp('目指すものや暮らしが変わったとき、|活動を何から変えればいいか|分からない。'), jp('目標が変わったら、|進め方を組み直して、続きから。')),
               (jp('事務所に入ると報酬から引かれたり、|辞めるときに制限がかかるのが|不安。'), jp('費用ゼロ。報酬からの手数料ゼロ。|違約金なし。やめるのも自由。'), '#model', '仕組みを見る')])) + \
-section('model', 'How it works', '仕組み', '', MODEL + SCREENS_CREATOR + more('contact.html', '相談する')) + \
+section('model', 'How it works', '仕組み', '', MODEL + SCREENS_CREATOR) + \
 section('services', 'Services', '提供すること', '',
         '<div class="items reveal">\n'
         '            <div class="item">\n'
@@ -483,7 +473,6 @@ SCREENS_ENT = ('<div class="screens3 reveal">\n'
               '                  <button class="go-btn" type="button" id="deFix" hidden>直して、もう一度確かめる</button>\n'
               '                  <div class="human" id="deHuman" hidden><span class="lbl">人が決める</span><button class="go-btn yes" type="button" data-d="はい">はい</button><button class="go-btn ghost" type="button" data-d="いいえ">いいえ</button></div>\n') +
     demo_pane('de', 3, 'rec',
-              '                  <p class="pane-cap">決定のたびに、1行。</p>\n'
               '                  <ol class="rec-rows" id="deRec"><li class="empty">' + jp('確認で「はい」か「いいえ」を押すと、|ここに残る。') + '</li></ol>\n'
               '                  <a class="go-btn consult" href="contact.html" data-consult="company">この地図で、相談する</a>\n'
               '                  <button class="go-btn ghost" type="button" data-next="check" data-reset="1">もう一つ、確かめる</button>\n') +
@@ -511,8 +500,7 @@ section('pain', 'For you', 'こんな困りごとに', '',
               (jp('人を増やさずに、利益を増やしたい。|でも、制作、確認、運用に時間を取られ、|本来の仕事に集中できていない。'), jp('人がやらなくていい仕事を、|AIと仕組みへ。'), '', '', SHIFT),
               (jp('提案や選択肢が多すぎて、|会議のたびに「結局どちらに進むか」を|決めきれず、速度が落ちている。'), jp('判断の材料を地図にして、|「はい」か「いいえ」で決められる形に。'), '#decide', '地図を見る'),
               (jp('案件の表現チェック|（ステマ規制・景表法）を|人手でやっていて、|量に追いつかない。'), jp('公開前に複数のAIが確かめ、|人が決め、記録が残ります。'), '#decide', '確認を試す')])) + \
-section('show', 'Video × SNS', '映像とSNSの、かたち。', '',
-        SHOWCASE + more('contact.html', '相談する')) + \
+section('show', 'Video × SNS', '映像とSNSの、かたち。', '', SHOWCASE) + \
 section('services', 'Services', 'REYZがすること', '',
         items_fold([('目的を言葉にし、進め方を決める', jp('何のために、いつまでに、何を。|目的を正確に汲み取り、|いつ、何を、どう進めるかを決めて渡します。\n目的が変わったら、|進め方を組み直して続けます。')),
                ('最小の人数で、最大の利益を', jp('調査、台本、一次制作、進行管理、集計。|人がやらなくていい仕事を|AIと仕組みに移します。\n人は決めることと伝えることに集中し、|少ない人数で利益を生む体制をつくります。')),
@@ -525,8 +513,7 @@ section('services', 'Services', 'REYZがすること', '',
                ('公開前の確認', jp('ステマ規制、景品表示法、|医療広告ガイドライン、薬機法に照らし、|提供元の異なる複数のAIが確かめ、|人が決め、記録を残します。\n公的なきまりとの照合であり、|法律の鑑定ではありません。')),
                ('事務所・代理店の方へ', jp('クリエイター事務所、代理店、制作会社の方へ。\n3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。\n確認を通った案件と商品だけが、|クリエイターの入口に届きます。'), 'consensus.html', 'REYZ CONSENSUSについて'),
                ('AIを仕事に入れる', jp('仕事の流れの設計から|実際の運用までを、|自社の仕組み「REYZ PLATFORM」で。'), 'ai.html', 'REYZ PLATFORMについて')], 0)) + \
-section('decide', 'Decide', '判断を、地図で。', '',
-        SCREENS_ENT + more('contact.html', '相談する')) + \
+section('decide', 'Decide', '判断を、地図で。', '', SCREENS_ENT) + \
 section('how', 'How to start', '任せ方', jp('いきなり大きな契約を結ぶ必要はありません。\n合わなければ、そこで終えて構いません。'),
         steps([('01', '相談する', jp('今の状況と、やりたいことを。|言葉になっていなくても、構いません。')),
                ('02', '地図を受け取る', ''),
@@ -550,7 +537,7 @@ section('promise', 'Our promise', 'AIの3つの約束', '',
                ('事実から', jp('確かめた事実とデータだけで、|案と判断の材料を組み立てます。\n不確かなことは、|「確認が必要」と正直に示します。')),
                ('見返せる', jp('何を確かめ、誰が、いつ、どの決まりで|進めたか、止めたかを、|あとから見返せる形で残します。\n担当が変わっても、目標が変わっても、|続きから再開できます。'))], 0)) + \
 section('products', 'Products', 'REYZ PLATFORM', '', ai_products) + \
-section('enterprise', 'For Enterprise', '企業向け提供', jp('公開前の表現と広告の確認にも、|同じ仕組みを使います。'),
+section('enterprise', 'For Enterprise', '企業向け提供', '',
         CHECK + items([('相互検証', jp('提供元の異なる複数のAIが、|同じ内容をそれぞれ検証します。\n一致しないものは、|先へ進めません。')),
                ('人の承認', jp('重要な変更は、|責任者の承認を経てから実行します。\nAIだけの判断で、|本番は変わりません。')),
                ('検証できる記録', jp('入力、根拠、判定、承認を記録し、|第三者があとから|同じ判断をたどれるようにします。')),

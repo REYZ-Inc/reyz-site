@@ -20,8 +20,8 @@ const EXPECT = {
     const pick = async (q, aud, v) => tap(`.mq[data-q="${q}"][data-for="${aud}"] .opt[data-v="${v}"]`);
     // 1) 地図なし: /creator の 1 画面目は見本の地図
     await p.goto(base + 'creator.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
-    out.creatorSample = await p.evaluate(() => ({ place: document.getElementById('dmPlace').innerText, from: document.getElementById('dmFrom').innerText, homeHidden: document.getElementById('dmHome').hidden, pane: document.querySelector('#demoC .pane:not([hidden])').dataset.p, tabs: Array.from(document.querySelectorAll('#demoC .tab')).map(x => x.getAttribute('aria-selected')) }));
-    F(`${name}: creator sample map`, t(out.creatorSample.place) === EXPECT.sampleMap.creator && t(out.creatorSample.from) === '見本の地図です。' && out.creatorSample.homeHidden === false && out.creatorSample.pane === 'map' && JSON.stringify(out.creatorSample.tabs) === JSON.stringify(['true', 'false', 'false']));
+    out.creatorSample = await p.evaluate(() => ({ place: document.getElementById('dmPlace').innerText, fromHidden: document.getElementById('dmFrom').hidden, homeHidden: document.getElementById('dmHome').hidden, pane: document.querySelector('#demoC .pane:not([hidden])').dataset.p, tabs: Array.from(document.querySelectorAll('#demoC .tab')).map(x => x.getAttribute('aria-selected')) }));
+    F(`${name}: creator sample map`, t(out.creatorSample.place) === EXPECT.sampleMap.creator && out.creatorSample.fromHidden === true && out.creatorSample.homeHidden === false && out.creatorSample.pane === 'map' && JSON.stringify(out.creatorSample.tabs) === JSON.stringify(['true', 'false', 'false']));
     F(`${name}: all visible controls >= 44px`, await p.evaluate(() => Array.from(document.querySelectorAll('#demoC button')).filter(el => !el.closest('[hidden]')).every(el => { const r = el.getBoundingClientRect(); return r.height >= 44 && r.width >= 44; })));
     // 2) 入口で「受ける」→ 明細に並ぶ（押し直すと外れる）
     await tap('#demoC [data-next="gate"]'); F(`${name}: gate pane`, await p.evaluate(() => document.querySelector('#demoC .pane:not([hidden])').dataset.p === 'gate' && document.querySelector('#demoC .tab[data-t="gate"]').getAttribute('aria-selected') === 'true'));
@@ -52,7 +52,7 @@ const EXPECT = {
     out.consultC = await p.evaluate(() => ({ url: location.pathname, type: document.getElementById('cType').value, msg: document.getElementById('cMsg').value }));
     F(`${name}: creator demo → contact carries the map`, /contact/.test(out.consultC.url) && out.consultC.type === '活動・収益化の相談' && out.consultC.msg.includes('今いる場所: ' + EXPECT.creator.place));
     await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
-    F(`${name}: creator map does not leak into company demo`, await p.evaluate(() => !document.getElementById('demoE').classList.contains('has-map') && document.getElementById('dnFrom').innerText.replace(/ /g, ' ').startsWith('見本の地図です')));
+    F(`${name}: creator map does not leak into company demo`, await p.evaluate(() => !document.getElementById('demoE').classList.contains('has-map') && document.getElementById('dnFrom').hidden && !document.getElementById('dnHome').hidden));
     await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     await pick('who', 'all', 'company'); await pick('goal', 'company', 'no'); await pick('focus', 'company', 'ops'); await pick('first', 'company', 'speed');
     F(`${name}: map → company screens link`, await p.evaluate(() => /^creative(\.html)?#decide$/.test(document.getElementById('mapScreens').getAttribute('href'))));
