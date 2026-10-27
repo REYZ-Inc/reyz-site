@@ -295,7 +295,7 @@
   const mapper = document.getElementById('mapper');
   if (mapper) {
     const groups = Array.from(mapper.querySelectorAll('.mq'));
-    const card = document.getElementById('mapCard'), note = document.getElementById('mapNote'), noteLive = document.getElementById('mapNoteLive');
+    const card = document.getElementById('mapCard'), noteLive = document.getElementById('mapNoteLive');
     const screens = document.getElementById('mapScreens'); if (screens) { const h = screens.getAttribute('href'); screens.dataset.creator = h; screens.dataset.company = h.replace(/^creator(\.html)?#model$/, 'creative$1#decide'); }   // 本番は拡張子なし、試写は .html つき: 元の href から両方を組む
     const out = { goal: document.getElementById('mapGoal'), place: document.getElementById('mapPlace'), step: document.getElementById('mapStep') };
     const ans = {};
@@ -318,11 +318,11 @@
         for (const q of order) { const g = groupOf(q, who); if (!g) continue; g.hidden = !open; if (open && !ans[q]) open = false; } }
       for (const g of groups) for (const b of g.querySelectorAll('.opt')) b.setAttribute('aria-pressed', String(ans[g.dataset.q] === b.dataset.v && (g.dataset.for === 'all' || g.dataset.for === who)));
       const r = compose(); mapper.dataset.done = r ? 'true' : 'false';
-      if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); note.hidden = who !== 'creator'; noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
+      if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
         drawRoute(); card.classList.remove('is-live'); void card.offsetWidth; card.classList.add('is-live');   // 地図を引き直す（線が点を結んでいく）
         try { sessionStorage.setItem('reyz.map.r', JSON.stringify({ who, goal: r.goal, place: r.place, step: r.step })); } catch (err) { /* 保持できないときは見本の地図のまま */ }   // /creator・/creative の 1 画面目にそのまま入る
         if (screens) screens.setAttribute('href', who === 'company' ? screens.dataset.company : screens.dataset.creator);   // 地図 → その人の枝の 3 つの画面へ
-        if (!render.shown) { render.shown = true; const h = card.querySelector('h3'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+        if (!render.shown) { render.shown = true; card.setAttribute('tabindex', '-1'); card.focus({ preventScroll: true });
           // 地図ができたことが分かるように、カードの頭まで送る（最後の答えの直下に出ると気づきにくい）
           const top = card.getBoundingClientRect().top + window.scrollY - 84; if (card.getBoundingClientRect().top > window.innerHeight * 0.55) window.scrollTo({ top, behavior: reduce ? 'instant' : 'smooth' }); } }
       else { card.hidden = true; card.classList.remove('is-live'); render.shown = false; }
