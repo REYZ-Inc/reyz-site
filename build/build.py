@@ -263,9 +263,9 @@ MAPPER = mapper()
 PROOF = ('<div class="proof reveal">\n'
     '            <p class="proof-head">' + jp('REYZ自身が、|この仕組みで動いています。') + '</p>\n'
     '            <ol class="proof-list">\n'
-    '              <li><strong>このサイト</strong><p>' + jp('変更は1件ごとに自動の検査を通り、|人が承認してから公開されます。\n変更の記録は、公開しています。') + '</p><a class="go" href="https://github.com/REYZ-Inc/reyz-site/pulls?q=is%3Apr+is%3Amerged" rel="noopener">変更の記録</a></li>\n'
-    '              <li><strong>会社の決定</strong><p>' + jp('提供元の異なる複数のAIが互いに検証し、|人が決め、通し番号つきの記録に残します。\n2026年9月から続け、|通し番号は2026年10月23日時点で517。') + '</p></li>\n'
-    '              <li><strong>事業の設計書</strong><p>' + jp('同じ流れで版を重ねています。\nどの版で、何を決めたかが残ります。') + '</p></li>\n'
+    '              <li><strong>このサイト</strong><p>' + jp('変更ごとに自動の検査と人の承認を通って公開。|記録は公開。') + '</p><a class="go" href="https://github.com/REYZ-Inc/reyz-site/pulls?q=is%3Apr+is%3Amerged" rel="noopener">変更の記録</a></li>\n'
+    '              <li><strong>会社の決定</strong><p>' + jp('複数のAIが検証し、人が決め、通し番号つきで記録。|2026年10月23日時点で517。') + '</p></li>\n'
+    '              <li><strong>事業の設計書</strong><p>' + jp('同じ流れで、版を重ねる。') + '</p></li>\n'
     '            </ol>\n'
     '          </div>')
 
@@ -309,7 +309,6 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h2>ひとつの意志から。</h2>
           <p class="lead">REYZは、クリエイターと企業の「やりたい」を、<br>かたちにします。</p>
-          <p class="lead">映像制作、SNSアカウントの運用、<br>仕事の仕組みづくり、判断の支え。</p>
           <div class="ctas"><a class="btn primary" href="creative.html">企業の方へ</a><a class="btn" href="creator.html">クリエイターの方へ</a></div>
         </div>
       </div>
@@ -318,7 +317,7 @@ home = f'''    <section class="chapter" id="infinity">
       <div class="wrap chapter-stack">
         {slot('map')}
         <div class="copy wide">
-          <div class="head"><p class="eyebrow">Your map</p><h2>あなたの地図を、<br>ここで。</h2><p class="lead">{jp('いくつか選ぶと、|目的・今いる場所・最初の一歩を、|地図にして返します。')}</p></div>
+          <div class="head"><p class="eyebrow">Your map</p><h2>あなたの地図を、<br>ここで。</h2><p class="lead">{jp('いくつか選ぶと、|地図にして返します。')}</p></div>
 {MAPPER}
           <noscript><p class="lead">{jp('この体験はJavaScriptが有効な環境で動きます。')}<br><a href="creator.html">クリエイターの方へ</a>　<a href="creative.html">企業の方へ</a></p></noscript>
         </div>
@@ -361,7 +360,7 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h2>目的が変わっても、<br>続く。</h2>
 {CONTINUE}
-          <p class="lead">人の目的は変わります。<br>REYZは、変わる前提で進め方をつくり、<br>変わったら組み直して続けます。<br>やり直しではなく、続きから。<br>クリエイターにも、企業にも。</p>
+          <p class="lead">変わったら、組み直して続けます。<br>やり直しではなく、続きから。</p>
         </div>
       </div>
     </section>
@@ -388,11 +387,11 @@ VD_P = jp('''インフルエンス力向上、ブランド化、リブランデ�
 その目的を実現させるための企画、撮影、編集までを、
 自社ですべて行います。''')
 # 2026-10-23 CEO 指示: 読者はクリエイター本人。困りごと→提供すること→約束→はじめ方。既決の文（TikTok・映像制作・はじめ方 3 段）は変更しない
-PROMISE = items([('目的を、先に言葉にします。', jp('最初の相談で、|あなたの目的と今いる場所、|最初の進め方を地図にして返します。\n合わなければ、始めません。')),
+PROMISE = items_fold([('目的を、先に言葉にします。', jp('最初の相談で、|あなたの目的と今いる場所、|最初の進め方を地図にして返します。\n合わなければ、始めません。')),
                  ('迷わない進め方を、渡します。', jp('どの場所で、いつ、何を、どうやるか。|次の一手が|いつも決まっている状態を|つくります。')),
                  ('目的が変わっても、続きます。', jp('目的は変わるものです。|変わったら、進め方を組み直して続けます。\nやり直しではなく、続きから。')),
                  ('決めるのは、あなたです。', jp('人が決めるべきことを、|AIに決めさせません。\n判断の材料を|「はい」か「いいえ」で|答えられる形にして出します。')),
-                 ('任せきりにしません。', jp('進み具合と、なぜそうしたかを、|いつでも見られる形で残します。\n担当が変わっても、目標が変わっても、|続きから再開できます。'))])
+                 ('任せきりにしません。', jp('進み具合と、なぜそうしたかを、|いつでも見られる形で残します。\n担当が変わっても、目標が変わっても、|続きから再開できます。'))], 0)
 # 2026-10-26 正本 §10: 冒頭の 2 行目、困りごと 4 件目、仕組み（費用ゼロ・手数料ゼロ・やめるのも自由、お金の流れ、3 つの画面の見本）、提供することの追加 5 項目。
 # 公開サイトでは「所属」「退所」を使わない（2026-09-26 CEO）ので、正本の文は「費用はかからない。やめるのも自由。」の形にする
 MODEL = ('<div class="model reveal">\n'
@@ -401,7 +400,7 @@ MODEL = ('<div class="model reveal">\n'
     '            <div class="fund flowmap">\n'
     '              <div class="flow"><span class="from">' + jp('プラットフォーム・|企業') + '</span><span class="fl-lane" aria-hidden="true"><i></i><i></i><i></i></span><span class="to">REYZ</span><span class="what">報酬・利用料</span></div>\n'
     '              <div class="flow zero"><span class="from">あなた</span><span class="fl-lane" aria-hidden="true"></span><span class="to">REYZ</span><span class="what">0円</span></div>\n'
-    '              <p>' + jp('REYZの収入は、|プラットフォームと企業から。\nだから、あなたの報酬からは引きません。') + '</p>\n'
+    '              <p>' + jp('あなたの報酬からは、引きません。') + '</p>\n'
     '            </div>\n'
     '            <div class="terms">\n'
     '              <p class="terms-head">はっきり決めていること</p>\n'
@@ -438,9 +437,9 @@ SCR_REC = ('                <div class="scr-rec" aria-hidden="true">'
 SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
     '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本</p><h3>' + jp('地図・入口・明細。') + '</h3></div>\n'
     '            <div class="phones3">\n'
-    + phone('map', '地図', SCR_MAP, jp('目的と今いる場所、最初の一歩。\n目標が変わったら、引き直す。'))
-    + phone('gate', '入口', SCR_GATE, jp('確認を通った案件と商品だけが、|ここに届く。\n受けるかは、あなたが決める。'))
-    + phone('stmt', '明細', SCR_STMT, jp('いつ、何で、いくら。\n記録はあなたのもの。|いつでも持ち出せる。')) +
+    + phone('map', '地図', SCR_MAP, jp('目的・今いる場所・最初の一歩。|変わったら、引き直す。'))
+    + phone('gate', '入口', SCR_GATE, jp('確認を通った案件と商品だけが届く。|受けるかは、あなたが決める。'))
+    + phone('stmt', '明細', SCR_STMT, jp('いつ、何で、いくら。|記録はあなたのもの。')) +
     '            </div>\n'
     '          </div>')
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
@@ -462,7 +461,6 @@ section('services', 'Services', '提供すること', '',
         '            <div class="item">\n'
         f'              <h3>{VD_H3}</h3>\n'
         f'              <p>{VD_P}</p>\n'
-        '              <a class="go" href="works.html">作品例</a>\n'
         '            </div>\n'
         + fold('あなたを知るところから', jp('''得意なこと、今のフォロワー、|生活のリズム、目指す収入。
 まずあなたを正確に知り、|目的をあなたの言葉で確かめます。''')) + '\n'
@@ -501,21 +499,30 @@ page('creator.html', 'Creator — REYZ Inc.', 'REYZのクリエイター向け�
 # ------------------------------------------------------------------ CREATIVE（エンタープライズ事業）
 # 2026-10-23 CEO 指示: 読者は開発者ではない。「誰のため／こんな困りごとに／REYZがすること／REYZの約束／進め方／やらないこと」の順。
 # 映像制作・SNSアカウント運用支援・業務効率化・意思決定支援を統合（既決は変更せず追加）。実績・数字・顧客名は置かない。
+# 映像の型（2026-10-27 CEO「作品例は記載せず、直感・体感で」）: 動画の代わりに、映像の「時間」を枠の中で再生する。
+# 横＝シネマ（黒帯・光の移動・タイトル・テロップ）。縦＝ストーリー（上の進行バー・3 つの場面: 引き込み → 中身 → 行動）。架空の作品名・数字は置かない
+def film_wide():
+    return ('<span class="film" aria-hidden="true"><i class="bar t"></i><i class="bar b"></i><i class="light"></i><i class="light l2"></i>'
+            '<span class="ttl"><b></b><b></b></span><span class="lower"><b></b><b></b></span></span>')
+def film_tall(kind):
+    return (f'<span class="film story {kind}" aria-hidden="true"><span class="prog"><i></i><i></i><i></i></span>'
+            '<span class="scene s1"><b class="hook"></b></span><span class="scene s2"><b></b><b></b><b></b></span><span class="scene s3"><b class="cta"></b></span>'
+            '<i class="light"></i></span>')
 SHOWCASE = ('<div class="showcase reveal">\n'
-    '            <figure class="frame wide study"><div class="study-guides" aria-hidden="true"><span class="safe"></span><span class="thirds"></span><span class="att"></span><span class="cap-block"><b></b><b></b></span></div><figcaption><span class="tag">Brand movie · PR · Recruit</span><strong>' + jp('企業の目的を、|見る人の行動を変える映像に。') + '</strong><span>' + jp('企画、脚本、撮影、編集、|広告表現の確認まで、一貫して。') + '</span></figcaption></figure>\n'
+    '            <figure class="frame wide study">' + film_wide() + '<figcaption><span class="tag">Brand movie · PR · Recruit</span><strong>' + jp('企業の目的を、|見る人の行動を変える映像に。') + '</strong></figcaption></figure>\n'
     '            <div class="phones">\n'
-    '              <figure class="frame tall study"><div class="study-guides" aria-hidden="true"><span class="safe"></span><span class="att a1"></span><span class="hook"><b></b></span></div><figcaption><span class="tag">認知</span><strong>企画型</strong><span>' + jp('最初の2秒で引き込み、|伝えたいことへつなぐ。') + '</span></figcaption></figure>\n'
-    '              <figure class="frame tall study"><div class="study-guides" aria-hidden="true"><span class="safe"></span><span class="att a2"></span><span class="cap-block v"><b></b><b></b><b></b></span></div><figcaption><span class="tag">信頼</span><strong>裏側ドキュメント型</strong><span>' + jp('商品、サービス、働く人の魅力を、|事実のまま見せる。') + '</span></figcaption></figure>\n'
-    '              <figure class="frame tall study"><div class="study-guides" aria-hidden="true"><span class="safe"></span><span class="att a3"></span><span class="cta-block"><b></b></span></div><figcaption><span class="tag">行動</span><strong>導線直結型</strong><span>' + jp('相談、購買、応募へ、|迷わず進める。') + '</span></figcaption></figure>\n'
+    '              <figure class="frame tall study">' + film_tall('k1') + '<figcaption><span class="tag">認知</span><strong>企画型</strong><span>' + jp('最初の2秒で引き込み、|伝えたいことへつなぐ。') + '</span></figcaption></figure>\n'
+    '              <figure class="frame tall study">' + film_tall('k2') + '<figcaption><span class="tag">信頼</span><strong>裏側ドキュメント型</strong><span>' + jp('商品、サービス、働く人の魅力を、|事実のまま見せる。') + '</span></figcaption></figure>\n'
+    '              <figure class="frame tall study">' + film_tall('k3') + '<figcaption><span class="tag">行動</span><strong>導線直結型</strong><span>' + jp('相談、購買、応募へ、|迷わず進める。') + '</span></figcaption></figure>\n'
     '            </div>\n'
     '          </div>')
 # 2026-10-26 正本 §13: 「The first sheet（一枚）」の節を、企業の 3 つの画面「地図・確認・記録」に置き換える（設計上の見本と明記）
 SCREENS_ENT = ('<div class="screens3 reveal">\n'
     '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本</p><h3>' + jp('地図・確認・記録。') + '</h3></div>\n'
     '            <div class="phones3">\n'
-    + phone('map', '地図', SCR_MAP, jp('目的、今いる場所、次の一手、|確認の結果が、ひとつの画面に。\n「はい」か「いいえ」で決める。|目的が変わったら、引き直す。'))
-    + phone('check', '確認', SCR_CHECK, jp('公開前に、表現と取引の条件を|きまりに照らす。\n提供元の異なる複数のAIが確かめ、|一致しないものは止まる。|最後は人が決める。'))
-    + phone('rec', '記録', SCR_REC, jp('決定ごとに、何を、どのきまりで、|誰が、いつ決めたかを、|あとから変えられない形で残す。\n記録は企業のもの。|いつでも持ち出せる。')) +
+    + phone('map', '地図', SCR_MAP, jp('目的・今いる場所・次の一手・確認の結果を、|ひとつの画面で。|「はい」か「いいえ」で決める。'))
+    + phone('check', '確認', SCR_CHECK, jp('公開前に、きまりに照らす。|複数のAIが確かめ、一致しなければ止まる。|最後は人が決める。'))
+    + phone('rec', '記録', SCR_REC, jp('何を、どのきまりで、誰が、いつ。|変えられない形で残り、|記録は企業のもの。')) +
     '            </div>\n'
     '            <div class="decide"><p>' + jp('決めるのは、あなたです。|会議でゼロから悩む必要はありません。') + '</p><span class="pill yes">はい：この内容で進める</span><span class="pill">いいえ：条件を変えて、組み直す</span></div>\n'
     '            <p class="gate-note">' + jp('確認を通った案件と商品だけが、|クリエイターの入口に届きます。') + '</p>\n'
@@ -537,16 +544,12 @@ SHIFT = ('<div class="shift reveal">\n'
 creative = title_chapter('Creative', 'For Enterprise', '「伝わる」を設計する。',
                          jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。')) + \
 section('pain', 'For you', 'こんな困りごとに', '',
-        stages([('誰のため', '目的を最短で実現し、利益を増やしたい企業の方へ'),
-                ('こんな困りごとに', '映像、SNS、仕事の流れ、判断の迷い'),
-                ('REYZがすること', '進め方の設計、映像制作、SNS運用、仕組みづくり、判断の支え'),
-                ('任せ方', '最初の相談で、地図を返します')]) +
         pains([jp('映像制作やSNSの運用を始めたい、見直したい。|でも、いつ、何を、どう進めれば|目的につながるのか、迷っている。'),
                jp('人を増やさずに、利益を増やしたい。|でも、制作、確認、運用に時間を取られ、|本来の仕事に集中できていない。'),
                jp('提案や選択肢が多すぎて、|会議のたびに「結局どちらに進むか」を|決めきれず、速度が落ちている。')])) + \
-section('show', 'Video × SNS', '映像とSNSの、かたち。', jp('「きれい」で終わらせない。|誰に、何を届け、どう動いてもらうか。|目的から逆算してつくります。'),
+section('show', 'Video × SNS', '映像とSNSの、かたち。', jp('「きれい」で終わらせない。|目的から逆算してつくります。'),
         SHOWCASE +
-        sub(jp('横の映像と、縦の映像を、|ひとつの設計で。'), jp('ブランド映像、商品・サービスの紹介、採用の映像。|TikTok、Instagram Reels、YouTube Shorts向けの縦型まで。|SNSの3つの型は、見る人の段階に合わせて使い分けます。')) +
+        sub(jp('横の映像と、縦の映像を、|ひとつの設計で。')) +
         sub(jp('つくって終わりにしない。|続け方。')) +
         cycle([('目的と相手を知る', '何のために、誰に。'),
                ('いつ、何を、どう', '進め方を決めて渡す。'),
@@ -564,11 +567,11 @@ section('services', 'Services', 'REYZがすること', '',
                ('クリエイターとの販売設計', jp('クリエイターと連動した|販売の設計と運用。|国内からアジアへの越境販売まで。')),
                ('公開前の確認', jp('ステマ規制、景品表示法、|医療広告ガイドライン、薬機法に照らし、|提供元の異なる複数のAIが確かめ、|人が決め、記録を残します。\n公的なきまりとの照合であり、|法律の鑑定ではありません。')),
                ('事務所・代理店の方へ', jp('クリエイター事務所、代理店、制作会社の方へ。\n3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。'), 'consensus.html', 'REYZ CONSENSUSについて'),
-               ('AIを仕事に入れる', jp('仕事の流れの設計から|実際の運用までを、|自社の仕組み「REYZ PLATFORM」で。'), 'ai.html', 'REYZ PLATFORMについて')], 3)) + \
+               ('AIを仕事に入れる', jp('仕事の流れの設計から|実際の運用までを、|自社の仕組み「REYZ PLATFORM」で。'), 'ai.html', 'REYZ PLATFORMについて')], 1)) + \
 section('decide', 'Decide', '判断を、地図で。', jp('経営者も担当者も、|「はい」か「いいえ」を|選ぶだけにします。'),
         SCREENS_ENT +
         sub(jp('人がやらなくていい仕事を、|AIと仕組みへ。')) + SHIFT) + \
-section('promise', 'Our promise', 'REYZの約束', jp('「任せたい」は、強い言葉からではなく、|守る仕組みから生まれます。'), PROMISE) + \
+section('promise', 'Our promise', 'REYZの約束', '', PROMISE) + \
 section('how', 'How it works', '任せ方', jp('いきなり大きな契約を結ぶ必要はありません。\n合わなければ、そこで終えて構いません。'),
         steps([('01', '相談する', jp('今の状況と、|やりたいことを聞かせてください。\nまだ言葉になっていなくても、|構いません。')),
                ('02', '地図を受け取る', jp('目的と今いる場所、|最初の進め方を地図にして返します。')),
@@ -589,10 +592,10 @@ ai_products = ('<div class="items reveal">\n'
     '          </div>')
 ai = title_chapter('AI', 'REYZ PLATFORM · AI Infrastructure', 'AIが支える。',
                    jp('複数のAIエージェントを統合運用する|AI基盤「REYZ PLATFORM」。')) + \
-section('promise', 'Our promise', 'AIの3つの約束', jp('映像制作、SNS運用、仕事の仕組みづくり、判断の支え。|その裏側で動くREYZのAIは、|3つの約束で動きます。'),
-        items([('止まる', jp('確認が取れていないこと、|人が決めるべき分かれ道では、|AIは勝手に先へ進めず、止まります。')),
+section('promise', 'Our promise', 'AIの3つの約束', '',
+        items_fold([('止まる', jp('確認が取れていないこと、|人が決めるべき分かれ道では、|AIは勝手に先へ進めず、止まります。')),
                ('事実から', jp('確かめた事実とデータだけで、|案と判断の材料を組み立てます。\n不確かなことは、|「確認が必要」と正直に示します。')),
-               ('見返せる', jp('何を確かめ、誰が、いつ、どの決まりで|進めたか、止めたかを、|あとから見返せる形で残します。\n担当が変わっても、目標が変わっても、|続きから再開できます。'))])) + \
+               ('見返せる', jp('何を確かめ、誰が、いつ、どの決まりで|進めたか、止めたかを、|あとから見返せる形で残します。\n担当が変わっても、目標が変わっても、|続きから再開できます。'))], 0)) + \
 section('products', 'Products', 'REYZ PLATFORM', jp('REYZのAI製品を、|ひとつに集約するプラットフォーム。'), ai_products) + \
 section('enterprise', 'For Enterprise', '企業向け提供', jp('AIに任せた判断を、|あとから説明できる状態に。\n監査できるAI運用の基盤を、|企業向けに提供します。\n公開前の表現と広告の確認にも、|同じ仕組みを使います。'),
         CHECK + items([('相互検証', jp('提供元の異なる複数のAIが、|同じ内容をそれぞれ検証します。\n一致しないものは、|先へ進めません。')),

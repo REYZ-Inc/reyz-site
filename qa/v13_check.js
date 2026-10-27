@@ -1,4 +1,4 @@
-// v13 acceptance: brand Z colour, menu sheet (colour / X close / scroll close / Escape / link), works page (no note), creator copy, excluded strings.
+// v13 acceptance: brand Z colour, menu sheet (colour / X close / scroll close / Escape / link), works page (no note, not linked from /creator since 2026-10-27), creator copy, excluded strings.
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');
 const ROOT = path.resolve(process.argv[2]);
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
@@ -24,7 +24,7 @@ const PINK = 'rgb(247, 21, 172)', SHEET = 'rgb(28, 28, 28)';
   { const ctx0 = await b.newContext({ viewport: { width: 1440, height: 900 } }); const p0 = await ctx0.newPage(); await p0.goto(base + 'creator.html', { waitUntil: 'load' });
     const got = await p0.evaluate(() => { const ps = document.querySelectorAll('.item p'); const h3 = document.querySelectorAll('.item h3'); const st = document.querySelectorAll('.step p'); const t = el => el.innerText.replace(/\u00a0/g, ' ').trim(); return { 'services p1': t(ps[0]), 'services p2': t(ps[1]), 'services note': t(ps[2]), 'video h3': t(h3[1]), 'video p': t(ps[3]), 'step 01': t(st[0]), 'step 02': t(st[1]), 'step 03': t(st[2]), lead: t(document.querySelector('.head.copy .lead')), h1: t(document.querySelector('h1')), steps: document.querySelectorAll('.step').length, worksLink: !!document.querySelector('.item a.go[href="works"]') }; });
     for (const [k, v] of Object.entries(EXPECT)) F(`creator copy "${k}" = ${JSON.stringify(got[k])}`, got[k] === v);
-    F('creator lead', got.lead === 'あなたの活動を収入に変える設計を。'); F('creator h1', got.h1 === '「生き方」を職業に。'); F('3 steps', got.steps === 3); F('works link', got.worksLink); await ctx0.close(); }
+    F('creator lead', got.lead === 'あなたの活動を収入に変える設計を。'); F('creator h1', got.h1 === '「生き方」を職業に。'); F('3 steps', got.steps === 3); F('no works link (2026-10-27 CEO: 映像の作品例を記載しない)', !got.worksLink); await ctx0.close(); }
   // company: business description (2026-09-27 CEO: generic, enterprise-facing; no service names, no real estate / reuse), no large company-name heading
   { const ctx0 = await b.newContext({ viewport: { width: 1440, height: 900 } }); const p0 = await ctx0.newPage(); await p0.goto(base + 'index.html', { waitUntil: 'load' });
     const got = await p0.evaluate(() => { const t = el => el.innerText.replace(/\u00a0/g, ' ').trim(); return { lead: t(document.querySelector('#reyz .biz-lead')), labels: Array.from(document.querySelectorAll('#reyz .biz .k')).map(t), items: Array.from(document.querySelectorAll('#reyz .biz .v')).map(t), visibleH2: Array.from(document.querySelectorAll('#reyz h2')).filter(h => h.getBoundingClientRect().width > 2).length, text: document.querySelector('#reyz').innerText }; });
