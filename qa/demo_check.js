@@ -42,13 +42,20 @@ const EXPECT = {
     // 3) Home で地図をつくる → /creator・/creative の 1 画面目にそのまま入る
     await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     await pick('who', 'all', 'creator'); await pick('goal', 'creator', 'yes'); await pick('place', 'creator', 'yes'); await pick('style', 'creator', 'live'); await pick('make', 'creator', 'share'); await pick('value', 'creator', 'last');
+    F(`${name}: map → creator screens link`, await p.evaluate(() => /^creator(\.html)?#model$/.test(document.getElementById('mapScreens').getAttribute('href'))));
     await p.goto(base + 'creator.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     out.creatorMap = await p.evaluate(() => ({ place: document.getElementById('dmPlace').innerText, step: document.getElementById('dmStep').innerText, goal: document.getElementById('dmGoal').innerText, from: document.getElementById('dmFrom').innerText, has: document.getElementById('demoC').classList.contains('has-map'), homeHidden: document.getElementById('dmHome').hidden }));
     F(`${name}: creator map carried`, t(out.creatorMap.place) === EXPECT.creator.place && t(out.creatorMap.step) === EXPECT.creator.step && t(out.creatorMap.goal) === EXPECT.creator.goal && t(out.creatorMap.from) === 'ホームで作った、あなたの地図。' && out.creatorMap.has && out.creatorMap.homeHidden === true);
+    // 見本の最後の画面 → 相談（地図をご用件と内容に引き継ぐ）
+    await tap('#demoC .tab[data-t="stmt"]'); await p.evaluate(() => document.querySelector('#demoC a.consult').scrollIntoView({ block: 'center', behavior: 'instant' })); await p.waitForTimeout(200);
+    await Promise.all([p.waitForNavigation({ waitUntil: 'load' }), p.click('#demoC a.consult', { force: true })]); await p.waitForTimeout(300);
+    out.consultC = await p.evaluate(() => ({ url: location.pathname, type: document.getElementById('cType').value, msg: document.getElementById('cMsg').value }));
+    F(`${name}: creator demo → contact carries the map`, /contact/.test(out.consultC.url) && out.consultC.type === '活動・収益化の相談' && out.consultC.msg.includes('今いる場所: ' + EXPECT.creator.place));
     await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     F(`${name}: creator map does not leak into company demo`, await p.evaluate(() => !document.getElementById('demoE').classList.contains('has-map') && document.getElementById('dnFrom').innerText.replace(/ /g, ' ').startsWith('見本の地図です')));
     await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     await pick('who', 'all', 'company'); await pick('goal', 'company', 'no'); await pick('focus', 'company', 'ops'); await pick('first', 'company', 'speed');
+    F(`${name}: map → company screens link`, await p.evaluate(() => /^creative(\.html)?#decide$/.test(document.getElementById('mapScreens').getAttribute('href'))));
     await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     out.companyMap = await p.evaluate(() => ({ place: document.getElementById('dnPlace').innerText, step: document.getElementById('dnStep').innerText, goal: document.getElementById('dnGoal').innerText, from: document.getElementById('dnFrom').innerText }));
     F(`${name}: company map carried`, t(out.companyMap.place) === EXPECT.company.place && t(out.companyMap.step) === EXPECT.company.step && t(out.companyMap.goal) === EXPECT.company.goal && t(out.companyMap.from) === 'ホームで作った、あなたの地図。');
@@ -71,6 +78,12 @@ const EXPECT = {
     F(`${name}: PR passes`, await p.evaluate(() => document.getElementById('demoE').dataset.run === 'pass' && document.querySelectorAll('#deLanes .lane.ok').length === 3 && document.getElementById('deWhy').innerText === 'ステマ告示に照らしました。'));
     await tap('#deHuman [data-d="いいえ"]'); await p.waitForTimeout(400);
     F(`${name}: second record first (newest on top)`, await p.evaluate(() => { const r = Array.from(document.querySelectorAll('#deRec li')).map(li => li.innerText.replace(/\s+/g, ' ').trim()); return r.length === 2 && /^#PR をつけた、新商品の紹介 \d\d:\d\d ステマ告示 ・ AI 通った ・ 人 いいえ$/.test(r[0]) && document.querySelector('#demoE .tab[data-t="rec"] .n').textContent === '2'; }));
+    // 記録の画面 → 相談（企業の地図を引き継ぐ）
+    await p.evaluate(() => document.querySelector('#demoE a.consult').scrollIntoView({ block: 'center', behavior: 'instant' })); await p.waitForTimeout(200);
+    await Promise.all([p.waitForNavigation({ waitUntil: 'load' }), p.click('#demoE a.consult', { force: true })]); await p.waitForTimeout(300);
+    out.consultE = await p.evaluate(() => ({ url: location.pathname, type: document.getElementById('cType').value, msg: document.getElementById('cMsg').value }));
+    F(`${name}: company demo → contact carries the map`, /contact/.test(out.consultE.url) && out.consultE.type === '目的の整理と進め方の相談' && out.consultE.msg.includes('最初の一歩: ' + EXPECT.company.step));
+    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     F(`${name}: no horizontal overflow`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     F(`${name}: no page errors`, errs.length === 0);
     await ctx.close();
