@@ -264,7 +264,7 @@ PROOF = ('<div class="proof reveal">\n'
     '            <p class="proof-head">' + jp('REYZ自身が、|この仕組みで動いています。') + '</p>\n'
     '            <ol class="proof-list">\n'
     '              <li><strong>このサイト</strong><p>' + jp('変更ごとに自動の検査と人の承認を通って公開。|記録は公開。') + '</p><a class="go" href="https://github.com/REYZ-Inc/reyz-site/pulls?q=is%3Apr+is%3Amerged" rel="noopener">変更の記録</a></li>\n'
-    '              <li><strong>会社の決定</strong><p>' + jp('複数のAIが検証し、人が決め、通し番号つきで記録。|2026年10月23日時点で517。') + '</p></li>\n'
+    '              <li><strong>会社の決定</strong><p>' + jp('複数のAIが検証し、人が決め、通し番号つきで記録。|記録の通し番号は、2026年10月23日時点で517。') + '</p></li>\n'
     '              <li><strong>事業の設計書</strong><p>' + jp('同じ流れで、版を重ねる。') + '</p></li>\n'
     '            </ol>\n'
     '          </div>')
