@@ -38,12 +38,13 @@ console.log("page×viewport:", n, "bad:", bad, "links broken:", broken); if (bad
 echo "== 5/7 start-at-top（直接 + 全リンク遷移）"
 node qa/start_top_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("transitions:",r.transitions,"fails:",r.fails.length);if(r.fails.length){console.log(JSON.stringify(r.fails,null,1));process.exit(1)}})'
 
-echo "== 6/7 acceptance（文言・メニュー・ブランド色・作品例）/ フォーム（入力→確認→送信）/ 行組み"
+echo "== 6/7 acceptance（文言・メニュー・ブランド色・作品例）/ フォーム（入力→確認→送信）/ 行組み / 地図 / 3 つの画面"
 node qa/v13_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("acceptance fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/form_check.js site fallback | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("form(fallback) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/form_check.js site endpoint | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("form(endpoint) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/lines_check.js | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("lines fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/map_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("map(Home 章3) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
+node qa/demo_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("demo(3 つの画面) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 
 echo "== 7/7 viewer 骨格下の文字色（claude.ai artifact 再現）"
 python3 tools/artifact.py >/dev/null

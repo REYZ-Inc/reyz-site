@@ -111,20 +111,32 @@
       <div class="wrap"><div class="section-text">
           <div class="head reveal"><p class="eyebrow">Decide</p><h2>判断を、地図で。</h2><p class="lead"><span class="ph">経営者も担当者も、</span><span class="ph">「はい」か「いいえ」を</span><span class="ph">選ぶだけにします。</span></p></div>
           <div class="screens3 reveal">
-            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3><span class="ph">地図・確認・記録。</span></h3></div>
-            <div class="phones3">
-              <figure class="phone" data-kind="map"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
-                <div class="scr-map" aria-hidden="true"><span class="scr-line"></span><div class="scr-node"><i></i><b>今いる場所</b></div><div class="scr-node"><i></i><b>最初の一歩</b></div><div class="scr-node goal"><i></i><b>目的</b></div><span class="scr-redo">目標が変わったら、引き直す</span></div>
-              </div><figcaption><h4>地図</h4><p><span class="ph">目的・今いる場所・次の一手・確認の結果を、</span><span class="ph">ひとつの画面で。</span><span class="ph">「はい」か「いいえ」で決める。</span></p></figcaption></figure>
-              <figure class="phone" data-kind="check"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
-                <div class="scr-check" aria-hidden="true"><div class="scr-ai"><i></i><b>AI</b><s></s><em>✓</em></div><div class="scr-ai"><i></i><b>AI</b><s></s><em>✓</em></div><div class="scr-ai"><i></i><b>AI</b><s></s><em>✓</em></div><div class="scr-decide"><b>人が決める</b><span class="y">はい</span><span>いいえ</span></div></div>
-              </div><figcaption><h4>確認</h4><p><span class="ph">公開前に、</span><span class="ph">きまりに照らす。</span><span class="ph">複数のAIが確かめ、</span><span class="ph">一致しなければ止まる。</span><span class="ph">最後は人が決める。</span></p></figcaption></figure>
-              <figure class="phone" data-kind="rec"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
-                <div class="scr-rec" aria-hidden="true"><div class="scr-line2"><b>何を</b><span></span></div><div class="scr-line2"><b>どのきまりで</b><span></span></div><div class="scr-line2"><b>誰が・いつ</b><span></span></div><div class="scr-line2"><b>判定・承認</b><span></span></div><div class="scr-foot"><b>記録</b><span>企業のもの</span><em>持ち出せる</em></div></div>
-              </div><figcaption><h4>記録</h4><p><span class="ph">何を、</span><span class="ph">どのきまりで、</span><span class="ph">誰が、</span><span class="ph">いつ。</span><span class="ph">変えられない形で残り、</span><span class="ph">記録は企業のもの。</span></p></figcaption></figure>
+            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3><span class="ph">地図・確認・記録。</span></h3><p class="cap"><span class="ph">投稿の例を選ぶと、</span><span class="ph">確認が動きます。</span><span class="ph">公的ガイドラインと自主基準への照合の例で、</span><span class="ph">法律の鑑定ではありません。</span></p><p class="echo" aria-hidden="true">目的から、逆算。</p></div>
+            <div class="demo" id="demoE" data-demo="company" data-run="">
+              <div class="tabs" role="tablist" aria-label="3つの画面"><button class="tab" role="tab" type="button" id="deT1" aria-controls="deP1" aria-selected="true" data-t="map"><span class="tl">地図<i class="n" hidden></i></span></button><button class="tab" role="tab" type="button" id="deT2" aria-controls="deP2" aria-selected="false" tabindex="-1" data-t="check"><span class="tl">確認<i class="n" hidden></i></span></button><button class="tab" role="tab" type="button" id="deT3" aria-controls="deP3" aria-selected="false" tabindex="-1" data-t="rec"><span class="tl">記録<i class="n" hidden></i></span></button></div>
+              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
+                <div class="pane is-on" id="deP1" role="tabpanel" aria-labelledby="deT1" data-p="map" tabindex="-1">
+                  <div class="scr-map big"><span class="scr-line"></span><div class="scr-node"><i></i><b>今いる場所</b><span id="dnPlace">事業と表現をつなぐ段階。映像制作・SNS運用と、クリエイターとの販売設計を重ねる。</span></div><div class="scr-node"><i></i><b>最初の一歩</b><span id="dnStep">公開前に4つの法令（ステマ規制・景表法・医療広告・薬機法）に照らして確認する流れを組み込み、判断の材料を揃える。</span></div><div class="scr-node goal"><i></i><b>目的</b><span id="dnGoal">決まっている目的から逆算し、最短で届く手段と順番を決める。</span></div></div>
+                  <p class="pane-note" id="dnFrom"><span class="ph">見本の地図です。</span><span class="ph">ホームで選ぶと、</span><span class="ph">あなたの地図が入ります。</span></p>
+                  <button class="go-btn" type="button" data-next="check">この地図で、確認へ</button>
+                </div>
+                <div class="pane" id="deP2" role="tabpanel" aria-labelledby="deT2" data-p="check" tabindex="-1" hidden>
+                  <p class="pane-cap">投稿の例を、ひとつ選ぶ。</p>
+                  <div class="samples" role="group" aria-label="投稿の例"><button class="sample" type="button" aria-pressed="false" data-s="pr">#PR をつけた、新商品の紹介</button><button class="sample" type="button" aria-pressed="false" data-s="no1">「業界No.1」と書いた紹介</button><button class="sample" type="button" aria-pressed="false" data-s="cure">「必ず効く」と書いた紹介</button></div>
+                  <div class="post" id="dePost" hidden><span class="pv" aria-hidden="true"></span><div class="pl"><b class="ph" id="dePhrase"></b><span class="pfix" id="deFixed" hidden></span><i aria-hidden="true"></i><i aria-hidden="true"></i></div></div>
+                  <div class="check-lanes" id="deLanes" hidden><div class="lane"><span class="dot ai" aria-hidden="true"></span><span class="lbl">AI</span><span class="wire" aria-hidden="true"></span><span class="mark" aria-hidden="true"></span></div><div class="lane"><span class="dot ai" aria-hidden="true"></span><span class="lbl">AI</span><span class="wire" aria-hidden="true"></span><span class="mark" aria-hidden="true"></span></div><div class="lane"><span class="dot ai" aria-hidden="true"></span><span class="lbl">AI</span><span class="wire" aria-hidden="true"></span><span class="mark" aria-hidden="true"></span></div></div>
+                  <p class="verdict" id="deVerdict" aria-live="polite" hidden><b id="deV"></b><span id="deWhy"></span></p>
+                  <button class="go-btn" type="button" id="deFix" hidden>直して、もう一度確かめる</button>
+                  <div class="human" id="deHuman" hidden><span class="lbl">人が決める</span><button class="go-btn yes" type="button" data-d="はい">はい</button><button class="go-btn ghost" type="button" data-d="いいえ">いいえ</button></div>
+                </div>
+                <div class="pane" id="deP3" role="tabpanel" aria-labelledby="deT3" data-p="rec" tabindex="-1" hidden>
+                  <p class="pane-cap">決定のたびに、1行。</p>
+                  <ol class="rec-rows" id="deRec"><li class="empty"><span class="ph">確認で「はい」か「いいえ」を押すと、</span><span class="ph">ここに残る。</span></li></ol>
+                  <p class="pane-note"><span class="ph">記録は企業のもの。</span><span class="ph">そのまま持ち出せる。</span></p>
+                  <button class="go-btn ghost" type="button" data-next="check" data-reset="1">もう一つ、確かめる</button>
+                </div>
+              </div></div>
             </div>
-            <div class="phones-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
-            <div class="decide"><p><span class="ph">決めるのは、</span><span class="ph">あなたです。</span><span class="ph">会議でゼロから悩む必要はありません。</span></p><a class="btn primary" href="contact">はい：この内容で進める</a><span class="pill">いいえ：条件を変えて、組み直す</span></div>
             <div class="terms">
               <p class="terms-head">はっきり言えること</p>
               <ul>

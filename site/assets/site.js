@@ -318,6 +318,7 @@
       const r = compose(); mapper.dataset.done = r ? 'true' : 'false';
       if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); note.hidden = who !== 'creator'; noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
         drawRoute(); card.classList.remove('is-live'); void card.offsetWidth; card.classList.add('is-live');   // 地図を引き直す（線が点を結んでいく）
+        try { sessionStorage.setItem('reyz.map.r', JSON.stringify({ who, goal: r.goal, place: r.place, step: r.step })); } catch (err) { /* 保持できないときは見本の地図のまま */ }   // /creator・/creative の 1 画面目にそのまま入る
         if (!render.shown) { render.shown = true; const h = card.querySelector('h3'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
           // 地図ができたことが分かるように、カードの頭まで送る（最後の答えの直下に出ると気づきにくい）
           const top = card.getBoundingClientRect().top + window.scrollY - 84; if (card.getBoundingClientRect().top > window.innerHeight * 0.55) window.scrollTo({ top, behavior: reduce ? 'instant' : 'smooth' }); } }
@@ -348,7 +349,7 @@
       else if (ans[q] !== b.dataset.v) { const order = MAP_TEXT[ans.who] ? MAP_TEXT[ans.who].order : []; const i = order.indexOf(q); for (const k of order.slice(i + 1)) delete ans[k]; }
       ans[q] = b.dataset.v; render();
     });
-    const reset = document.getElementById('mapReset'); if (reset) reset.addEventListener('click', () => { for (const k of Object.keys(ans)) delete ans[k]; render(); const first = groups[0].querySelector('.opt'); if (first) first.focus({ preventScroll: true }); });
+    const reset = document.getElementById('mapReset'); if (reset) reset.addEventListener('click', () => { for (const k of Object.keys(ans)) delete ans[k]; try { sessionStorage.removeItem('reyz.map.r'); } catch (err) { /* 無視 */ } render(); const first = groups[0].querySelector('.opt'); if (first) first.focus({ preventScroll: true }); });
     const go = document.getElementById('mapGo'); if (go) go.addEventListener('click', () => {
       const r = compose(); if (!r) return;
       const body = '【あなたの地図（ホームで選んだ内容）】\n目的: ' + r.goal + '\n今いる場所: ' + r.place + '\n最初の一歩: ' + r.step;
@@ -367,13 +368,7 @@
   for (const el of document.querySelectorAll('.bend')) { if (reduce) { live(el); const svg = el.querySelector('svg'); if (svg) { try { svg.pauseAnimations(); } catch (err) { /* 無視 */ } } } else if (ioLive) ioLive.observe(el); else live(el); }
   // 見本（3 つの画面・映像の型）は画面に入ったら 1 回だけ動き、そのまま止まる。タップでもう一度
   const replay = el => { el.classList.remove('is-live'); void el.offsetWidth; el.classList.add('is-live'); };
-  // 3 つの画面（スマホは横に送る）: いま見ている画面を点で示す
-  for (const row of document.querySelectorAll('.phones3')) {
-    const dots = row.nextElementSibling && row.nextElementSibling.classList.contains('phones-dots') ? row.nextElementSibling.querySelectorAll('i') : null; if (!dots) continue;
-    const upd = () => { const ph = row.querySelectorAll('.phone'); const x = row.scrollLeft + row.clientWidth / 2; let k = 0; ph.forEach((el, i) => { if (el.offsetLeft <= x) k = i; }); dots.forEach((d, i) => d.classList.toggle('on', i === k)); };
-    row.addEventListener('scroll', upd, { passive: true }); upd();
-  }
-  for (const el of document.querySelectorAll('.phone, .showcase')) { if (reduce) live(el); else if (ioLive) ioLive.observe(el); else live(el); el.addEventListener('click', () => { if (!reduce) replay(el); }); }
+  for (const el of document.querySelectorAll('.showcase')) { if (reduce) live(el); else if (ioLive) ioLive.observe(el); else live(el); el.addEventListener('click', () => { if (!reduce) replay(el); }); }
   for (const check of document.querySelectorAll('.check')) {
     const lanes = Array.from(check.querySelectorAll('.lane')), human = check.querySelector('.check-human'), rec = check.querySelector('.check-rec');
     let timers = [], running = false, runIdx = 0;
@@ -390,6 +385,87 @@
     else {
       const io = new IntersectionObserver(es => { for (const e of es) { if (e.isIntersecting && !running) { running = true; runIdx = 0; run(); } else if (!e.isIntersecting && running) { running = false; done(); } } }, { threshold: 0.3 });
       io.observe(check); check.addEventListener('click', () => { if (running) { runIdx = 0; run(); } });
+    }
+  }
+
+  /* ================================================================
+     DEMOS — 2026-10-27 CEO「体験イメージを持てるか」: 3 つの画面を 1 台で実際に触る（設計上の見本）。
+       creator（/creator）: 地図（Home で作ったもの）→ 入口で「受ける」→ 明細に並ぶ（報酬は全額・手数料 0・費用 0）。
+       company（/creative）: 地図 → 確認（例を選ぶ → 提供元の異なる複数の AI → 一致しないものは止まる → 直して再確認 → 人が はい／いいえ）→ 記録に 1 行。
+       文は正本のまま。名前・社名・金額は置かない。motion 抑制時は待たずに結果を出す。
+     ================================================================ */
+  for (const demo of document.querySelectorAll('.demo')) {
+    const who = demo.dataset.demo, tabs = Array.from(demo.querySelectorAll('.tab')), panes = Array.from(demo.querySelectorAll('.pane'));
+    const echo = demo.parentElement.querySelector('.echo'), ECHO = who === 'creator' ? { map: 'あなたの地図。', gate: '受けるかは、あなた。', stmt: '全額、あなたへ。' } : { map: '目的から、逆算。', check: '選ぶと、動く。', go: '確かめている。', stop: '止まる。', pass: '通る。', rec: '残る。' };
+    const say = k => { if (!echo || !ECHO[k]) return; echo.textContent = ECHO[k]; echo.classList.remove('is-live'); void echo.offsetWidth; echo.classList.add('is-live'); };
+    const badge = (key, n) => { const t = tabs.find(x => x.dataset.t === key); const b = t && t.querySelector('.n'); if (!b) return; b.textContent = String(n); b.hidden = n === 0; };
+    const show = (key, focus) => {
+      for (const t of tabs) { const on = t.dataset.t === key; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; if (on) t.classList.add('seen'); }
+      for (const p of panes) { const on = p.dataset.p === key; p.hidden = !on; if (on) { p.classList.remove('is-live'); void p.offsetWidth; p.classList.add('is-live'); if (focus) p.focus({ preventScroll: true }); } }
+      demo.dataset.pane = key; say(key);
+    };
+    demo.addEventListener('click', e => {
+      const t = e.target.closest('.tab'); if (t) { show(t.dataset.t); return; }
+      const n = e.target.closest('[data-next]'); if (n) { if (n.dataset.reset && demo.resetCheck) demo.resetCheck(); show(n.dataset.next, true); }
+    });
+    const list = demo.querySelector('.tabs'); if (list) list.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
+      const i = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true'); let j = i;
+      if (e.key === 'ArrowRight') j = (i + 1) % tabs.length; else if (e.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length; else if (e.key === 'Home') j = 0; else j = tabs.length - 1;
+      show(tabs[j].dataset.t); tabs[j].focus(); e.preventDefault();
+    });
+    // 1 画面目: Home で作った地図があれば、見本の地図と入れ替える
+    try { const raw = sessionStorage.getItem('reyz.map.r'); if (raw) { const m = JSON.parse(raw); if (m && m.who === who && m.goal && m.place && m.step) {
+      const id = who === 'creator' ? 'dm' : 'dn'; const put = (k, v) => { const el = document.getElementById(id + k); if (el) el.textContent = v; };
+      put('Place', m.place); put('Step', m.step); put('Goal', m.goal); put('From', 'ホームで作った、あなたの地図。'); demo.classList.add('has-map'); } } } catch (err) { /* 見本の地図のまま */ }
+    if (who === 'creator') {
+      // 入口 → 明細: 「受ける」を押したものだけが明細に並ぶ（押し直すと外れる）
+      const rows = document.getElementById('dmRows'), sum = document.getElementById('dmSum'), takes = Array.from(demo.querySelectorAll('.take'));
+      const draw = () => {
+        const on = takes.filter(b => b.getAttribute('aria-pressed') === 'true'); rows.textContent = '';
+        if (!on.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = '入口で「受ける」と、ここに並ぶ。'; rows.append(li); }
+        for (const b of on) { const li = document.createElement('li'); const name = document.createElement('b'); name.textContent = b.dataset.k;
+          const bar = document.createElement('span'); bar.className = 'scr-bar' + (b.dataset.v === 'full' ? ' full' : ''); bar.append(document.createElement('i'));
+          const em = document.createElement('em'); em.textContent = b.dataset.v === 'full' ? '全額あなたへ' : '費用 0'; li.append(name, bar, em); rows.append(li); }
+        sum.hidden = !on.length; badge('stmt', on.length);
+      };
+      for (const b of takes) b.addEventListener('click', () => { const now = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(now)); b.textContent = now ? '受けた' : '受ける'; draw(); });
+      draw();
+    } else {
+      // 確認: 例を選ぶ → 3 つの AI が確かめる → 一致しなければ止まる（理由を添える）→ 直して再確認 → 人が決める → 記録に 1 行
+      const S = {
+        pr:   { name: '#PR をつけた、新商品の紹介', phrase: '#PR', rule: 'ステマ告示', ng: [] },
+        no1:  { name: '「業界No.1」と書いた紹介', phrase: '業界No.1', rule: 'No.1表示の4要件', ng: [1, 2], why: 'No.1の根拠が示されていない', fix: 'No.1（調査名・時期・対象を添える）' },
+        cure: { name: '「必ず効く」と書いた紹介', phrase: '必ず効く', rule: '薬機法第66条・健康増進法', ng: [0, 1, 2], why: '効果を断定している', fix: '効果を断定しない表現に' } };
+      const lanes = Array.from(demo.querySelectorAll('.lane')), laneBox = document.getElementById('deLanes'), post = document.getElementById('dePost'), phrase = document.getElementById('dePhrase'), fixed = document.getElementById('deFixed');
+      const verdict = document.getElementById('deVerdict'), vb = document.getElementById('deV'), why = document.getElementById('deWhy'), fixBtn = document.getElementById('deFix'), human = document.getElementById('deHuman'), rec = document.getElementById('deRec');
+      let timers = [], cur = null, fixedNow = false, count = 0;
+      const at = (ms, fn) => { if (reduce) fn(); else timers.push(setTimeout(fn, ms)); };
+      const clear = () => { for (const t of timers) clearTimeout(t); timers = []; for (const l of lanes) l.classList.remove('on', 'ok', 'ng'); verdict.hidden = true; vb.textContent = ''; why.textContent = ''; fixBtn.hidden = true; human.hidden = true; };
+      const run = () => {
+        const d = S[cur], ng = fixedNow ? [] : d.ng; clear(); laneBox.hidden = false; demo.dataset.run = 'go'; say('go');
+        lanes.forEach((l, i) => { at(200 + i * 280, () => l.classList.add('on')); at(900 + i * 280, () => l.classList.add(ng.includes(i) ? 'ng' : 'ok')); });
+        at(2000, () => { verdict.hidden = false;
+          if (ng.length) { demo.dataset.run = 'stop'; say('stop'); vb.textContent = (ng.length === lanes.length ? '3つのAIが×。' : '一致しない。') + '止まりました。'; why.textContent = d.why + '（' + d.rule + '）。'; fixBtn.hidden = false; }
+          else { demo.dataset.run = 'pass'; say('pass'); vb.textContent = '3つのAIが一致。通りました。'; why.textContent = fixedNow ? '直した表現で、もう一度確かめました。' : d.rule + 'に照らしました。'; human.hidden = false; } });
+      };
+      demo.resetCheck = () => { clear(); cur = null; fixedNow = false; demo.dataset.run = ''; post.hidden = true; laneBox.hidden = true; for (const b of demo.querySelectorAll('.sample')) b.setAttribute('aria-pressed', 'false'); };
+      for (const b of demo.querySelectorAll('.sample')) b.addEventListener('click', () => {
+        cur = b.dataset.s; fixedNow = false; for (const x of demo.querySelectorAll('.sample')) x.setAttribute('aria-pressed', String(x === b));
+        phrase.textContent = S[cur].phrase; phrase.classList.remove('cut'); fixed.hidden = true; post.hidden = true; void post.offsetWidth; post.hidden = false; run();
+      });
+      fixBtn.addEventListener('click', () => { if (!cur) return; fixedNow = true; phrase.classList.add('cut'); fixed.textContent = S[cur].fix; fixed.hidden = false; run(); });
+      for (const b of human.querySelectorAll('[data-d]')) b.addEventListener('click', () => {
+        if (!cur) return; const d = S[cur]; const now = new Date(), hh = String(now.getHours()).padStart(2, '0'), mm = String(now.getMinutes()).padStart(2, '0');
+        const empty = rec.querySelector('.empty'); if (empty) empty.remove();
+        const li = document.createElement('li'); li.className = 'new';
+        const what = document.createElement('b'); what.textContent = d.name;
+        const when = document.createElement('span'); when.className = 'when'; when.textContent = hh + ':' + mm;
+        const how = document.createElement('span'); how.className = 'how';
+        how.append(d.rule + ' ・ AI ' + (d.ng.length ? '止 → 直して通' : '通') + ' ・ 人 '); const em = document.createElement('em'); em.textContent = b.dataset.d; how.append(em);
+        li.append(what, when, how); rec.prepend(li); count++; badge('rec', count);
+        demo.resetCheck(); show('rec', true);
+      });
     }
   }
 

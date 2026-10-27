@@ -89,19 +89,29 @@
               </ul>
             </div>
           </div><div class="screens3 reveal">
-            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3><span class="ph">地図・入口・明細。</span></h3></div>
-            <div class="phones3">
-              <figure class="phone" data-kind="map"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
-                <div class="scr-map" aria-hidden="true"><span class="scr-line"></span><div class="scr-node"><i></i><b>今いる場所</b></div><div class="scr-node"><i></i><b>最初の一歩</b></div><div class="scr-node goal"><i></i><b>目的</b></div><span class="scr-redo">目標が変わったら、引き直す</span></div>
-              </div><figcaption><h4>地図</h4><p><span class="ph">目的・今いる場所・最初の一歩。</span><span class="ph">変わったら、</span><span class="ph">引き直す。</span></p></figcaption></figure>
-              <figure class="phone" data-kind="gate"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
-                <div class="scr-gate" aria-hidden="true"><span class="scr-gatebar"><b>確認</b></span><div class="scr-card ok"><b>案件</b><i>✓</i></div><div class="scr-card ok"><b>商品の紹介</b><i>✓</i></div><div class="scr-card ok"><b>ファンへの直販</b><i>✓</i></div><div class="scr-card ng"><b>確認を通らない案件</b><i>×</i></div></div>
-              </div><figcaption><h4>入口</h4><p><span class="ph">確認を通った案件と商品だけが届く。</span><span class="ph">受けるかは、</span><span class="ph">あなたが決める。</span></p></figcaption></figure>
-              <figure class="phone" data-kind="stmt"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
-                <div class="scr-stmt" aria-hidden="true"><div class="scr-row"><b>報酬</b><span class="scr-bar full"><i></i></span><em>あなたへ</em></div><div class="scr-row"><b>手数料</b><span class="scr-bar"><i></i></span><em>0</em></div><div class="scr-row"><b>費用</b><span class="scr-bar"><i></i></span><em>0</em></div><div class="scr-foot"><b>記録</b><span>いつ・何で・いくら</span><em>持ち出せる</em></div></div>
-              </div><figcaption><h4>明細</h4><p><span class="ph">いつ、</span><span class="ph">何で、</span><span class="ph">いくら。</span><span class="ph">記録はあなたのもの。</span></p></figcaption></figure>
+            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3><span class="ph">地図・入口・明細。</span></h3><p class="cap"><span class="ph">触って確かめられます。</span><span class="ph">名前や金額は入れていません。</span></p><p class="echo" aria-hidden="true">あなたの地図。</p></div>
+            <div class="demo" id="demoC" data-demo="creator">
+              <div class="tabs" role="tablist" aria-label="3つの画面"><button class="tab" role="tab" type="button" id="dcT1" aria-controls="dcP1" aria-selected="true" data-t="map"><span class="tl">地図<i class="n" hidden></i></span></button><button class="tab" role="tab" type="button" id="dcT2" aria-controls="dcP2" aria-selected="false" tabindex="-1" data-t="gate"><span class="tl">入口<i class="n" hidden></i></span></button><button class="tab" role="tab" type="button" id="dcT3" aria-controls="dcP3" aria-selected="false" tabindex="-1" data-t="stmt"><span class="tl">明細<i class="n" hidden></i></span></button></div>
+              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
+                <div class="pane is-on" id="dcP1" role="tabpanel" aria-labelledby="dcT1" data-p="map" tabindex="-1">
+                  <div class="scr-map big"><span class="scr-line"></span><div class="scr-node"><i></i><b>今いる場所</b><span id="dmPlace">場所は決まっている。費用ゼロのLIVE支援と、商品紹介・案件を重ねる段階。</span></div><div class="scr-node"><i></i><b>最初の一歩</b><span id="dmStep">どこで、何を、いつ出すかをAIと一緒に決める。</span></div><div class="scr-node goal"><i></i><b>目的</b><span id="dmGoal">言葉にできている目的を、活動の順番にする。</span></div></div>
+                  <p class="pane-note" id="dmFrom"><span class="ph">見本の地図です。</span><span class="ph">ホームで選ぶと、</span><span class="ph">あなたの地図が入ります。</span></p>
+                  <button class="go-btn" type="button" data-next="gate">この地図で、入口へ</button>
+                </div>
+                <div class="pane" id="dcP2" role="tabpanel" aria-labelledby="dcT2" data-p="gate" tabindex="-1" hidden>
+                  <p class="pane-cap">確認を通ったものだけが、届く。</p>
+                  <ul class="offers"><li class="offer"><b>案件</b><span>企業からの依頼・確認済み</span><button class="take" type="button" aria-pressed="false" data-k="案件" data-v="full">受ける</button></li><li class="offer"><b>商品の紹介</b><span>確認済み</span><button class="take" type="button" aria-pressed="false" data-k="商品の紹介" data-v="full">受ける</button></li><li class="offer"><b>LIVE支援</b><span>費用ゼロ</span><button class="take" type="button" aria-pressed="false" data-k="LIVE支援" data-v="zero">受ける</button></li></ul>
+                  <p class="pane-note">受けるかは、あなたが決める。</p>
+                  <button class="go-btn" type="button" data-next="stmt">明細を見る</button>
+                </div>
+                <div class="pane" id="dcP3" role="tabpanel" aria-labelledby="dcT3" data-p="stmt" tabindex="-1" hidden>
+                  <ul class="stmt-rows" id="dmRows"><li class="empty"><span class="ph">入口で「受ける」と、</span><span class="ph">ここに並ぶ。</span></li></ul>
+                  <div class="stmt-sum" id="dmSum" hidden><div class="scr-row"><b>報酬</b><span class="scr-bar full"><i></i></span><em>100%</em></div><div class="scr-row"><b>手数料</b><span class="scr-bar"><i></i></span><em>0</em></div><div class="scr-row"><b>費用</b><span class="scr-bar"><i></i></span><em>0</em></div></div>
+                  <p class="pane-note"><span class="ph">記録はあなたのもの。</span><span class="ph">いつでも持ち出せる。</span></p>
+                  <button class="go-btn ghost" type="button" data-next="map">最初から</button>
+                </div>
+              </div></div>
             </div>
-            <div class="phones-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
           </div>
           <p class="more reveal"><a class="go" href="contact">相談する</a></p>
       </div></div>

@@ -416,34 +416,44 @@ MODEL = ('<div class="model reveal">\n'
     '              </ul>\n'
     '            </div>\n'
     '          </div>')
-# 3 つの画面の見本（正本 §3-1。「設計上の見本」と明記。架空の名前・金額は置かない）: 画面そのものを小さく動かす
-def phone(kind, title, inner, text):
-    return (f'              <figure class="phone" data-kind="{kind}"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n{inner}'
-            f'              </div><figcaption><h4>{title}</h4><p>{text}</p></figcaption></figure>\n')
-SCR_MAP = ('                <div class="scr-map" aria-hidden="true"><span class="scr-line"></span>'
-           '<div class="scr-node"><i></i><b>今いる場所</b></div><div class="scr-node"><i></i><b>最初の一歩</b></div><div class="scr-node goal"><i></i><b>目的</b></div>'
-           '<span class="scr-redo">目標が変わったら、引き直す</span></div>\n')
-SCR_GATE = ('                <div class="scr-gate" aria-hidden="true"><span class="scr-gatebar"><b>確認</b></span>'
-            '<div class="scr-card ok"><b>案件</b><i>✓</i></div><div class="scr-card ok"><b>商品の紹介</b><i>✓</i></div><div class="scr-card ok"><b>ファンへの直販</b><i>✓</i></div><div class="scr-card ng"><b>確認を通らない案件</b><i>×</i></div></div>\n')
-SCR_STMT = ('                <div class="scr-stmt" aria-hidden="true">'
-            '<div class="scr-row"><b>報酬</b><span class="scr-bar full"><i></i></span><em>あなたへ</em></div>'
-            '<div class="scr-row"><b>手数料</b><span class="scr-bar"><i></i></span><em>0</em></div>'
-            '<div class="scr-row"><b>費用</b><span class="scr-bar"><i></i></span><em>0</em></div>'
-            '<div class="scr-foot"><b>記録</b><span>いつ・何で・いくら</span><em>持ち出せる</em></div></div>\n')
-SCR_CHECK = ('                <div class="scr-check" aria-hidden="true">'
-             '<div class="scr-ai"><i></i><b>AI</b><s></s><em>✓</em></div><div class="scr-ai"><i></i><b>AI</b><s></s><em>✓</em></div><div class="scr-ai"><i></i><b>AI</b><s></s><em>✓</em></div>'
-             '<div class="scr-decide"><b>人が決める</b><span class="y">はい</span><span>いいえ</span></div></div>\n')
-SCR_REC = ('                <div class="scr-rec" aria-hidden="true">'
-           '<div class="scr-line2"><b>何を</b><span></span></div><div class="scr-line2"><b>どのきまりで</b><span></span></div><div class="scr-line2"><b>誰が・いつ</b><span></span></div><div class="scr-line2"><b>判定・承認</b><span></span></div>'
-           '<div class="scr-foot"><b>記録</b><span>企業のもの</span><em>持ち出せる</em></div></div>\n')
+# 3 つの画面を 1 台で触る見本（正本 §3-1。2026-10-27 CEO「体験イメージを持てるか」）: Home で作った地図がそのまま入り、入口で「受ける」と明細に並ぶ。
+# 文は正本のまま（地図の見本文は MAP_TEXT と同じ）。架空の名前・社名・金額は置かない。JS なしでも 3 画面が縦に並んで読める
+def demo_tabs(prefix, keys):
+    return ('              <div class="tabs" role="tablist" aria-label="3つの画面">' +
+            ''.join(f'<button class="tab" role="tab" type="button" id="{prefix}T{n}" aria-controls="{prefix}P{n}" aria-selected="{"true" if n == 1 else "false"}"{"" if n == 1 else " tabindex=\"-1\""} data-t="{k}"><span class="tl">{label}<i class="n" hidden></i></span></button>'
+                    for n, (k, label) in enumerate(keys, 1)) + '</div>\n')
+def demo_pane(prefix, n, key, inner):
+    return (f'                <div class="pane{" is-on" if n == 1 else ""}" id="{prefix}P{n}" role="tabpanel" aria-labelledby="{prefix}T{n}" data-p="{key}" tabindex="-1"{"" if n == 1 else " hidden"}>\n{inner}'
+            '                </div>\n')
+def demo_map(prefix, place, step, goal, note, nxt, label):
+    return ('                  <div class="scr-map big"><span class="scr-line"></span>'
+            f'<div class="scr-node"><i></i><b>今いる場所</b><span id="{prefix}Place">{place}</span></div>'
+            f'<div class="scr-node"><i></i><b>最初の一歩</b><span id="{prefix}Step">{step}</span></div>'
+            f'<div class="scr-node goal"><i></i><b>目的</b><span id="{prefix}Goal">{goal}</span></div></div>\n'
+            f'                  <p class="pane-note" id="{prefix}From">{note}</p>\n'
+            f'                  <button class="go-btn" type="button" data-next="{nxt}">{label}</button>\n')
 SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
-    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・入口・明細。') + '</h3></div>\n'
-    '            <div class="phones3">\n'
-    + phone('map', '地図', SCR_MAP, jp('目的・今いる場所・最初の一歩。|変わったら、引き直す。'))
-    + phone('gate', '入口', SCR_GATE, jp('確認を通った案件と商品だけが届く。|受けるかは、あなたが決める。'))
-    + phone('stmt', '明細', SCR_STMT, jp('いつ、何で、いくら。|記録はあなたのもの。')) +
+    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・入口・明細。') + '</h3><p class="cap">' + jp('触って確かめられます。|名前や金額は入れていません。') + '</p><p class="echo" aria-hidden="true">あなたの地図。</p></div>\n'
+    '            <div class="demo" id="demoC" data-demo="creator">\n' + demo_tabs('dc', [('map', '地図'), ('gate', '入口'), ('stmt', '明細')]) +
+    '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
+    demo_pane('dc', 1, 'map', demo_map('dm', '場所は決まっている。費用ゼロのLIVE支援と、商品紹介・案件を重ねる段階。', 'どこで、何を、いつ出すかをAIと一緒に決める。', '言葉にできている目的を、活動の順番にする。',
+                                      jp('見本の地図です。|ホームで選ぶと、あなたの地図が入ります。'), 'gate', 'この地図で、入口へ')) +
+    demo_pane('dc', 2, 'gate',
+              '                  <p class="pane-cap">確認を通ったものだけが、届く。</p>\n'
+              '                  <ul class="offers">'
+              '<li class="offer"><b>案件</b><span>企業からの依頼・確認済み</span><button class="take" type="button" aria-pressed="false" data-k="案件" data-v="full">受ける</button></li>'
+              '<li class="offer"><b>商品の紹介</b><span>確認済み</span><button class="take" type="button" aria-pressed="false" data-k="商品の紹介" data-v="full">受ける</button></li>'
+              '<li class="offer"><b>LIVE支援</b><span>費用ゼロ</span><button class="take" type="button" aria-pressed="false" data-k="LIVE支援" data-v="zero">受ける</button></li>'
+              '</ul>\n'
+              '                  <p class="pane-note">受けるかは、あなたが決める。</p>\n'
+              '                  <button class="go-btn" type="button" data-next="stmt">明細を見る</button>\n') +
+    demo_pane('dc', 3, 'stmt',
+              '                  <ul class="stmt-rows" id="dmRows"><li class="empty">' + jp('入口で「受ける」と、|ここに並ぶ。') + '</li></ul>\n'
+              '                  <div class="stmt-sum" id="dmSum" hidden><div class="scr-row"><b>報酬</b><span class="scr-bar full"><i></i></span><em>100%</em></div><div class="scr-row"><b>手数料</b><span class="scr-bar"><i></i></span><em>0</em></div><div class="scr-row"><b>費用</b><span class="scr-bar"><i></i></span><em>0</em></div></div>\n'
+              '                  <p class="pane-note">' + jp('記録はあなたのもの。|いつでも持ち出せる。') + '</p>\n'
+              '                  <button class="go-btn ghost" type="button" data-next="map">最初から</button>\n') +
+    '              </div></div>\n'
     '            </div>\n'
-    '            <div class="phones-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>\n'
     '          </div>')
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
                         lead2=jp('あなたの収益の、全部の入口に。\n費用はかからない。|やめるのも自由。')) + \
@@ -520,15 +530,33 @@ SHOWCASE = ('<div class="showcase reveal">\n'
     '            </div>\n'
     '          </div>')
 # 2026-10-26 正本 §13: 「The first sheet（一枚）」の節を、企業の 3 つの画面「地図・確認・記録」に置き換える（設計上の見本と明記）
+# 確認を実際に通す見本（正本 §3-1・§11）: 投稿の例を選ぶ → 提供元の異なる複数の AI が確かめる → 一致しないものは止まる → 直して再確認 → 人が はい／いいえ → 記録に 1 行。
+# 公的ガイドラインと自主基準への照合の例であり、法律の鑑定ではない（正本 §11「今すぐ書いてよい」の添え書き）
 SCREENS_ENT = ('<div class="screens3 reveal">\n'
-    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・確認・記録。') + '</h3></div>\n'
-    '            <div class="phones3">\n'
-    + phone('map', '地図', SCR_MAP, jp('目的・今いる場所・次の一手・確認の結果を、|ひとつの画面で。|「はい」か「いいえ」で決める。'))
-    + phone('check', '確認', SCR_CHECK, jp('公開前に、きまりに照らす。|複数のAIが確かめ、一致しなければ止まる。|最後は人が決める。'))
-    + phone('rec', '記録', SCR_REC, jp('何を、どのきまりで、誰が、いつ。|変えられない形で残り、|記録は企業のもの。')) +
+    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><h3>' + jp('地図・確認・記録。') + '</h3><p class="cap">' + jp('投稿の例を選ぶと、確認が動きます。|公的ガイドラインと自主基準への照合の例で、|法律の鑑定ではありません。') + '</p><p class="echo" aria-hidden="true">目的から、逆算。</p></div>\n'
+    '            <div class="demo" id="demoE" data-demo="company" data-run="">\n' + demo_tabs('de', [('map', '地図'), ('check', '確認'), ('rec', '記録')]) +
+    '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
+    demo_pane('de', 1, 'map', demo_map('dn', '事業と表現をつなぐ段階。映像制作・SNS運用と、クリエイターとの販売設計を重ねる。', '公開前に4つの法令（ステマ規制・景表法・医療広告・薬機法）に照らして確認する流れを組み込み、判断の材料を揃える。', '決まっている目的から逆算し、最短で届く手段と順番を決める。',
+                                      jp('見本の地図です。|ホームで選ぶと、あなたの地図が入ります。'), 'check', 'この地図で、確認へ')) +
+    demo_pane('de', 2, 'check',
+              '                  <p class="pane-cap">投稿の例を、ひとつ選ぶ。</p>\n'
+              '                  <div class="samples" role="group" aria-label="投稿の例">'
+              '<button class="sample" type="button" aria-pressed="false" data-s="pr">#PR をつけた、新商品の紹介</button>'
+              '<button class="sample" type="button" aria-pressed="false" data-s="no1">「業界No.1」と書いた紹介</button>'
+              '<button class="sample" type="button" aria-pressed="false" data-s="cure">「必ず効く」と書いた紹介</button>'
+              '</div>\n'
+              '                  <div class="post" id="dePost" hidden><span class="pv" aria-hidden="true"></span><div class="pl"><b class="ph" id="dePhrase"></b><span class="pfix" id="deFixed" hidden></span><i aria-hidden="true"></i><i aria-hidden="true"></i></div></div>\n'
+              '                  <div class="check-lanes" id="deLanes" hidden>' + ''.join('<div class="lane"><span class="dot ai" aria-hidden="true"></span><span class="lbl">AI</span><span class="wire" aria-hidden="true"></span><span class="mark" aria-hidden="true"></span></div>' for _ in range(3)) + '</div>\n'
+              '                  <p class="verdict" id="deVerdict" aria-live="polite" hidden><b id="deV"></b><span id="deWhy"></span></p>\n'
+              '                  <button class="go-btn" type="button" id="deFix" hidden>直して、もう一度確かめる</button>\n'
+              '                  <div class="human" id="deHuman" hidden><span class="lbl">人が決める</span><button class="go-btn yes" type="button" data-d="はい">はい</button><button class="go-btn ghost" type="button" data-d="いいえ">いいえ</button></div>\n') +
+    demo_pane('de', 3, 'rec',
+              '                  <p class="pane-cap">決定のたびに、1行。</p>\n'
+              '                  <ol class="rec-rows" id="deRec"><li class="empty">' + jp('確認で「はい」か「いいえ」を押すと、|ここに残る。') + '</li></ol>\n'
+              '                  <p class="pane-note">' + jp('記録は企業のもの。|そのまま持ち出せる。') + '</p>\n'
+              '                  <button class="go-btn ghost" type="button" data-next="check" data-reset="1">もう一つ、確かめる</button>\n') +
+    '              </div></div>\n'
     '            </div>\n'
-    '            <div class="phones-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>\n'
-    '            <div class="decide"><p>' + jp('決めるのは、あなたです。|会議でゼロから悩む必要はありません。') + '</p><a class="btn primary" href="contact.html">はい：この内容で進める</a><span class="pill">いいえ：条件を変えて、組み直す</span></div>\n'
     '            <div class="terms">\n'
     '              <p class="terms-head">はっきり言えること</p>\n'
     '              <ul>\n'
