@@ -58,7 +58,7 @@
     </section>
     <section class="section" id="form">
       <div class="wrap"><div class="section-text">
-          <div class="head reveal"><p class="eyebrow">Message</p><h2>お問い合わせ</h2><p class="lead">内容をお送りください。担当者より直接ご返信します。</p></div>
+          <div class="head reveal"><p class="eyebrow">Message</p><h2>お問い合わせ</h2><p class="lead">担当者より直接ご返信します。</p></div>
           <form class="panel reveal" id="contactForm" novalidate>
             <div class="step" id="stepForm">
               <label>お名前（個人名または会社名）<input id="cName" name="name" type="text" autocomplete="name" required></label>
@@ -98,13 +98,12 @@
                     <option>目的の整理と進め方の相談</option>
                     <option>動画・映像制作</option>
                     <option>SNSアカウントの運用支援</option>
-                    <option>ブランディング・制作</option>
-                    <option>サイト・業務の仕組みづくり</option>
+                    <option>ブランドと制作</option>
+                    <option>サイトと業務の仕組みづくり</option>
                     <option>クリエイターとの販売設計</option>
-                    <option>表現・広告の確認</option>
                     <option>公開前の確認と記録（REYZ CONSENSUS）</option>
                     <option>自社ブランドでの提供・仕組みへの組み込み</option>
-                    <option>AIを仕事に使う（REYZ PLATFORM）</option>
+                    <option>AIを仕事に入れる（REYZ PLATFORM）</option>
                   </optgroup>
                   <optgroup label="その他">
                     <option>取材・提携</option>
@@ -112,13 +111,13 @@
                   </optgroup>
                 </select>
               </label>
-              <label>内容（ご要望・質問・相談等）<textarea id="cMsg" name="message" required></textarea></label>
+              <label>内容<textarea id="cMsg" name="message" required></textarea></label>
               <input id="cWebsite" name="website" type="text" tabindex="-1" autocomplete="off" hidden>
               <div class="ctas tight">
                 <button class="btn primary" type="submit" id="confirmBtn">確認する</button>
               </div>
               <div class="status" id="status" role="status" aria-live="polite"></div>
-              <noscript><p class="lead">JavaScriptが無効の環境では送信できません。フッター記載の連絡先へお問い合わせください。</p></noscript>
+              <noscript><p class="lead">このフォームはJavaScriptが有効な環境で動きます。</p></noscript>
             </div>
             <div class="step" id="stepConfirm" hidden>
               <div class="head"><p class="eyebrow">Confirm</p><h3 id="confirmTitle" tabindex="-1">入力内容の確認</h3></div>

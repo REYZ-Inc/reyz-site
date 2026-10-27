@@ -179,7 +179,8 @@
     let lastA = null, lastB = null, prevPos = null;
     function syncCopy(k, clarity) {
       if (!k.copy || reduce) return; const v = clarity.toFixed(3); if (k.copy.dataset.c === v) return; k.copy.dataset.c = v;
-      k.copy.style.opacity = v; k.copy.style.transform = clarity >= 0.999 ? '' : `translateY(${((1 - clarity) * 14).toFixed(1)}px)`;
+      // 語が溶けている間も本文は読める下限（0.35）を残す。2026-10-27 模擬ユーザー 2/2「章の間で止まると文字が薄くて読めない」
+      k.copy.style.opacity = (clarity >= 0.999 ? 1 : 0.35 + 0.65 * clarity).toFixed(3); k.copy.style.transform = clarity >= 0.999 ? '' : `translateY(${((1 - clarity) * 14).toFixed(1)}px)`;
     }
     function draw(now) {
       const t0 = performance.now(); const dt = lastNow ? Math.min(now - lastNow, 100) : 16.7; lastNow = now;
@@ -294,11 +295,12 @@
   const mapper = document.getElementById('mapper');
   if (mapper) {
     const groups = Array.from(mapper.querySelectorAll('.mq'));
-    const card = document.getElementById('mapCard'), note = document.getElementById('mapNote'), noteLive = document.getElementById('mapNoteLive');
+    const card = document.getElementById('mapCard'), noteLive = document.getElementById('mapNoteLive');
+    const screens = document.getElementById('mapScreens'); if (screens) { const h = screens.getAttribute('href'); screens.dataset.creator = h; screens.dataset.company = h.replace(/^creator(\.html)?#model$/, 'creative$1#decide'); }   // 本番は拡張子なし、試写は .html つき: 元の href から両方を組む
     const out = { goal: document.getElementById('mapGoal'), place: document.getElementById('mapPlace'), step: document.getElementById('mapStep') };
     const ans = {};
-    // 文節（「、」「。」の直後）でだけ折り返す（build.py の jp() と同じ規則）
-    const phrase = (el, text) => { el.textContent = ''; for (const t of text.split(/(?<=[、。])/)) { if (!t) continue; const sp = document.createElement('span'); sp.className = 'ph'; sp.textContent = t; el.append(sp); } };
+    // 文節（「、」「。」「）」の直後と「（」の直前）でだけ折り返す（build.py の jp() と同じ規則＋括弧）
+    const phrase = (el, text) => { el.textContent = ''; for (const t of text.split(/(?<=[、。）])|(?=（)/)) { if (!t) continue; const sp = document.createElement('span'); sp.className = 'ph'; sp.textContent = t; el.append(sp); } };
     const groupOf = (q, aud) => groups.find(g => g.dataset.q === q && g.dataset.for === aud);
     const compose = () => {
       const who = ans.who, T = MAP_TEXT[who]; if (!T) return null;
@@ -316,23 +318,165 @@
         for (const q of order) { const g = groupOf(q, who); if (!g) continue; g.hidden = !open; if (open && !ans[q]) open = false; } }
       for (const g of groups) for (const b of g.querySelectorAll('.opt')) b.setAttribute('aria-pressed', String(ans[g.dataset.q] === b.dataset.v && (g.dataset.for === 'all' || g.dataset.for === who)));
       const r = compose(); mapper.dataset.done = r ? 'true' : 'false';
-      if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); note.hidden = who !== 'creator'; noteLive.hidden = !r.live; card.hidden = false;
-        if (!render.shown) { render.shown = true; const h = card.querySelector('h3'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } } }
-      else { card.hidden = true; render.shown = false; }
+      if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
+        drawRoute(); card.classList.remove('is-live'); void card.offsetWidth; card.classList.add('is-live');   // 地図を引き直す（線が点を結んでいく）
+        try { sessionStorage.setItem('reyz.map.r', JSON.stringify({ who, goal: r.goal, place: r.place, step: r.step })); } catch (err) { /* 保持できないときは見本の地図のまま */ }   // /creator・/creative の 1 画面目にそのまま入る
+        if (screens) screens.setAttribute('href', who === 'company' ? screens.dataset.company : screens.dataset.creator);   // 地図 → その人の枝の 3 つの画面へ
+        if (!render.shown) { render.shown = true; card.setAttribute('tabindex', '-1'); card.focus({ preventScroll: true });
+          // 地図ができたことが分かるように、カードの頭まで送る（最後の答えの直下に出ると気づきにくい）
+          const top = card.getBoundingClientRect().top + window.scrollY - 84; if (card.getBoundingClientRect().top > window.innerHeight * 0.55) window.scrollTo({ top, behavior: reduce ? 'instant' : 'smooth' }); } }
+      else { card.hidden = true; card.classList.remove('is-live'); render.shown = false; }
     };
+    // 地図の線: 3 つの点（今いる場所 → 最初の一歩 → 目的）の中心を 1 本の線で結ぶ。縦並びなら直線、階段状なら S 字で。脈（route-pulse）はこの線の上を走る
+    const route = document.getElementById('mapRoute');
+    function drawRoute() {
+      if (!route || card.hidden) return;
+      const svg = route.querySelector('.route-svg'), path = svg && svg.querySelector('path'); if (!path) return;
+      const R = route.getBoundingClientRect(); if (R.width < 10) return;
+      const pts = Array.from(route.querySelectorAll('.node .dot')).map(d => { const r = d.getBoundingClientRect(); return [r.left + r.width / 2 - R.left, r.top + r.height / 2 - R.top]; });
+      if (pts.length < 2) return;
+      svg.setAttribute('viewBox', `0 0 ${Math.round(R.width)} ${Math.round(R.height)}`);
+      let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+      for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+        if (Math.abs(x1 - x0) < 4) d += ` L${x1.toFixed(1)} ${y1.toFixed(1)}`;
+        else { const cy = (y0 + y1) / 2; d += ` C${x0.toFixed(1)} ${cy.toFixed(1)}, ${x1.toFixed(1)} ${cy.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`; } }   // 点からは縦に出て、縦に入る（文字の上を横切らない）
+      path.setAttribute('d', d); const len = path.getTotalLength(); path.style.setProperty('--len', len.toFixed(1));
+      const pulse = svg.querySelector('.route-pulse'); if (pulse) { const am = pulse.querySelector('animateMotion'); if (am) { const nu = am.cloneNode(true); am.replaceWith(nu); } }   // 線が変わったら脈も新しい線に乗せ直す
+      if (reduce) { try { svg.pauseAnimations(); } catch (err) { /* 古い環境では無視 */ } }
+    }
+    let routeT = 0; window.addEventListener('resize', () => { clearTimeout(routeT); routeT = setTimeout(drawRoute, 150); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawRoute);
     mapper.addEventListener('click', e => {
       const b = e.target.closest('.opt'); if (!b) return; const g = b.closest('.mq'); const q = g.dataset.q;
       if (q === 'who' && ans.who !== b.dataset.v) { for (const k of Object.keys(ans)) delete ans[k]; }
       else if (ans[q] !== b.dataset.v) { const order = MAP_TEXT[ans.who] ? MAP_TEXT[ans.who].order : []; const i = order.indexOf(q); for (const k of order.slice(i + 1)) delete ans[k]; }
       ans[q] = b.dataset.v; render();
     });
-    const reset = document.getElementById('mapReset'); if (reset) reset.addEventListener('click', () => { for (const k of Object.keys(ans)) delete ans[k]; render(); const first = groups[0].querySelector('.opt'); if (first) first.focus({ preventScroll: true }); });
+    const reset = document.getElementById('mapReset'); if (reset) reset.addEventListener('click', () => { for (const k of Object.keys(ans)) delete ans[k]; try { sessionStorage.removeItem('reyz.map.r'); } catch (err) { /* 無視 */ } render(); const first = groups[0].querySelector('.opt'); if (first) first.focus({ preventScroll: true }); });
     const go = document.getElementById('mapGo'); if (go) go.addEventListener('click', () => {
       const r = compose(); if (!r) return;
       const body = '【あなたの地図（ホームで選んだ内容）】\n目的: ' + r.goal + '\n今いる場所: ' + r.place + '\n最初の一歩: ' + r.step;
       try { sessionStorage.setItem('reyz.map', JSON.stringify({ type: r.type, body })); } catch (err) { /* 引き継げないときは空のフォームへ */ }
     });
     render();
+  }
+
+  /* ================================================================
+     INSTRUMENTS — 2026-10-26 G-UX8「点・線・記録」: 文で説明せず、仕組みそのものを目の前で動かす。
+       bend（続く）: 画面に入ったら線が引かれる。check（確認）: 複数の AI が確かめ → 人が決める → 記録。2 回目は一致せず止まる。
+       motion 抑制時は完成した状態を静止表示。
+     ================================================================ */
+  const live = el => el.classList.add('is-live');
+  const ioLive = ('IntersectionObserver' in window) ? new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { live(e.target); ioLive.unobserve(e.target); } }, { threshold: 0.35 }) : null;
+  for (const el of document.querySelectorAll('.bend')) { if (reduce) { live(el); const svg = el.querySelector('svg'); if (svg) { try { svg.pauseAnimations(); } catch (err) { /* 無視 */ } } } else if (ioLive) ioLive.observe(el); else live(el); }
+  // 映像の見本（.motion）は CSS だけで回る（言葉が 1 語ずつ現れる）。JS のフックは不要
+  for (const check of document.querySelectorAll('.check')) {
+    const lanes = Array.from(check.querySelectorAll('.lane')), human = check.querySelector('.check-human'), rec = check.querySelector('.check-rec');
+    let timers = [], running = false, runIdx = 0;
+    const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+    const clear = () => { for (const t of timers) clearTimeout(t); timers = []; for (const l of lanes) l.classList.remove('on', 'ok', 'ng'); human.classList.remove('on', 'stop'); rec.classList.remove('on'); check.dataset.run = ''; };
+    const done = () => { clear(); for (const l of lanes) l.classList.add('on', 'ok'); human.classList.add('on'); rec.classList.add('on'); check.dataset.run = 'done'; };
+    const run = () => {
+      clear(); const ng = runIdx % 2 === 1; runIdx++; check.dataset.run = ng ? 'stop' : 'go';
+      lanes.forEach((l, i) => { at(200 + i * 280, () => l.classList.add('on')); at(950 + i * 280, () => l.classList.add(ng && i === 1 ? 'ng' : 'ok')); });
+      if (ng) { at(2200, () => human.classList.add('stop')); at(5400, run); }
+      else { at(2200, () => human.classList.add('on')); at(3000, () => rec.classList.add('on')); if (runIdx < 3) at(6400, run); }   // 通る → 止まる → 通る、で止まる（タップでもう一度）
+    };
+    if (reduce || !('IntersectionObserver' in window)) done();
+    else {
+      const io = new IntersectionObserver(es => { for (const e of es) { if (e.isIntersecting && !running) { running = true; runIdx = 0; run(); } else if (!e.isIntersecting && running) { running = false; done(); } } }, { threshold: 0.3 });
+      io.observe(check); check.addEventListener('click', () => { if (running) { runIdx = 0; run(); } });
+    }
+  }
+
+  /* ================================================================
+     DEMOS — 2026-10-27 CEO「体験イメージを持てるか」: 3 つの画面を 1 台で実際に触る（設計上の見本）。
+       creator（/creator）: 地図（Home で作ったもの）→ 入口で「受ける」→ 明細に並ぶ（報酬から引かない: 手数料 0・費用 0）。
+       company（/creative）: 地図 → 確認（例を選ぶ → 提供元の異なる複数の AI → 一致しないものは止まる → 直して再確認 → 人が はい／いいえ）→ 記録に 1 行。
+       文は正本のまま。名前・社名・金額は置かない。motion 抑制時は待たずに結果を出す。
+     ================================================================ */
+  for (const demo of document.querySelectorAll('.demo')) {
+    const who = demo.dataset.demo, tabs = Array.from(demo.querySelectorAll('.tab')), panes = Array.from(demo.querySelectorAll('.pane'));
+    const echo = demo.parentElement.querySelector('.echo'), ECHO = who === 'creator' ? { map: '地図から、始める。', gate: '受けるかは、あなた。', stmt: '報酬から、引かない。' } : { map: '目的から、逆算。', check: '選ぶと、動く。', go: '確かめている。', stop: '止まる。', pass: '通る。', rec: '残る。' };
+    const say = k => { if (!echo || !ECHO[k]) return; echo.textContent = ECHO[k]; echo.classList.remove('is-live'); void echo.offsetWidth; echo.classList.add('is-live'); };
+    const badge = (key, n) => { const t = tabs.find(x => x.dataset.t === key); const b = t && t.querySelector('.n'); if (!b) return; b.textContent = String(n); b.hidden = n === 0; };
+    const show = (key, focus) => {
+      for (const t of tabs) { const on = t.dataset.t === key; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; if (on) t.classList.add('seen'); }
+      for (const p of panes) { const on = p.dataset.p === key; p.hidden = !on; if (on) { p.classList.remove('is-live'); void p.offsetWidth; p.classList.add('is-live'); if (focus) p.focus({ preventScroll: true }); } }
+      demo.dataset.pane = key; say(key);
+    };
+    demo.addEventListener('click', e => {
+      const t = e.target.closest('.tab'); if (t) { show(t.dataset.t); return; }
+      const n = e.target.closest('[data-next]'); if (n) { if (n.dataset.reset && demo.resetCheck) demo.resetCheck(); show(n.dataset.next, true); }
+    });
+    const list = demo.querySelector('.tabs'); if (list) list.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
+      const i = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true'); let j = i;
+      if (e.key === 'ArrowRight') j = (i + 1) % tabs.length; else if (e.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length; else if (e.key === 'Home') j = 0; else j = tabs.length - 1;
+      show(tabs[j].dataset.t); tabs[j].focus(); e.preventDefault();
+    });
+    // 最後の画面 → 相談: Home で作った地図があれば、ご用件と内容に引き継ぐ（相談用の 'reyz.map'。送るのは本人）
+    let carried = null;
+    for (const a of demo.querySelectorAll('a.consult')) a.addEventListener('click', () => {
+      const type = MAP_TEXT[who === 'creator' ? 'creator' : 'company'].type;   // ご用件は Home の地図と同じ
+      const body = carried ? '【あなたの地図（ホームで選んだ内容）】\n目的: ' + carried.goal + '\n今いる場所: ' + carried.place + '\n最初の一歩: ' + carried.step : '';
+      try { sessionStorage.setItem('reyz.map', JSON.stringify({ type, body })); } catch (err) { /* 引き継げないときは空のフォームへ */ }
+    });
+    // 1 画面目: Home で作った地図があれば、見本の地図と入れ替える
+    try { const raw = sessionStorage.getItem('reyz.map.r'); if (raw) { const m = JSON.parse(raw); if (m && m.who === who && m.goal && m.place && m.step) { carried = m;
+      const id = who === 'creator' ? 'dm' : 'dn'; const put = (k, v) => { const el = document.getElementById(id + k); if (el) el.textContent = v; };
+      put('Place', m.place); put('Step', m.step); put('Goal', m.goal); put('From', 'ホームで作った、あなたの地図。'); const from = document.getElementById(id + 'From'); if (from) from.hidden = false; const home = document.getElementById(id + 'Home'); if (home) home.hidden = true; demo.classList.add('has-map'); ECHO.map = 'あなたの地図。'; } } } catch (err) { /* 見本の地図のまま */ }
+    say('map');
+    if (who === 'creator') {
+      // 入口 → 明細: 「受ける」を押したものだけが明細に並ぶ（押し直すと外れる）
+      const rows = document.getElementById('dmRows'), sum = document.getElementById('dmSum'), takes = Array.from(demo.querySelectorAll('.take'));
+      const draw = () => {
+        const on = takes.filter(b => b.getAttribute('aria-pressed') === 'true'); rows.textContent = '';
+        if (!on.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = '入口で「受ける」と、ここに並ぶ。'; rows.append(li); }
+        for (const b of on) { const li = document.createElement('li'); const name = document.createElement('b'); name.textContent = b.dataset.k;
+          const bar = document.createElement('span'); bar.className = 'scr-bar' + (b.dataset.v === 'full' ? ' full' : ''); bar.append(document.createElement('i'));
+          const em = document.createElement('em'); em.textContent = b.dataset.v === 'full' ? '手数料 0' : '費用 0'; li.append(name, bar, em); rows.append(li); }
+        sum.hidden = !on.length; badge('stmt', on.length);
+      };
+      for (const b of takes) b.addEventListener('click', () => { const now = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(now)); b.textContent = now ? '受けた' : '受ける'; draw(); });
+      demo.resetCheck = () => { for (const b of takes) { b.setAttribute('aria-pressed', 'false'); b.textContent = '受ける'; } draw(); };   // 「最初から」: 受けたものも戻す
+      draw();
+    } else {
+      // 確認: 例を選ぶ → 3 つの AI が確かめる → 一致しなければ止まる（理由を添える）→ 直して再確認 → 人が決める → 記録に 1 行
+      const S = {
+        pr:   { name: '#PR をつけた、新商品の紹介', phrase: '#PR', rule: 'ステマ告示', ng: [] },
+        no1:  { name: '「業界No.1」と書いた紹介', phrase: '業界No.1', rule: 'No.1表示の4要件', ng: [1, 2], why: 'No.1の根拠が示されていない', fix: 'No.1（調査名・時期・対象を添える）' },
+        cure: { name: '「必ず効く」と書いた紹介', phrase: '必ず効く', rule: '薬機法第66条・健康増進法', ng: [0, 1, 2], why: '効果を断定している', fix: '効果を断定しない表現に' } };
+      const lanes = Array.from(demo.querySelectorAll('.lane')), laneBox = document.getElementById('deLanes'), post = document.getElementById('dePost'), phrase = document.getElementById('dePhrase'), fixed = document.getElementById('deFixed');
+      const verdict = document.getElementById('deVerdict'), vb = document.getElementById('deV'), why = document.getElementById('deWhy'), fixBtn = document.getElementById('deFix'), human = document.getElementById('deHuman'), rec = document.getElementById('deRec');
+      let timers = [], cur = null, fixedNow = false, count = 0;
+      const at = (ms, fn) => { if (reduce) fn(); else timers.push(setTimeout(fn, ms)); };
+      const clear = () => { for (const t of timers) clearTimeout(t); timers = []; for (const l of lanes) l.classList.remove('on', 'ok', 'ng'); verdict.hidden = true; vb.textContent = ''; why.textContent = ''; fixBtn.hidden = true; human.hidden = true; };
+      const run = () => {
+        const d = S[cur], ng = fixedNow ? [] : d.ng; clear(); laneBox.hidden = false; demo.dataset.run = 'go'; say('go');
+        lanes.forEach((l, i) => { at(200 + i * 280, () => l.classList.add('on')); at(900 + i * 280, () => l.classList.add(ng.includes(i) ? 'ng' : 'ok')); });
+        at(2000, () => { verdict.hidden = false;
+          if (ng.length) { demo.dataset.run = 'stop'; say('stop'); vb.textContent = (ng.length === lanes.length ? '3つのAIが×。' : '一致しない。') + '止まりました。'; why.textContent = d.why + '（' + d.rule + '）。'; fixBtn.hidden = false; }
+          else { demo.dataset.run = 'pass'; say('pass'); vb.textContent = '3つのAIが一致。通りました。'; why.textContent = fixedNow ? '直した表現で、もう一度確かめました。' : d.rule + 'に照らしました。'; human.hidden = false; } });
+      };
+      demo.resetCheck = () => { clear(); cur = null; fixedNow = false; demo.dataset.run = ''; post.hidden = true; laneBox.hidden = true; for (const b of demo.querySelectorAll('.sample')) b.setAttribute('aria-pressed', 'false'); };
+      for (const b of demo.querySelectorAll('.sample')) b.addEventListener('click', () => {
+        cur = b.dataset.s; fixedNow = false; for (const x of demo.querySelectorAll('.sample')) x.setAttribute('aria-pressed', String(x === b));
+        phrase.textContent = S[cur].phrase; phrase.classList.remove('cut'); fixed.hidden = true; post.hidden = true; void post.offsetWidth; post.hidden = false; run();
+      });
+      fixBtn.addEventListener('click', () => { if (!cur) return; fixedNow = true; phrase.classList.add('cut'); fixed.textContent = S[cur].fix; fixed.hidden = false; run(); });
+      for (const b of human.querySelectorAll('[data-d]')) b.addEventListener('click', () => {
+        if (!cur) return; const d = S[cur]; const now = new Date(), hh = String(now.getHours()).padStart(2, '0'), mm = String(now.getMinutes()).padStart(2, '0');
+        const empty = rec.querySelector('.empty'); if (empty) empty.remove();
+        const li = document.createElement('li'); li.className = 'new';
+        const what = document.createElement('b'); what.textContent = d.name;
+        const when = document.createElement('span'); when.className = 'when'; when.textContent = hh + ':' + mm;
+        const how = document.createElement('span'); how.className = 'how';
+        how.append(d.rule + ' ・ AI ' + (d.ng.length ? '止まった → 直して通った' : '通った') + ' ・ 人 '); const em = document.createElement('em'); em.textContent = b.dataset.d; how.append(em);
+        li.append(what, when, how); rec.prepend(li); count++; badge('rec', count);
+        demo.resetCheck(); show('rec', true);
+      });
+    }
   }
 
   /* ================================================================

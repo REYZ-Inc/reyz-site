@@ -10,3 +10,4 @@ __pycache__/
 .wrangler/
 workers/**/dist/
 wrangler.ci.jsonc
+qa/*.png
