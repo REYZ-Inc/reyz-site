@@ -1,0 +1,9 @@
+{
+  "name": "reyz-consensus-worker",
+  "private": true,
+  "type": "module",
+  "description": "reyz.inc/api/consensus — REYZ CONSENSUS 入口 Worker（Home の地図を AI と深める。依存なし）",
+  "scripts": {
+    "test": "node --test"
+  }
+}

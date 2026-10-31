@@ -103,6 +103,16 @@
                 </dl>
               </div>
               <p class="map-note" id="mapNoteLive" hidden><span class="ph">※私達は、</span><span class="ph">TikTok社から委託を受けて</span><span class="ph">運営しているため、</span><br><span class="ph">ライバーさんの収益から</span><span class="ph">手数料を搾取する</span><span class="ph">モデルではありません。</span></p>
+              <div class="talk" id="mapTalk" hidden>
+                <p class="talk-lead"><span class="ph">この地図を、</span><span class="ph">あなたの言葉で。</span></p>
+                <div class="talk-log" id="talkLog" role="log" aria-live="polite"></div>
+                <form class="talk-form" id="talkForm" novalidate>
+                  <label class="sr-only" for="talkInput">地図について、ひとこと</label>
+                  <input id="talkInput" type="text" maxlength="400" autocomplete="off" enterkeyhint="send" placeholder="例：週3回、半年は続けたい">
+                  <button type="submit" class="btn primary talk-send" id="talkSend">送る</button>
+                </form>
+                <p class="talk-note" id="talkNote" role="status" aria-live="polite" hidden></p>
+              </div>
               <p class="more tight"><a class="go" id="mapScreens" href="creator#model">この地図で、3つの画面へ</a></p>
               <div class="ctas tight"><a class="btn primary" id="mapGo" href="contact">この内容で相談する</a><button type="button" class="btn" id="mapReset">最初から</button></div>
             </div>

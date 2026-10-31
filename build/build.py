@@ -255,6 +255,18 @@ def mapper():
             '                </dl>\n'
             '              </div>\n'
             f'              <p class="map-note" id="mapNoteLive" hidden>{TT_NOTE}</p>\n'
+            # 地図を言葉で深める（REYZ CONSENSUS の入口。docs/consensus-entry.md）: 入口 Worker（/api/consensus）が応答できるときだけ site.js が表示する。
+            # 応答がなければこのブロックは隠れたまま＝地図は選択だけで完結する（Fail-Closed）。AI は地図の言葉を整えて返すだけで、決めるのは本人。相談へ進むのも本人
+            '              <div class="talk" id="mapTalk" hidden>\n'
+            '                <p class="talk-lead">' + jp('この地図を、|あなたの言葉で。') + '</p>\n'
+            '                <div class="talk-log" id="talkLog" role="log" aria-live="polite"></div>\n'
+            '                <form class="talk-form" id="talkForm" novalidate>\n'
+            '                  <label class="sr-only" for="talkInput">地図について、ひとこと</label>\n'
+            '                  <input id="talkInput" type="text" maxlength="400" autocomplete="off" enterkeyhint="send" placeholder="例：週3回、半年は続けたい">\n'
+            '                  <button type="submit" class="btn primary talk-send" id="talkSend">送る</button>\n'
+            '                </form>\n'
+            '                <p class="talk-note" id="talkNote" role="status" aria-live="polite" hidden></p>\n'
+            '              </div>\n'
             # 地図 → 3 つの画面（その人の枝のページの見本へ。地図はそのまま 1 画面目に入る）→ 相談、とつながる
             '              <p class="more tight"><a class="go" id="mapScreens" href="creator.html#model">この地図で、3つの画面へ</a></p>\n'
             '              <div class="ctas tight"><a class="btn primary" id="mapGo" href="contact.html">この内容で相談する</a><button type="button" class="btn" id="mapReset">最初から</button></div>\n'
