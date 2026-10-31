@@ -389,6 +389,26 @@ html.no-js .reveal { animation: none; }
 }
 @media (max-width: 560px) { .map-rows > div { grid-template-columns: minmax(0, 1fr); } }
 
+/* 地図を、あなたの言葉で（REYZ CONSENSUS の入口）。入口 Worker が応答するときだけ site.js が表示する。地図カードの続きとして同じ余白・同じ線で */
+.talk { display: grid; gap: 0.8rem; margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px solid var(--line); text-align: left; }
+.talk-lead { font-size: 0.86rem; letter-spacing: 0.1em; color: var(--text-2); }
+.talk-log { display: none; gap: 0.55rem; max-height: 17rem; overflow-y: auto; padding-right: 0.2rem; scrollbar-width: thin; }
+.talk.has-log .talk-log { display: grid; }
+.talk-line { display: flex; margin: 0; }
+.talk-line.user { justify-content: flex-end; }
+.talk-line .bubble { display: inline-block; max-width: 86%; padding: 0.55rem 0.85rem; font-size: 0.92rem; line-height: 1.8; color: var(--text); border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); word-break: normal; overflow-wrap: anywhere; }
+.talk-line.user .bubble { border-color: rgba(247, 21, 172, 0.45); background: rgba(247, 21, 172, 0.08); }
+.talk-line.pending .bubble { color: var(--text-3); letter-spacing: 0.3em; animation: talk-pulse 1.2s ease-in-out infinite; }
+@keyframes talk-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.talk-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.6rem; align-items: stretch; }
+.talk-form input { font: inherit; font-size: 0.95rem; color: var(--text); background: rgba(6, 6, 9, 0.55); border: 1px solid var(--line-2); padding: 0.7rem 0.95rem; min-height: 50px; width: 100%; border-radius: 0; }
+.talk-form input::placeholder { color: var(--text-3); }
+.talk-form input:disabled, .talk-form .btn:disabled { opacity: 0.5; cursor: default; }
+.talk-form .talk-send { min-width: 5.2em; padding: 0 1.1rem; }
+.talk-note { font-size: 0.84rem; line-height: 1.8; color: var(--text-2); }
+.map-card .btn.primary.is-next { box-shadow: 0 0 0 1px rgba(247, 21, 172, 0.6), 0 0 28px rgba(247, 21, 172, 0.35); }   /* AI が「相談へ進める段階」と返したら、相談の押し先をそっと示す */
+@media (prefers-reduced-motion: reduce) { .talk-line.pending .bubble { animation: none; opacity: 0.7; } }
+
 /* 確認: 複数の AI が確かめる → 人が はい／いいえ → 記録。一致しなければ止まる */
 .check { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); gap: 1.4rem 2.2rem; margin-top: 2rem; padding: 1.5rem 0 1.4rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; cursor: default; }
 .check-lanes { display: grid; gap: 0.75rem; align-content: start; }

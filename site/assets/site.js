@@ -23,7 +23,8 @@
     formEndpoint: '/api/contact',     // 同一ドメインの受付 Worker（workers/contact）→「送信」で直接送信（POST, JSON）。空にすると「文面をコピー」の暫定挙動に戻る
     turnstileSiteKey: '0x4AAAAAAFIPs9iKoP2Ouj0x',   // Cloudflare Turnstile のサイトキー（公開値。ウィジェット reyz-site-contact）。確認ページにボット対策の確認を表示し、送信時にトークンを添える
     contactEmail: 'contact@reyz.inc', // 代替経路（送れなかったときの「メールアプリで送る」）とフッターの連絡先表示。空にすると非表示
-    lineUrl: ''                       // 例: 'https://lin.ee/xxxx' → 予備の連絡手段として案内文に表示
+    lineUrl: '',                      // 例: 'https://lin.ee/xxxx' → 予備の連絡手段として案内文に表示
+    consensusEndpoint: '/api/consensus'   // 同一ドメインの入口 Worker（workers/consensus）。Home の地図を言葉で深める。GET /health が ready を返すときだけ入口を表示。空にすると入口は出ない
   };
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -311,16 +312,25 @@
       if (!(ans.goal && ans.focus && ans.first)) return null;
       return { goal: T.goal[ans.goal], place: T.place[ans.focus], step: T.step[ans.first], live: false, type: T.type };
     };
+    // AI と深めた地図（TALK）。選択が変わると捨てる（選択の地図＝正本の文に戻る）
+    let aiMap = null, ansKey = '';
+    const effective = (r) => (r && aiMap) ? { ...r, goal: aiMap.goal, place: aiMap.place, step: aiMap.step } : r;
+    const redraw = (who, r) => {
+      phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step);
+      drawRoute(); card.classList.remove('is-live'); void card.offsetWidth; card.classList.add('is-live');   // 地図を引き直す（線が点を結んでいく）
+      try { sessionStorage.setItem('reyz.map.r', JSON.stringify({ who, goal: r.goal, place: r.place, step: r.step })); } catch (err) { /* 保持できないときは見本の地図のまま */ }   // /creator・/creative の 1 画面目にそのまま入る
+    };
     const render = () => {
       const who = ans.who;
       for (const g of groups) { const aud = g.dataset.for; g.hidden = !(aud === 'all' || aud === who); }
       if (who) { const order = MAP_TEXT[who].order; let open = true;
         for (const q of order) { const g = groupOf(q, who); if (!g) continue; g.hidden = !open; if (open && !ans[q]) open = false; } }
       for (const g of groups) for (const b of g.querySelectorAll('.opt')) b.setAttribute('aria-pressed', String(ans[g.dataset.q] === b.dataset.v && (g.dataset.for === 'all' || g.dataset.for === who)));
-      const r = compose(); mapper.dataset.done = r ? 'true' : 'false';
-      if (r) { phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step); noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
-        drawRoute(); card.classList.remove('is-live'); void card.offsetWidth; card.classList.add('is-live');   // 地図を引き直す（線が点を結んでいく）
-        try { sessionStorage.setItem('reyz.map.r', JSON.stringify({ who, goal: r.goal, place: r.place, step: r.step })); } catch (err) { /* 保持できないときは見本の地図のまま */ }   // /creator・/creative の 1 画面目にそのまま入る
+      const key = JSON.stringify(ans); if (key !== ansKey) { ansKey = key; aiMap = null; talk.reset(); }
+      const r0 = compose(), r = effective(r0); mapper.dataset.done = r ? 'true' : 'false';
+      if (r) { noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
+        redraw(who, r);
+        talk.open(who, r);
         if (screens) screens.setAttribute('href', who === 'company' ? screens.dataset.company : screens.dataset.creator);   // 地図 → その人の枝の 3 つの画面へ
         if (!render.shown) { render.shown = true; card.setAttribute('tabindex', '-1'); card.focus({ preventScroll: true });
           // 地図ができたことが分かるように、カードの頭まで送る（最後の答えの直下に出ると気づきにくい）
@@ -354,10 +364,65 @@
     });
     const reset = document.getElementById('mapReset'); if (reset) reset.addEventListener('click', () => { for (const k of Object.keys(ans)) delete ans[k]; try { sessionStorage.removeItem('reyz.map.r'); } catch (err) { /* 無視 */ } render(); const first = groups[0].querySelector('.opt'); if (first) first.focus({ preventScroll: true }); });
     const go = document.getElementById('mapGo'); if (go) go.addEventListener('click', () => {
-      const r = compose(); if (!r) return;
-      const body = '【あなたの地図（ホームで選んだ内容）】\n目的: ' + r.goal + '\n今いる場所: ' + r.place + '\n最初の一歩: ' + r.step;
+      const r = effective(compose()); if (!r) return;
+      const body = '【あなたの地図（ホームで選んだ内容）】\n目的: ' + r.goal + '\n今いる場所: ' + r.place + '\n最初の一歩: ' + r.step + talk.transcript();
       try { sessionStorage.setItem('reyz.map', JSON.stringify({ type: r.type, body })); } catch (err) { /* 引き継げないときは空のフォームへ */ }
     });
+
+    /* ---- TALK — 地図を、あなたの言葉で（REYZ CONSENSUS の入口。docs/consensus-entry.md）
+         入口 Worker（CONFIG.consensusEndpoint）の GET /health が ready を返すときだけ表示する。返らなければ何も出ない（地図は選択だけで完結＝Fail-Closed）。
+         AI は地図の 3 つの点をその人の言葉で整えて返すだけ。地図が変わればその場で引き直し、相談・3 つの画面へそのまま引き継ぐ。決めるのは本人。
+         本文はこの画面の中だけに持つ（往復ごとに全文を送る）。往復ごとの連鎖ハッシュ（chain）を受け取り、次の往復に添える。 ---- */
+    const talk = (() => {
+      const box = document.getElementById('mapTalk'), logEl = document.getElementById('talkLog'), form = document.getElementById('talkForm'), input = document.getElementById('talkInput'), send = document.getElementById('talkSend'), note = document.getElementById('talkNote');
+      const ep = CONFIG.consensusEndpoint;
+      const api = { reset() {}, open() {}, transcript() { return ''; } };
+      if (!box || !logEl || !form || !input || !send || !note || !ep) return api;
+      let ready = null, probing = null, who = '', map = null, messages = [], chain = '', busy = false, closed = false;
+      const probe = () => {
+        if (ready !== null) return Promise.resolve(ready);
+        if (!probing) probing = fetch(ep + '/health', { method: 'GET', headers: { Accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(j => { ready = !!(j && j.ok && j.ready); return ready; }).catch(() => { ready = false; return false; });
+        return probing;
+      };
+      const line = (role, text) => { const p = document.createElement('p'); p.className = 'talk-line ' + role; const b = document.createElement('span'); b.className = 'bubble'; b.textContent = text; p.append(b); logEl.append(p); logEl.scrollTop = logEl.scrollHeight; return p; };
+      const setNote = (t) => { note.textContent = t || ''; note.hidden = !t; };
+      const lock = (on) => { busy = on; send.disabled = on || closed; input.disabled = on || closed; box.classList.toggle('is-busy', on); };
+      const close = (t) => { closed = true; lock(false); setNote(t); go && go.classList.add('is-next'); };
+      api.reset = () => { messages = []; chain = ''; closed = false; map = null; logEl.textContent = ''; setNote(''); input.value = ''; box.classList.remove('has-log'); lock(false); if (go) go.classList.remove('is-next'); };
+      api.open = (w, r) => { who = w; map = { goal: r.goal, place: r.place, step: r.step }; probe().then(ok => { box.hidden = !ok || card.hidden; }); };
+      api.transcript = () => {
+        if (!messages.length) return '';
+        const lines = messages.map(m => (m.role === 'user' ? 'あなた: ' : 'AI: ') + m.content.replace(/\n+/g, ' '));
+        return '\n\n【地図について、やりとりした内容】\n' + lines.join('\n').slice(0, 3000);
+      };
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = input.value.replace(/\s+/g, ' ').trim(); if (!text || busy || closed || !map) return;
+        if (text.length > 400) { setNote('400文字以内で。'); return; }
+        input.value = ''; setNote('');
+        messages.push({ role: 'user', content: text }); line('user', text); box.classList.add('has-log');
+        const pending = line('ai pending', '…'); lock(true);
+        let res = null, j = null;
+        try {
+          res = await fetch(ep + '/turn', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ who, map, messages, chain }) });
+          j = await res.json().catch(() => null);
+        } catch (err) { res = null; }
+        pending.remove();
+        if (!res || !j) { messages.pop(); lock(false); setNote('いま、返事が届きませんでした。そのまま「この内容で相談する」へ進めます。'); return; }
+        if (!j.ok) {
+          messages.pop();
+          if (j.error === 'turn_limit') { close('ここからは、相談で。この内容で相談へ進めます。'); return; }
+          if (j.error === 'rate_limited') { lock(false); setNote('少し待ってから、もう一度。'); return; }
+          lock(false); setNote('いま、返事が届きませんでした。そのまま「この内容で相談する」へ進めます。'); return;
+        }
+        messages.push({ role: 'assistant', content: j.reply }); chain = typeof j.chain === 'string' ? j.chain : chain;
+        line('ai', j.reply);
+        if (j.map && j.map.goal && j.map.place && j.map.step) { map = { goal: j.map.goal, place: j.map.place, step: j.map.step }; aiMap = map; const r = effective(compose()); if (r) redraw(who, r); }
+        if (j.consult && go) go.classList.add('is-next');
+        lock(false); if (fine) input.focus({ preventScroll: true });
+      });
+      return api;
+    })();
     render();
   }
 

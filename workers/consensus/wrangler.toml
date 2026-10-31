@@ -1,0 +1,27 @@
+# REYZ CONSENSUS 入口 Worker（reyz.inc/api/consensus/*）。配備は .github/workflows/consensus-worker.yml（main へのマージで自動）。
+# 秘密（ANTHROPIC_API_KEY）はここに書かず、workflow が GitHub Secrets から Worker の secret として宣言的に同期する（GitHub Secrets が正本）。
+# ルート: reyz.inc/api/* は問い合わせ Worker（reyz-contact）が持つ。Cloudflare は「より具体的なルートが勝つ」ため、/api/consensus* はこの Worker が受ける。
+name = "reyz-consensus"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = false      # *.workers.dev では公開しない（reyz.inc/api/consensus/* のみ）
+preview_urls = false
+
+routes = [
+  { pattern = "reyz.inc/api/consensus*", zone_name = "reyz.inc" },
+  { pattern = "www.reyz.inc/api/consensus*", zone_name = "reyz.inc" },
+]
+
+[observability]
+enabled = true           # Workers Logs（会話の本文は記録しない。結果・種別・往復番号・ハッシュ連鎖・国・Ray・所要時間・トークン数のみ）
+
+[[ratelimits]]                       # 同一 IP からの往復を 60 秒に 20 回まで。Workers Rate Limiting binding
+name = "CONSENSUS_RL"
+namespace_id = "1002"
+simple = { limit = 20, period = 60 }
+
+[vars]
+ALLOWED_ORIGINS = "https://reyz.inc,https://www.reyz.inc"   # 入口を置くページの origin（他からの POST は 403）
+MODEL = "claude-haiku-5-5"                                    # 応答に使うモデル ID（platform.claude.com/docs/en/models/overview、2026-10-31 確認）
+MAX_TURNS = "10"                                              # 1 つの会話で受ける利用者の発話数の上限（超えたら「相談」へ）
+MAX_OUTPUT_TOKENS = "600"

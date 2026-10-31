@@ -10,9 +10,11 @@
 | 2 | [STANDARDS.md](STANDARDS.md) | 原則（人の操作は承認・本人確認・支払い・契約だけ）、最先端実務との対応表（PASS / GAP）、判定の手順（Full Cycle）、記録の形式 | 10 分 |
 | 3 | [contact-pipeline.md](contact-pipeline.md) | 問い合わせ受付の設計（要件・構成・関門・未検証方針・秘密・運用） | 10 分 |
 | 4 | [site-factory.md](site-factory.md) | 型の量産と運用の自動化（手動作業の棚卸し、目標状態、段階計画、未確認、CEO の決定事項） | 10 分 |
+| 4b | [consensus-entry.md](consensus-entry.md) | REYZ CONSENSUS の入口（Home の地図を言葉で深める）の設計（要件・契約・関門・未検証・秘密・段階） | 8 分 |
 | 5 | [adr/](adr/README.md) | なぜそうなっているか（決定記録。番号順） | 必要な番号だけ |
 | 6 | [incidents/](incidents/README.md) | 何が起きて、どう直したか（事故記録） | 必要なものだけ |
 | 7 | [../workers/contact/README.md](../workers/contact/README.md) | 実装と手順（設定・更新・後片付け・失敗時の再開） | 作業時 |
+| 8 | [../workers/consensus/README.md](../workers/consensus/README.md) | 入口 Worker の実装と手順（設定・鍵の更新・止め方） | 作業時 |
 
 コードの入口は [../README.md](../README.md)（パスと役割の表）。
 
@@ -25,10 +27,14 @@
                                               │  Origin 検査 → 入力検証 → レート制限 → Turnstile 照合 → 未検証方針
                                               └─▶ Google（no-reply@reyz.inc 本人の OAuth）──▶ Gmail API: 控え（contact@）＋ 確認メール
                                                    記録: Cloudflare Workers Logs（PII なし）
+              └─ reyz.inc/api/consensus/* ─▶ Cloudflare Worker「reyz-consensus」（workers/consensus/）— Home の地図を言葉で深める入口
+                                              │  health（鍵が無ければ ready=false → サイトは入口を出さない）/ turn: Origin → 検証 → レート制限 → 往復上限
+                                              └─▶ モデル API（adapter。鍵は Worker secret）→ 応答検査（禁止語・断定）→ 連鎖ハッシュ。記録に本文なし
 
 GitHub Actions（.github/workflows/）
   関門（PR ごと）: worker-tests / stack-e2e（CI 内で本物の Turnstile を公式テストキーで）/ site-verify / docs-gate ── 全部通らないと main に入らない
-  配備（main）   : verify-and-deploy（サイト）/ contact-worker（Worker。GitHub Secrets → Worker secret を宣言的同期）
+                   consensus-tests / consensus-stack（入口 Worker。必須チェックへの追加はロウ）
+  配備（main）   : verify-and-deploy（サイト）/ contact-worker・consensus-worker（Worker。GitHub Secrets → Worker secret を宣言的同期）
   監視           : contact-e2e（配備後＋毎日）/ contact-watch（毎日）/ contact-logs（手動）/ scorecard（毎週）
   運用（鍵）     : oauth-consent（同意コードを 1 回貼る）/ turnstile-rotate（四半期。無人）/ ops-check（前提の検査。変更なし）
   主体           : GitHub App「REYZ Ops」（Secrets・Actions・Issues の書き込み。この repo のみ）
@@ -93,6 +99,7 @@ GitHub Actions（.github/workflows/）
 | フォームが動いているか | Actions → `contact-e2e` の最新 run（緑なら本番で Google のトークンまで取れている） |
 | 今日の受付件数・エラー | Actions → `contact-logs` → Run workflow |
 | 鍵を更新したい | [workers/contact/README.md](../workers/contact/README.md)「認証情報の更新」 |
+| 地図の入口（AI）を止めたい・鍵を替えたい | [workers/consensus/README.md](../workers/consensus/README.md)「手順」（GitHub Secrets の `ANTHROPIC_API_KEY` だけ） |
 | なぜこの設計か | [adr/](adr/README.md) の該当番号 |
 | 過去に何が起きたか | [incidents/](incidents/README.md) |
 | 変更を入れたい | [../README.md](../README.md)「更新の流れ」→ PR テンプレートの 6 見出しを埋める |
