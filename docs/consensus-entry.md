@@ -47,7 +47,7 @@ Home 章 3 の地図カード                                    reyz.inc/api/co
 |---|---|---|
 | `who` | `"creator"` / `"company"` | 必須 |
 | `map` | `{ goal, place, step }` | 各 300 文字以内。現在の地図（AI が変えた後はその文） |
-| `messages` | `[{ role: "user"\|"assistant", content }]` | user から始まり交互、最後は user。21 件以内、各 1000 文字以内 |
+| `messages` | `[{ role: "user"\|"assistant", content }]` | user から始まり交互、最後は user。21 件以内、各 1000 文字以内、全文 12000 文字以内 |
 | `chain` | `""` または 64 桁の 16 進 | 前の往復で返された chain |
 | `dry_run` | `true` | 検証までで返す（モデルを呼ばない。CI の通し確認用） |
 

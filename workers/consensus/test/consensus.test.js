@@ -65,6 +65,8 @@ test('validate: 形の検査', () => {
   assert.ok(validate(good({ messages: [{ role: 'assistant', content: 'x' }] })).errors.includes('messages.0'));   // user から始まる
   assert.ok(validate(good({ messages: [{ role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }] })).errors.includes('messages.last'));   // 最後は user
   assert.ok(validate(good({ messages: [{ role: 'user', content: 'x'.repeat(1001) }] })).errors.includes('messages.0'));
+  { const m = []; for (let i = 0; i < 13; i++) { m.push({ role: 'user', content: 'x'.repeat(1000) }); if (i < 12) m.push({ role: 'assistant', content: 'y' }); } assert.ok(validate(good({ messages: m })).errors.includes('messages'), '件数の上限'); }
+  { const m = []; for (let i = 0; i < 7; i++) { m.push({ role: 'user', content: 'x'.repeat(1000) }); if (i < 6) m.push({ role: 'assistant', content: 'y'.repeat(1000) }); } assert.ok(validate(good({ messages: m })).errors.includes('messages.total'), '全文の上限'); }
   assert.ok(validate(good({ chain: 'zz' })).errors.includes('chain'));
   assert.deepEqual(validate(good({ chain: 'A'.repeat(64) })).errors, []);
   const f = validate(good({ messages: [{ role: 'user', content: 'a\u0000b\r\nc' }] })).fields;

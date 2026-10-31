@@ -15,7 +15,7 @@
 const BASE = '/api/consensus';
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2026-10-21';   // platform.claude.com/docs/en/api/versioning（2026-10-31 確認）
-const LIMITS = { body: 48 * 1024, messages: 21, content: 1000, mapLine: 300, replyChars: 220, mapOut: 90, timeoutMs: 25_000 };
+const LIMITS = { body: 48 * 1024, messages: 21, content: 1000, total: 12000, mapLine: 300, replyChars: 220, mapOut: 90, timeoutMs: 25_000 };
 // サイトの除外語・状態語（qa/run_all.sh のスキャンと同じ）。AI の応答にも載せない
 const BANNED = ['開発中', '準備中', '先行導入', '順次', '予定', '一枚', '所属', '話してみる', 'ご担当者様', '©'];
 // 断定を禁じる語（約束・金額・期日・成果）。含まれたら再生成
@@ -124,6 +124,7 @@ export function validate(data) {
       fields.messages.push({ role, content });
     }
     if (msgs.length % 2 === 0) errors.push('messages.last');
+    if (fields.messages.reduce((a, m) => a + m.content.length, 0) > LIMITS.total) errors.push('messages.total');   // 1 会話の全文の上限（費用と文脈の上限）
   }
   const chain = typeof data.chain === 'string' ? data.chain.trim().toLowerCase() : '';
   if (chain && !/^[0-9a-f]{64}$/.test(chain)) errors.push('chain');
