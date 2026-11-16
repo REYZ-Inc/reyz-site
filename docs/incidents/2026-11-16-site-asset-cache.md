@@ -23,7 +23,7 @@ HTMLはCSS・JavaScriptを変更前と同じ固定URLで参照していた。新
 
 [ADR-0014](../adr/0014-content-versioned-site-assets.md) に従い、6つの入口資産を内容hash付きファイル名で出力し、全ページの参照を揃える。canonicalと既存の版付きファイルは保持する。フォームの試験用interceptionを新しい命名へ追従させ、公開参照・hash・再生成の検査を追加する。
 
-再発防止の実装、全関門、配備、公開後の観測は、この記録を含む修正PRの「検証（FACT）」で追跡する。PR番号と最終確認結果は確定後に記録する。
+再発防止の実装、全関門、配備、公開後の観測は、[PR #56](https://github.com/REYZ-Inc/reyz-site/pull/56)の「検証（FACT）」で追跡する。配備後の確認を含む最終結果も同PRへ集約する。
 
 ## 教訓
 

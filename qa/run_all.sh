@@ -12,6 +12,7 @@ python3 build/build.py >/dev/null
 if ! git diff --quiet -- site/ 2>/dev/null; then
   echo "FAIL: site/ がビルド結果と異なります（build.py を変えたら site/ を再生成してコミットしてください）"; git --no-pager diff --stat -- site/; exit 1
 fi
+python3 qa/asset_release_check.py "$SITE" --require-tracked > "$QA_OUT/asset-release.json"
 
 echo "== 2/8 html-validate"
 npx html-validate site/*.html
