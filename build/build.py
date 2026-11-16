@@ -1,10 +1,56 @@
 # -*- coding: utf-8 -*-
 """REYZ Inc. corporate site v6 — static build (narrative + sticky particle stage).
-Run: python3 build/build.py  → writes ./site/*.html"""
-import os, re, html, json
+Run: python3 build/build.py → writes ./site/*.html and content-fingerprinted entry assets."""
+import os, re, html, json, hashlib, tempfile
 
 ROOT = os.environ.get('SITE_OUT') or os.path.join(os.path.dirname(__file__), '..', 'site')   # SITE_OUT: 検証用の別出力先
 SITE_URL = os.environ.get('SITE_URL', 'https://reyz.inc')   # 公開ドメイン（canonical / og:url / og:image / sitemap）。末尾スラッシュなし
+SOURCE_ASSETS = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'site', 'assets'))
+ENTRY_ASSET_NAMES = ('site.css', 'site.js', 'field-renderer.js', 'experience.js', 'manual.css', 'manual.js')
+
+def build_entry_assets():
+    """Keep editable canonical files; publish exact byte copies at content URLs.
+
+    Copies stay in assets/ so CSS URLs, currentScript and relative ES imports keep
+    the same base. This fingerprints the six entries only, not the manual module
+    dependency graph. SITE_OUT still uses repository assets as the source.
+    Old fingerprints deliberately remain: cached older HTML must keep working.
+    """
+    sources = {}
+    for name in ENTRY_ASSET_NAMES:
+        with open(os.path.join(SOURCE_ASSETS, name), 'rb') as source:
+            sources[name] = source.read()
+    target_dir = os.path.join(ROOT, 'assets')
+    os.makedirs(target_dir, exist_ok=True)
+    urls = {}
+    for name, content in sources.items():
+        stem, suffix = os.path.splitext(name)
+        versioned = f'{stem}.{hashlib.sha256(content).hexdigest()[:16]}{suffix}'
+        target = os.path.join(target_dir, versioned)
+        if os.path.exists(target):
+            with open(target, 'rb') as existing:
+                if existing.read() != content:
+                    raise RuntimeError(f'Fingerprint collision or corrupted generated asset: {target}')
+        else:
+            # Only our incomplete temporary file is cleaned up. Never prune a
+            # previously published fingerprint, even when it is no longer current.
+            temporary = None
+            try:
+                with tempfile.NamedTemporaryFile(dir=target_dir, prefix=versioned + '.', suffix='.tmp', delete=False) as output:
+                    temporary = output.name
+                    output.write(content)
+                os.chmod(temporary, 0o644)
+                os.replace(temporary, target)
+            finally:
+                if temporary and os.path.exists(temporary):
+                    os.unlink(temporary)
+        urls['assets/' + name] = 'assets/' + versioned
+    return urls
+
+ENTRY_ASSETS = build_entry_assets()
+def asset_url(path):
+    return ENTRY_ASSETS.get(path, path)
+
 NAV = [('creator.html', 'Creator'), ('creative.html', 'Creative'), ('ai.html', 'AI'), ('index.html#reyz', 'Company'), ('contact.html', 'Contact')]
 ADDRESS = '東京都渋谷区恵比寿1丁目19-19 恵比寿ビジネスタワー10階'
 ICON = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23060609'/%3E%3Cpath%20d='M18%2032c0-6%204-9%208-9s6%203%208%209%204%209%208%209%208-3%208-9-4-9-8-9-6%203-8%209-4%209-8%209-8-3-8-9z'%20fill='none'%20stroke='%23F715AC'%20stroke-width='2.4'%20stroke-linecap='round'/%3E%3C/svg%3E"
@@ -22,7 +68,7 @@ def clean_links(doc):
     return re.sub(r'href="(' + _PAGE_RE + r')\.html(#[^"]*)?"', lambda m: 'href="' + m.group(1) + (m.group(2) or '') + '"', doc)
 
 def head(title, desc, fname='index.html', styles=()):
-    extra_styles = ''.join(f'  <link rel="stylesheet" href="{html.escape(path, quote=True)}">\n' for path in styles)
+    extra_styles = ''.join(f'  <link rel="stylesheet" href="{html.escape(asset_url(path), quote=True)}">\n' for path in styles)
     return f'''<!DOCTYPE html>
 <html lang="ja" class="no-js">
 <head>
@@ -48,7 +94,7 @@ def head(title, desc, fname='index.html', styles=()):
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap">
-  <link rel="stylesheet" href="assets/site.css">
+  <link rel="stylesheet" href="{asset_url('assets/site.css')}">
 {extra_styles}</head>
 '''
 
@@ -89,9 +135,9 @@ FOOTER = f'''  <footer class="site-footer">
     </div>
   </footer>
 
-  <script src="assets/field-renderer.js"></script>
-  <script src="assets/site.js"></script>
-  <script src="assets/experience.js"></script>
+  <script src="{asset_url('assets/field-renderer.js')}"></script>
+  <script src="{asset_url('assets/site.js')}"></script>
+  <script src="{asset_url('assets/experience.js')}"></script>
 </body>
 </html>
 '''
@@ -103,7 +149,7 @@ def page(fname, title, desc, col_text, current=None, styles=(), scripts=(), body
     body = '<body data-page="' + html.escape(fname.removesuffix('.html'), quote=True) + '"' + (f' class="{html.escape(body_class, quote=True)}"' if body_class else '') + '>\n'
     footer = FOOTER
     if scripts:
-        extra_scripts = ''.join(f'  <script type="module" src="{html.escape(path, quote=True)}"></script>\n' for path in scripts)
+        extra_scripts = ''.join(f'  <script type="module" src="{html.escape(asset_url(path), quote=True)}"></script>\n' for path in scripts)
         footer = footer.replace('</body>', extra_scripts + '</body>')
     doc = head(title, desc, fname, styles) + body + header(current or fname) + f'''
   <main id="main">
