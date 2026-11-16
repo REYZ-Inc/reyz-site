@@ -13,7 +13,7 @@ def clean(fname):
     """公開 URL の表記（2026-10-03 CEO 決定）: 拡張子 .html を付けない。index.html は ''（= /）。
     ファイル自体は x.html のまま出力する（GitHub Pages は /x で x.html を返す。旧 URL /x.html も引き続き開ける）。"""
     return '' if fname == 'index.html' else re.sub(r'\.html$', '', fname)
-_PAGE_RE = r'(?:creator|creative|ai|consensus|contact|legal|works)'
+_PAGE_RE = r'(?:creator|creative|ai|consensus|contact|legal|works|manual)'
 def clean_links(doc):
     """ページ内リンクを .html なしの表記へ（index.html → ./ 、x.html → x。#以降は保つ）。本文は x.html で書き、出力時に一括変換する。
     KEEP_HTML_LINKS=1 は検証用（静的ファイルだけを配る試写では x.html のまま）。本番ビルドでは使わない。"""
@@ -21,7 +21,8 @@ def clean_links(doc):
     doc = re.sub(r'href="index\.html(#[^"]*)?"', lambda m: 'href="./' + (m.group(1) or '') + '"', doc)
     return re.sub(r'href="(' + _PAGE_RE + r')\.html(#[^"]*)?"', lambda m: 'href="' + m.group(1) + (m.group(2) or '') + '"', doc)
 
-def head(title, desc, fname='index.html'):
+def head(title, desc, fname='index.html', styles=()):
+    extra_styles = ''.join(f'  <link rel="stylesheet" href="{html.escape(path, quote=True)}">\n' for path in styles)
     return f'''<!DOCTYPE html>
 <html lang="ja" class="no-js">
 <head>
@@ -48,7 +49,7 @@ def head(title, desc, fname='index.html'):
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap">
   <link rel="stylesheet" href="assets/site.css">
-</head>
+{extra_styles}</head>
 '''
 
 def header(current):
@@ -78,6 +79,7 @@ FOOTER = f'''  <footer class="site-footer">
       <div class="foot-top">
         <a class="brand" href="index.html" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
         <nav class="foot-nav" aria-label="Footer">
+          <a href="manual.html">配信マニュアル</a>
           <a href="contact.html">Contact</a>
           <a href="legal.html">Privacy &amp; Legal</a>
         </nav>
@@ -94,13 +96,18 @@ FOOTER = f'''  <footer class="site-footer">
 
 
 PAGES = []
-def page(fname, title, desc, col_text, current=None):
+def page(fname, title, desc, col_text, current=None, styles=(), scripts=(), body_class=''):
     PAGES.append(fname)
-    doc = head(title, desc, fname) + '<body>\n' + header(current or fname) + f'''
+    body = '<body' + (f' class="{html.escape(body_class, quote=True)}"' if body_class else '') + '>\n'
+    footer = FOOTER
+    if scripts:
+        extra_scripts = ''.join(f'  <script type="module" src="{html.escape(path, quote=True)}"></script>\n' for path in scripts)
+        footer = footer.replace('</body>', extra_scripts + '</body>')
+    doc = head(title, desc, fname, styles) + body + header(current or fname) + f'''
   <main id="main">
 {col_text}  </main>
 
-''' + FOOTER
+''' + footer
     with open(os.path.join(ROOT, fname), 'w', encoding='utf-8') as f: f.write(clean_links(doc))
 
 def slot(word, halo=False):
@@ -455,6 +462,10 @@ section('services', 'Services', '提供すること', '',
         f'              <p>{TT_P2}</p>\n'
         f'              <p class="note">{TT_NOTE}</p>\n'
         '            </div>\n'
+        '            <aside class="manual-entry" aria-labelledby="manualEntryTitle">\n'
+        '              <div class="manual-entry-art" aria-hidden="true"><span>LIVE<br>GUIDE</span><i></i></div>\n'
+        '              <div class="manual-entry-copy"><p class="eyebrow">Your live guide</p><h3 id="manualEntryTitle">配信マニュアル</h3><p>全42ページ。あなたの名前と色で。</p><a class="manual-entry-link" href="manual.html">マニュアルをつくる<span aria-hidden="true"> →</span></a></div>\n'
+        '            </aside>\n'
         + fold(VD_H3, VD_P) + '\n'
         + fold('SNSアカウントの運用支援', jp('''投稿の計画、制作、分析、改善。
 ライブ配信の企画と継続まで。''')) + '\n'
@@ -469,7 +480,71 @@ section('how', 'How to start', 'はじめ方', '',
 様々な視点から、戦略や計画を設計します。''')),
                ('03', '伴走', jp('''状況や状態を確認しながら、
 目的実現に向けて|共に進んでいきます。'''))], cls='list') + more('contact.html', '相談する'))
-page('creator.html', 'Creator — REYZ Inc.', 'REYZのクリエイター向けサービス。あなたに合う場所と順番を決め、TikTok LIVEエージェンシー、動画・映像制作、SNSアカウントの運用支援で、活動を収入に変える。目標が変わっても、続きます。', creator)
+page('creator.html', 'Creator — REYZ Inc.', 'REYZのクリエイター向けサービス。あなたに合う場所と順番を決め、TikTok LIVEエージェンシー、動画・映像制作、SNSアカウントの運用支援で、活動を収入に変える。目標が変わっても、続きます。', creator, styles=('assets/manual.css',))
+
+# ------------------------------------------------------------------ MANUAL（名称・配色を選ぶ配信ガイド）
+# docs/manual-download.md / ADR-0012。PDF生成は端末内、共通ナビと既決本文は維持。
+manual = '''    <div class="manual-shell" id="manualBuilder">
+      <div class="manual-intro">
+        <a class="manual-back" href="creator.html"><span aria-hidden="true">←</span> クリエイターの方へ</a>
+        <p class="eyebrow">TikTok LIVE guide</p>
+        <h1>配信マニュアルを、<br>あなたの名前で。</h1>
+        <p class="manual-lead">名前と色を選んで、スマホで読めるPDFに。</p>
+        <ul class="manual-facts" aria-label="マニュアルの仕様"><li>42ページ</li><li>縦9:16</li><li>PDF</li></ul>
+      </div>
+      <div class="manual-workspace">
+        <section class="manual-editor" aria-labelledby="manualEditorTitle">
+          <h2 class="sr-only" id="manualEditorTitle">名称と配色を選ぶ</h2>
+          <form class="manual-form" id="manualForm" novalidate>
+            <fieldset class="manual-options" id="manualOptions" disabled>
+              <legend class="sr-only">マニュアルの設定</legend>
+              <div class="manual-layout">
+              <div class="manual-field">
+                <label class="manual-label" for="manualName"><span class="manual-number" aria-hidden="true">01</span> PDFに載せる名称</label>
+                <input id="manualName" type="text" placeholder="例：Apex by YG" maxlength="48" required autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="manualNameHint manualError">
+                <p class="manual-hint" id="manualNameHint">日本語・英数字で24文字まで</p>
+              </div>
+              <fieldset class="manual-colors">
+                <legend class="manual-label"><span class="manual-number" aria-hidden="true">02</span> 色合いを選ぶ</legend>
+                <div class="manual-palettes" id="manualPalettes"></div>
+              </fieldset>
+              <figure class="manual-preview" id="manualPreview">
+                <figcaption><span>表紙プレビュー</span><span id="manualThemeLabel">ピンク</span></figcaption>
+                <div class="manual-cover-stage" id="manualCover" aria-busy="true"><div class="manual-cover-loading"><span>LIVE GUIDE</span><span>表紙を読み込んでいます</span></div></div>
+                <p class="manual-preview-note" id="manualPreviewNote">名称と配色が、全ページに反映されます。</p>
+              </figure>
+              <div class="manual-generate-area">
+                <button class="manual-generate" id="manualGenerate" type="submit"><span>PDFをダウンロード</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+                <p class="manual-hint manual-private">入力した名称は、この画面の中だけで使います。</p>
+              </div>
+              </div>
+            </fieldset>
+            <p class="manual-error" id="manualError" role="alert"></p>
+            <div class="manual-progress-wrap">
+              <progress id="manualProgress" max="100" value="0" aria-label="PDF生成の進行状況" hidden></progress>
+              <p class="manual-status" id="manualStatus" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+          <section class="manual-result" id="manualResult" aria-labelledby="manualResultTitle" hidden>
+            <h2 class="manual-result-title" id="manualResultTitle">PDFができました。</h2>
+            <p class="manual-result-detail" id="manualResultDetail"></p>
+            <div class="manual-result-actions">
+              <a class="manual-save" id="manualDownload">PDFを保存</a>
+              <a class="manual-open" id="manualOpen">PDFを開く<span aria-hidden="true"> ↗</span></a>
+              <button class="manual-share" id="manualShare" type="button" hidden>共有・ファイルに保存</button>
+            </div>
+            <p class="manual-hint">保存が始まらないときは「PDFを保存」をタップ。iPhoneではPDFを開き、共有メニューから「ファイルに保存」も選べます。</p>
+          </section>
+          <noscript><p class="manual-nojs">このマニュアルをつくるには、ブラウザのJavaScriptを有効にしてください。</p></noscript>
+          <div class="manual-contents">
+            <h2>配信のはじめ方から、<br>次の目標まで。</h2>
+            <p>機材・ファンとのつながり・ギフト・バトル・イベント。配信に役立つ内容を、ひとつのマニュアルに。</p>
+          </div>
+        </section>
+      </div>
+    </div>
+'''
+page('manual.html', '配信マニュアルをカスタマイズ — REYZ Inc.', '名称と6つの配色から選んで、42ページのTikTok LIVE配信マニュアルをPDFでダウンロード。スマホで読みやすい縦9:16。', manual, current='creator.html', styles=('assets/manual.css',), scripts=('assets/manual.js',), body_class='manual-body')
 
 # ------------------------------------------------------------------ CREATIVE（エンタープライズ事業）
 # 2026-10-23 CEO 指示: 読者は開発者ではない。「誰のため／こんな困りごとに／REYZがすること／REYZの約束／進め方／やらないこと」の順。

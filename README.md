@@ -12,6 +12,7 @@
 | `build/build.py` | サイト生成（唯一の編集対象。文言・構造はここ） → `site/` を出力 |
 | `site/` | 生成済みの公開物（HTML 9ページ・assets・robots/sitemap・404）。GitHub Pages はこのフォルダを配信 |
 | `site/assets/site.css` `site.js` | 見た目と動き（粒子・メニュー・フォーム）。手で編集する |
+| `site/manual.html` / `site/assets/manual*` | 名称と配色を選んで配信マニュアルをPDF保存する。設計は [docs/manual-download.md](docs/manual-download.md) |
 | `qa/` | 検証一式。`bash qa/run_all.sh` で全件実行（HTML 妥当性、W3C Nu、章の形成、最上部スタート、文言、フォーム、行組み、viewer 配色、secret） |
 | `tools/artifact.py` | claude.ai Artifact 用の派生物と viewer 再現フィクスチャ |
 | `.github/workflows/deploy.yml` | main への push → 検証 → GitHub Pages 配備。PR は検証のみ（`infra/` だけの変更では配備しない） |

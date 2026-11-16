@@ -11,6 +11,7 @@
 | 3 | [contact-pipeline.md](contact-pipeline.md) | 問い合わせ受付の設計（要件・構成・関門・未検証方針・秘密・運用） | 10 分 |
 | 4 | [site-factory.md](site-factory.md) | 型の量産と運用の自動化（手動作業の棚卸し、目標状態、段階計画、未確認、CEO の決定事項） | 10 分 |
 | 4b | [consensus-entry.md](consensus-entry.md) | REYZ CONSENSUS の入口（Home の地図を言葉で深める）の設計（要件・契約・関門・未検証・秘密・段階） | 8 分 |
+| 4c | [manual-download.md](manual-download.md) | 配信マニュアルの名称・配色選択、PDF生成・保存、受入検証 | 機能更新時 |
 | 5 | [adr/](adr/README.md) | なぜそうなっているか（決定記録。番号順） | 必要な番号だけ |
 | 6 | [incidents/](incidents/README.md) | 何が起きて、どう直したか（事故記録） | 必要なものだけ |
 | 7 | [../workers/contact/README.md](../workers/contact/README.md) | 実装と手順（設定・更新・後片付け・失敗時の再開） | 作業時 |

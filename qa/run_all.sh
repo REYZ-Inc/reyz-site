@@ -47,6 +47,8 @@ node qa/map_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).o
 node qa/decisions_check.js | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("decisions(決定台帳の写し) fails:",r.fails.length, "rows:", r.rows, "linked:", r.linked, "manual:", r.manual);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/demo_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("demo(3 つの画面) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/talk_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("talk(地図を、あなたの言葉で / 入口なしは非表示) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
+node --experimental-vm-modules qa/manual_timeout_check.js site
+node qa/manual_check.js site "$QA_OUT/manual" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("manual(名称・配色・PDF保存) checks:",r.checks,"fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 
 echo "== 7/7 viewer 骨格下の文字色（claude.ai artifact 再現）"
 python3 tools/artifact.py >/dev/null

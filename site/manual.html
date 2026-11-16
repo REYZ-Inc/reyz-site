@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>配信マニュアルをカスタマイズ — REYZ Inc.</title>
+  <meta name="description" content="名称と6つの配色から選んで、42ページのTikTok LIVE配信マニュアルをPDFでダウンロード。スマホで読みやすい縦9:16。">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="配信マニュアルをカスタマイズ — REYZ Inc.">
+  <meta property="og:description" content="名称と6つの配色から選んで、42ページのTikTok LIVE配信マニュアルをPDFでダウンロード。スマホで読みやすい縦9:16。">
+  <meta property="og:site_name" content="REYZ Inc.">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:url" content="https://reyz.inc/manual">
+  <meta property="og:image" content="https://reyz.inc/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://reyz.inc/manual">
+  <meta name="theme-color" content="#060609">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23060609'/%3E%3Cpath%20d='M18%2032c0-6%204-9%208-9s6%203%208%209%204%209%208%209%208-3%208-9-4-9-8-9-6%203-8%209-4%209-8%209-8-3-8-9z'%20fill='none'%20stroke='%23F715AC'%20stroke-width='2.4'%20stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap">
+  <link rel="stylesheet" href="assets/site.css">
+  <link rel="stylesheet" href="assets/manual.css">
+</head>
+<body class="manual-body">
+  <a class="skip" href="#main">本文へ移動</a>
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header" id="siteHeader">
+    <a class="brand" href="./" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+    <nav class="nav" aria-label="Main">
+      <a href="creator" aria-current="page">Creator</a>
+      <a href="creative">Creative</a>
+      <a href="ai">AI</a>
+      <a href="./#reyz">Company</a>
+      <a href="contact">Contact</a>
+    </nav>
+    <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="sheet" aria-label="メニューを開く"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+  </header>
+  <nav class="sheet" id="sheet" aria-label="Main (mobile)" hidden>
+    <a href="creator" aria-current="page"><span class="l">Creator</span><small class="sub">クリエイターの方へ</small></a>
+    <a href="creative"><span class="l">Creative</span><small class="sub">企業の方へ</small></a>
+    <a href="ai"><span class="l">AI</span></a>
+    <a href="./#reyz"><span class="l">Company</span></a>
+    <a href="contact"><span class="l">Contact</span></a>
+  </nav>
+
+  <main id="main">
+    <div class="manual-shell" id="manualBuilder">
+      <div class="manual-intro">
+        <a class="manual-back" href="creator"><span aria-hidden="true">←</span> クリエイターの方へ</a>
+        <p class="eyebrow">TikTok LIVE guide</p>
+        <h1>配信マニュアルを、<br>あなたの名前で。</h1>
+        <p class="manual-lead">名前と色を選んで、スマホで読めるPDFに。</p>
+        <ul class="manual-facts" aria-label="マニュアルの仕様"><li>42ページ</li><li>縦9:16</li><li>PDF</li></ul>
+      </div>
+      <div class="manual-workspace">
+        <section class="manual-editor" aria-labelledby="manualEditorTitle">
+          <h2 class="sr-only" id="manualEditorTitle">名称と配色を選ぶ</h2>
+          <form class="manual-form" id="manualForm" novalidate>
+            <fieldset class="manual-options" id="manualOptions" disabled>
+              <legend class="sr-only">マニュアルの設定</legend>
+              <div class="manual-layout">
+              <div class="manual-field">
+                <label class="manual-label" for="manualName"><span class="manual-number" aria-hidden="true">01</span> PDFに載せる名称</label>
+                <input id="manualName" type="text" placeholder="例：Apex by YG" maxlength="48" required autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="manualNameHint manualError">
+                <p class="manual-hint" id="manualNameHint">日本語・英数字で24文字まで</p>
+              </div>
+              <fieldset class="manual-colors">
+                <legend class="manual-label"><span class="manual-number" aria-hidden="true">02</span> 色合いを選ぶ</legend>
+                <div class="manual-palettes" id="manualPalettes"></div>
+              </fieldset>
+              <figure class="manual-preview" id="manualPreview">
+                <figcaption><span>表紙プレビュー</span><span id="manualThemeLabel">ピンク</span></figcaption>
+                <div class="manual-cover-stage" id="manualCover" aria-busy="true"><div class="manual-cover-loading"><span>LIVE GUIDE</span><span>表紙を読み込んでいます</span></div></div>
+                <p class="manual-preview-note" id="manualPreviewNote">名称と配色が、全ページに反映されます。</p>
+              </figure>
+              <div class="manual-generate-area">
+                <button class="manual-generate" id="manualGenerate" type="submit"><span>PDFをダウンロード</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+                <p class="manual-hint manual-private">入力した名称は、この画面の中だけで使います。</p>
+              </div>
+              </div>
+            </fieldset>
+            <p class="manual-error" id="manualError" role="alert"></p>
+            <div class="manual-progress-wrap">
+              <progress id="manualProgress" max="100" value="0" aria-label="PDF生成の進行状況" hidden></progress>
+              <p class="manual-status" id="manualStatus" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+          <section class="manual-result" id="manualResult" aria-labelledby="manualResultTitle" hidden>
+            <h2 class="manual-result-title" id="manualResultTitle">PDFができました。</h2>
+            <p class="manual-result-detail" id="manualResultDetail"></p>
+            <div class="manual-result-actions">
+              <a class="manual-save" id="manualDownload">PDFを保存</a>
+              <a class="manual-open" id="manualOpen">PDFを開く<span aria-hidden="true"> ↗</span></a>
+              <button class="manual-share" id="manualShare" type="button" hidden>共有・ファイルに保存</button>
+            </div>
+            <p class="manual-hint">保存が始まらないときは「PDFを保存」をタップ。iPhoneではPDFを開き、共有メニューから「ファイルに保存」も選べます。</p>
+          </section>
+          <noscript><p class="manual-nojs">このマニュアルをつくるには、ブラウザのJavaScriptを有効にしてください。</p></noscript>
+          <div class="manual-contents">
+            <h2>配信のはじめ方から、<br>次の目標まで。</h2>
+            <p>機材・ファンとのつながり・ギフト・バトル・イベント。配信に役立つ内容を、ひとつのマニュアルに。</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="foot-top">
+        <a class="brand" href="./" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+        <nav class="foot-nav" aria-label="Footer">
+          <a href="manual">配信マニュアル</a>
+          <a href="contact">Contact</a>
+          <a href="legal">Privacy &amp; Legal</a>
+        </nav>
+      </div>
+      <div class="foot-slot" data-word="loop" aria-hidden="true"></div>
+      <p class="foot-contact" id="contactLine" hidden></p>
+    </div>
+  </footer>
+
+  <script src="assets/site.js"></script>
+  <script type="module" src="assets/manual.js"></script>
+</body>
+</html>

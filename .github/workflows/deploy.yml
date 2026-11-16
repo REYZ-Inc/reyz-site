@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with: { distribution: temurin, java-version: "21" }
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - name: verify (build reproducibility, validators, browser checks)
         run: bash qa/run_all.sh
       - name: keep screenshots and reports

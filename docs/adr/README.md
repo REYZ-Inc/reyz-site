@@ -15,3 +15,4 @@
 | [0009](0009-site-factory-declarative-provisioning.md) | サイトの制作・運用は宣言と workflow で行い、人の操作は承認・本人確認・支払い・契約に限定する | 提案（D1〜D5 の決定で採用） |
 | [0010](0010-reyz-consensus-page-and-naming.md) | REYZ CONSENSUS の公開ページ `/consensus` を設け、サイト上の製品名を NAMING-001 に合わせる | 提案（PR のマージで採用） |
 | [0011](0011-consensus-entry-on-home-map.md) | REYZ CONSENSUS の入口を Home の「あなたの地図」の続きに置き、入口の契約を先に固定する | 提案（PR のマージで採用） |
+| [0012](0012-browser-manual-download.md) | 配信マニュアルの名称・配色をブラウザ内でカスタマイズして保存する | 採用（2026-11-16 ユーザー実装指示） |
