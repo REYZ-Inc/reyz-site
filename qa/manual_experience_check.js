@@ -69,16 +69,51 @@ async function openManual(page) {
   await page.locator('#manual-cover-name-bottom').waitFor({ state: 'visible' });
   await page.waitForFunction(() => !document.getElementById('manualOptions').disabled);
   await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => {
+    const reader = document.getElementById('manualReader');
+    const events = window.__manualReaderEvents = { close: 0, cancel: 0 };
+    reader.addEventListener('close', () => { events.close++; });
+    reader.addEventListener('cancel', () => { events.cancel++; });
+  });
 }
 
 async function waitForSample(page, position) {
-  await page.waitForFunction(expected => {
-    const stage = document.getElementById('manualReaderPage');
-    const count = document.getElementById('manualReaderCount').textContent.trim().split('/').map(Number);
-    const names = Array.from(stage.querySelectorAll('[data-manual-name]'));
-    return stage.getAttribute('aria-busy') === 'false' && !!stage.querySelector('svg')
-      && count[0] === expected && names.length > 0 && names.every(node => node.textContent === 'REYZ');
-  }, position);
+  try {
+    await page.waitForFunction(expected => {
+      const stage = document.getElementById('manualReaderPage');
+      const count = document.getElementById('manualReaderCount').textContent.trim().split('/').map(Number);
+      const names = Array.from(stage.querySelectorAll('[data-manual-name]'));
+      return stage.getAttribute('aria-busy') === 'false' && !!stage.querySelector('svg')
+        && count[0] === expected && names.length > 0 && names.every(node => node.textContent === 'REYZ');
+    }, position);
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      open: document.getElementById('manualReader').open,
+      count: document.getElementById('manualReaderCount').textContent,
+      status: document.getElementById('manualReaderStatus').textContent,
+      busy: document.getElementById('manualReaderPage').getAttribute('aria-busy'),
+      focus: document.activeElement.id || document.activeElement.tagName,
+    }));
+    throw new Error(`Sample ${position} did not become readable: ${JSON.stringify(state)}; ${error}`);
+  }
+}
+
+async function focusSnapshot(page) {
+  return page.evaluate(() => ({
+    inside: document.getElementById('manualReader').contains(document.activeElement),
+    target: document.activeElement.id || document.activeElement.className || document.activeElement.tagName,
+  }));
+}
+
+async function checkTabCycle(page, label) {
+  const path = [];
+  await page.locator('#manualReaderClose').focus();
+  for (const key of ['Shift+Tab', 'Shift+Tab', 'Shift+Tab', 'Shift+Tab', 'Shift+Tab', 'Tab', 'Tab', 'Tab', 'Tab', 'Tab']) {
+    await page.keyboard.press(key);
+    path.push({ key, ...await focusSnapshot(page) });
+  }
+  check(label + ': keyboard focus stays inside the modal in both directions', path.every(step => step.inside), path);
+  return path;
 }
 
 async function sampleSnapshot(page) {
@@ -102,11 +137,17 @@ async function sampleSnapshot(page) {
   });
 }
 
-async function checkClosed(page, label) {
-  await page.waitForFunction(() => !document.getElementById('manualReader').open
-    && document.activeElement === document.getElementById('manualRead'));
+async function checkClosed(page, label, closeCount = 1) {
+  // Native focus restoration can happen before the queued close event. Wait
+  // for the complete lifecycle, not only for the opener to regain focus.
+  await page.waitForFunction(expected => !document.getElementById('manualReader').open
+    && window.__manualReaderEvents.close >= expected
+    && document.activeElement === document.getElementById('manualRead')
+    && !document.documentElement.classList.contains('manual-reader-open'), closeCount);
   check(label + ': closing returns focus to the reader button', await page.locator('#manualRead').evaluate(node => document.activeElement === node));
-  check(label + ': closing restores page scrolling', await page.evaluate(() => !document.documentElement.classList.contains('manual-reader-open')));
+  check(label + ': closing restores page scrolling', await page.evaluate(() =>
+    !['hidden', 'clip'].includes(getComputedStyle(document.documentElement).overflowY)
+    && !['hidden', 'clip'].includes(getComputedStyle(document.body).overflowY)));
   check(label + ': editing remains available', await page.locator('#manualName').isEnabled() && await page.locator('#manualGenerate').isEnabled());
 }
 
@@ -163,9 +204,7 @@ async function viewportCase(browser, engine, width, theme, reducedMotion) {
     check(label + ': cover sample reflects the selected name and color', first.names.length > 0
       && first.names.every(name => name.text === 'REYZ' && name.fill === ACCENTS[theme]), first.names);
 
-    await page.locator('#manualReaderClose').focus();
-    await page.keyboard.press('Shift+Tab');
-    check(label + ': keyboard focus stays inside the modal', await page.locator('#manualReader').evaluate(node => node.contains(document.activeElement)));
+    result.focusCycle = await checkTabCycle(page, label);
     await page.locator('#manualReaderNext').click();
     await waitForSample(page, 2);
     const second = await sampleSnapshot(page);
@@ -179,6 +218,8 @@ async function viewportCase(browser, engine, width, theme, reducedMotion) {
     await page.locator('#manualReaderPrev').click();
     await waitForSample(page, 1);
     check(label + ': previous returns to the same cover', (await sampleSnapshot(page)).title === first.title);
+    const returnedFocus = await focusSnapshot(page);
+    check(label + ': returning to the first page keeps keyboard focus inside', returnedFocus.inside, returnedFocus);
     if (engine === 'chromium' && width === 390) {
       result.remainingSamples = [];
       for (const position of [2, 3, 4]) {
@@ -195,11 +236,15 @@ async function viewportCase(browser, engine, width, theme, reducedMotion) {
       }
       check(label + ': last sample has a previous page and no next page',
         await page.locator('#manualReaderPrev').isEnabled() && await page.locator('#manualReaderNext').isDisabled());
+    }
+    if (width === 390) {
       await page.keyboard.press('Escape');
     } else {
       await page.locator('#manualReaderClose').click();
     }
     await checkClosed(page, label);
+    if (width === 390) check(label + ': Escape uses the native cancel event',
+      await page.evaluate(() => window.__manualReaderEvents.cancel === 1));
     check(label + ': closing preserves the chosen settings', await page.locator('#manualName').inputValue() === 'REYZ'
       && await page.locator('input[name="theme"]:checked').inputValue() === theme);
     check(label + ': reading does not load the PDF generator', !requests.some(request => PDF_REQUEST.test(request.url)));
@@ -236,11 +281,14 @@ async function recoveryCase(browser) {
     check('sample failure: entered name and selected color are retained', await page.locator('#manualName').inputValue() === 'REYZ'
       && await page.locator('input[name="theme"]:checked').inputValue() === 'green');
     await screenshot(page, 'reader-retry-chromium-390.png');
+    await checkTabCycle(page, 'sample failure');
     await retry.click();
     await waitForSample(page, 1);
     const recovered = await sampleSnapshot(page);
     check('sample retry: real page recovers without re-entering settings', attempts === 2 && recovered.names.length > 0
       && recovered.names.every(name => name.text === 'REYZ' && name.fill === ACCENTS.green), { attempts, names: recovered.names });
+    const recoveredFocus = await focusSnapshot(page);
+    check('sample retry: replacing the retry button keeps focus inside', recoveredFocus.inside, recoveredFocus);
     await screenshot(page, 'reader-recovered-chromium-390.png');
     await page.locator('#manualReaderClose').click();
     await checkClosed(page, 'sample retry');
@@ -251,6 +299,67 @@ async function recoveryCase(browser) {
     try { await screenshot(page, 'failure-reader-recovery.png', true); } catch { /* Report the original failure. */ }
   } finally {
     check('sample retry: no unhandled page errors', errors.length === 0, errors);
+    await context.close();
+  }
+}
+
+async function loadingCase(browser) {
+  const { context, page, errors } = await newSession(browser, 390, 'reduce');
+  let release;
+  const pendingResponse = new Promise(resolve => { release = resolve; });
+  try {
+    await context.route('**/assets/manual/preview-03.svg', async route => {
+      await pendingResponse;
+      await route.continue();
+    });
+    await openManual(page);
+    await page.locator('#manualName').fill('REYZ');
+    await page.locator('#manualRead').click();
+    await waitForSample(page, 1);
+    await page.locator('#manualReaderNext').click();
+    await page.waitForFunction(() => document.getElementById('manualReaderPage').getAttribute('aria-busy') === 'true');
+    const loadingFocus = await focusSnapshot(page);
+    check('sample loading: disabling navigation keeps focus inside', loadingFocus.inside, loadingFocus);
+    await checkTabCycle(page, 'sample loading');
+    await screenshot(page, 'reader-loading-chromium-390.png');
+    await page.keyboard.press('Escape');
+    await checkClosed(page, 'sample loading');
+    check('sample loading: Escape cancels while a page is pending',
+      await page.evaluate(() => window.__manualReaderEvents.cancel === 1));
+    const response = page.waitForResponse(value => new URL(value.url()).pathname.endsWith('/preview-03.svg'));
+    release();
+    await response;
+    check('sample loading: a late response does not reopen the reader',
+      await page.locator('#manualReader').evaluate(node => !node.open));
+    await page.locator('#manualRead').click();
+    await waitForSample(page, 2);
+    const reopened = await sampleSnapshot(page);
+    check('sample loading: reopening resumes the real page with the same name', reopened.status.includes('3ページ目')
+      && reopened.names.length > 0 && reopened.names.every(name => name.text === 'REYZ'), reopened);
+    // Activate both public controls in one task so the browser's queued close
+    // event arrives after the next showModal, rather than between driver calls.
+    await page.evaluate(() => {
+      document.getElementById('manualReaderClose').click();
+      document.getElementById('manualRead').click();
+    });
+    await page.waitForFunction(() => window.__manualReaderEvents.close >= 2);
+    await waitForSample(page, 2);
+    const rapidState = await page.evaluate(() => ({
+      open: document.getElementById('manualReader').open,
+      focusInside: document.getElementById('manualReader').contains(document.activeElement),
+      scrollLocked: getComputedStyle(document.documentElement).overflowY === 'hidden',
+    }));
+    check('sample reopened: an old close event cannot disrupt an immediate reopen',
+      rapidState.open && rapidState.focusInside && rapidState.scrollLocked, rapidState);
+    await screenshot(page, 'reader-reopened-chromium-390.png');
+    await page.locator('#manualReaderClose').click();
+    await checkClosed(page, 'sample reopened', 3);
+  } catch (error) {
+    check('sample loading journey completed', false, String(error));
+    try { await screenshot(page, 'failure-reader-loading.png', true); } catch { /* Preserve the original failure. */ }
+  } finally {
+    release();
+    check('sample loading: no unhandled page errors', errors.length === 0, errors);
     await context.close();
   }
 }
@@ -270,6 +379,7 @@ async function main() {
   await viewportCase(chrome, 'chromium', 390, 'blue', 'no-preference');
   await viewportCase(chrome, 'chromium', 1440, 'purple', 'no-preference');
   await recoveryCase(chrome);
+  await loadingCase(chrome);
   const wk = await webkit.launch();
   browsers.push(wk);
   report.browsers.push({ engine: 'webkit', version: wk.version(), device: 'mobile viewport emulation, not a physical iPhone' });

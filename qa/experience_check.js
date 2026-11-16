@@ -82,6 +82,24 @@ async function controlsFit(page, selector, label) {
   check(label + ': no horizontal overflow', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
 }
 
+async function readablePhrase(page, phrase, label) {
+  const othersHidden = await page.locator('.cinematic .words b').evaluateAll((words, expected) =>
+    words.length === 3 && words.filter(word => word.textContent !== expected)
+      .every(word => getComputedStyle(word).visibility === 'hidden'), phrase);
+  check(label + ': outgoing words are hidden during the new fade-in', othersHidden);
+  await page.waitForFunction(expected => {
+    const words = [...document.querySelectorAll('.cinematic .words b')];
+    return words.length === 3 && words.every(word => {
+      const css = getComputedStyle(word);
+      return word.textContent === expected ? css.visibility === 'visible' && Number(css.opacity) >= 0.99 : css.visibility === 'hidden';
+    });
+  }, phrase);
+  const visible = await page.locator('.cinematic .words b').evaluateAll(words => words.filter(word => {
+    const css = getComputedStyle(word); return css.visibility === 'visible' && Number(css.opacity) > 0.01;
+  }).map(word => word.textContent));
+  check(label + ': one readable phrase without overlapping words', visible.length === 1 && visible[0] === phrase, visible);
+}
+
 // Layout evidence, separate from the behavioral assertions below. Capture this
 // first so a later failed action does not erase the other pages' visual evidence.
 async function visualSections(browser) {
@@ -179,16 +197,19 @@ async function cinematicChoices(page, label) {
     await scrub.focus(); await scrub.press('Home');
     const beginning = await canvasState(canvas);
     check(label + ': ' + id + ' keyboard seek reaches the start', await scrub.inputValue() === '0' && await figure.getAttribute('data-phase') === '1');
+    await readablePhrase(page, '誰に。', label + ': ' + id + ' beginning');
     const track = await scrub.boundingBox();
     await scrub.click({ position: { x: track.width * 0.5, y: track.height * 0.5 } });
     const middle = Number(await scrub.inputValue());
     check(label + ': ' + id + ' pointer seek changes the timeline', middle >= 40 && middle <= 60 && await figure.getAttribute('data-phase') === '2', middle);
+    await readablePhrase(page, '何を。', label + ': ' + id + ' middle');
     await scrub.press('End');
     const end = await canvasState(canvas); signatures.push(end.hash);
     check(label + ': ' + id + ' end differs from its first composition', end.hash !== beginning.hash, { beginning: beginning.hash, end: end.hash });
     check(label + ': ' + id + ' visibly contains the rendered ribbon', end.pink / end.samples > 0.01, end);
     check(label + ': ' + id + ' final phrase and replay control are available',
       await figure.getAttribute('data-phase') === '3' && await toggle.textContent() === 'もう一度再生');
+    await readablePhrase(page, 'どう動いてもらうか。', label + ': ' + id + ' end');
     await page.locator('.showcase').screenshot({ path: path.join(OUT, label + '-' + id + '.png') });
     report.scenes.push({ browser: label, id, ...end });
     await click(toggle);
@@ -272,7 +293,9 @@ async function motionAndFailure(browser) {
   check('reduce: begins at a complete still', await scrub.inputValue() === '100' && await page.locator('.cinematic-toggle').textContent() === '全体を見る');
   const before = await canvasState(page.locator('.cinematic-canvas')); await page.waitForTimeout(250);
   check('reduce: no autonomous canvas motion', (await canvasState(page.locator('.cinematic-canvas'))).hash === before.hash);
-  check('reduce: all three phrases remain readable', await page.locator('.cinematic .words b').evaluateAll(elements => elements.length === 3 && elements.every(el => Number(getComputedStyle(el).opacity) >= 0.99)));
+  check('reduce: all three phrases remain readable', await page.locator('.cinematic .words b').evaluateAll(elements => elements.length === 3 && elements.every(el => {
+    const css = getComputedStyle(el); return Number(css.opacity) >= 0.99 && css.visibility === 'visible';
+  })));
   await scrub.focus(); await scrub.press('Home');
   check('reduce: explicit keyboard seeking still works', await scrub.inputValue() === '0');
   await click(page.locator('.cinematic-toggle'));

@@ -45,6 +45,8 @@ if (form) {
   let readerRequest = 0;
   let readerManifestPromise = null;
   let readerPages = [];
+  let readerFocusVersion = 0;
+  let readerSessionOpen = false;
   const previewFontLoads = new Map();
   const readerSources = new Map();
 
@@ -286,7 +288,7 @@ if (form) {
       button.type = 'button';
       button.className = 'manual-reader-retry';
       button.textContent = 'もう一度表示する';
-      button.addEventListener('click', () => showSample(readerIndex), { once: true });
+      button.addEventListener('click', () => showSample(readerIndex, button), { once: true });
       box.append(button);
     }
     readerPage.removeAttribute('role');
@@ -294,10 +296,19 @@ if (form) {
     readerPage.replaceChildren(box);
   }
 
-  async function showSample(index) {
+  async function showSample(index, trigger = document.activeElement) {
     if (!reader?.open) return;
     const request = ++readerRequest;
-    const navigationFocus = [readerPrev, readerNext].includes(document.activeElement) ? document.activeElement : null;
+    const navigationFocus = [readerPrev, readerNext].includes(trigger) ? trigger : null;
+    const contentFocus = readerPage.contains(trigger);
+    // A disabled button or a removed retry control loses focus in Chromium.
+    // Keep it on a persistent control while loading, then restore it only if
+    // the visitor has not moved elsewhere in the reader in the meantime.
+    let restoreFocusVersion = null;
+    if (navigationFocus || contentFocus || !reader.contains(document.activeElement)) {
+      readerClose.focus({ preventScroll: true });
+      restoreFocusVersion = readerFocusVersion;
+    }
     readerStatus.textContent = 'ページを読み込んでいます。';
     readerPage.setAttribute('aria-busy', 'true');
     readerPrev.disabled = true;
@@ -334,11 +345,11 @@ if (form) {
         readerPage.setAttribute('aria-busy', 'false');
         readerPrev.disabled = readerIndex <= 0;
         readerNext.disabled = readerIndex >= readerPages.length - 1;
-        // Disabling a focused navigation button can move browser focus to body.
-        // Restore it only if the visitor has not moved to another dialog control.
-        if (navigationFocus && (!reader.contains(document.activeElement) || document.activeElement === reader)) {
-          const target = !navigationFocus.disabled ? navigationFocus
-            : !readerNext.disabled ? readerNext : !readerPrev.disabled ? readerPrev : readerClose;
+        if (restoreFocusVersion !== null && restoreFocusVersion === readerFocusVersion
+          && document.activeElement === readerClose) {
+          const target = navigationFocus
+            ? !navigationFocus.disabled ? navigationFocus : !readerNext.disabled ? readerNext : !readerPrev.disabled ? readerPrev : readerClose
+            : readerPage.querySelector('.manual-reader-retry') || readerClose;
           target.focus({ preventScroll: true });
         }
       }
@@ -346,25 +357,69 @@ if (form) {
   }
 
   if (readButton && reader && readerPage && readerClose && readerPrev && readerNext) {
-    readButton.addEventListener('click', () => {
-      if (!reader.open) reader.showModal();
-      document.documentElement.classList.add('manual-reader-open');
-      showSample(readerIndex);
-    });
-    readerClose.addEventListener('click', () => reader.close());
-    reader.addEventListener('close', () => {
+    const canvas = readerPage.closest('.manual-reader-canvas');
+    if (canvas) {
+      // The actual PDF page can be taller than the viewport on desktop.
+      // Let keyboard users focus and scroll it without leaving the modal.
+      canvas.tabIndex = 0;
+      canvas.setAttribute('role', 'region');
+      canvas.setAttribute('aria-label', 'マニュアル本文');
+    }
+    const focusableControls = () => Array.from(reader.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]'
+    )).filter(node => node.tabIndex >= 0 && node.getClientRects().length > 0
+      && !node.closest('[hidden], [inert]') && getComputedStyle(node).visibility !== 'hidden');
+    const finishReaderClose = () => {
+      // close is queued by the browser. Ignore an old event after reopening,
+      // and do not move focus a second time after a completed close.
+      if (reader.open || !readerSessionOpen) return;
+      readerSessionOpen = false;
       readerRequest++;
       document.documentElement.classList.remove('manual-reader-open');
       readButton.focus({ preventScroll: true });
+    };
+    const closeReader = () => {
+      if (!reader.open) return;
+      reader.close();
+      finishReaderClose();
+    };
+    readButton.addEventListener('click', () => {
+      if (!reader.open) reader.showModal();
+      readerSessionOpen = true;
+      document.documentElement.classList.add('manual-reader-open');
+      readerClose.focus({ preventScroll: true });
+      showSample(readerIndex);
+    });
+    readerClose.addEventListener('click', closeReader);
+    reader.addEventListener('cancel', event => {
+      event.preventDefault();
+      closeReader();
+    });
+    reader.addEventListener('close', finishReaderClose);
+    reader.addEventListener('focusin', () => { readerFocusVersion++; });
+    document.addEventListener('focusin', event => {
+      if (reader.open && !reader.contains(event.target)) readerClose.focus({ preventScroll: true });
     });
     reader.addEventListener('click', event => {
       if (event.target !== reader) return;
       const rect = reader.getBoundingClientRect();
-      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) reader.close();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeReader();
     });
-    readerPrev.addEventListener('click', () => showSample(readerIndex - 1));
-    readerNext.addEventListener('click', () => showSample(readerIndex + 1));
-    reader.addEventListener('keydown', event => {
+    readerPrev.addEventListener('click', () => { if (!readerPrev.disabled) showSample(readerIndex - 1, readerPrev); });
+    readerNext.addEventListener('click', () => { if (!readerNext.disabled) showSample(readerIndex + 1, readerNext); });
+    document.addEventListener('keydown', event => {
+      if (!reader.open || event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key === 'Tab') {
+        const controls = focusableControls();
+        const first = controls[0] || readerClose;
+        const last = controls[controls.length - 1] || readerClose;
+        const current = document.activeElement;
+        if (!controls.includes(current) || (event.shiftKey ? current === first : current === last)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus({ preventScroll: true });
+        }
+        return;
+      }
       if (event.key === 'ArrowLeft' && !readerPrev.disabled) { event.preventDefault(); showSample(readerIndex - 1); }
       if (event.key === 'ArrowRight' && !readerNext.disabled) { event.preventDefault(); showSample(readerIndex + 1); }
     });
