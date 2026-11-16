@@ -6,8 +6,21 @@ const { chromium } = require('playwright'); const path = require('path'); const 
     const p = await b.newPage({ viewport: { width: 390, height: 844 } }); await p.goto('file://' + path.resolve('site/' + f), { waitUntil: 'load' }); await p.waitForTimeout(1200);
     out[f] = await p.evaluate(() => {
       const lum = c => { const m = c.match(/[\d.]+/g).map(Number); const a = m[3] === undefined ? 1 : m[3]; const [r, g, b] = m; return Math.round((0.2126 * r + 0.7152 * g + 0.0722 * b) * a); };
+      // A dark foreground is deliberate on a light control. Resolve its actual
+      // opaque background instead of exempting one historical brand RGB value.
+      const onLightControl = el => {
+        for (let node = el; node; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          if (style.backgroundImage !== 'none') return false;
+          const rgba = style.backgroundColor.match(/[\d.]+/g).map(Number);
+          const alpha = rgba[3] === undefined ? 1 : rgba[3];
+          if (alpha >= 0.98) return lum(style.backgroundColor) >= 180;
+          if (alpha > 0.02) return false;
+        }
+        return false;
+      };
       const dark = []; const sel = 'h1,h2,h3,p,dd,dt,a,button,label,span,small,em,address,li';
-      for (const el of document.querySelectorAll(sel)) { if (!el.textContent.trim()) continue; const cs = getComputedStyle(el); if (cs.display === 'none' || el.closest('[hidden]')) continue; const l = lum(cs.color); if (l < 100 && !['rgb(6, 6, 9)', 'rgb(247, 21, 172)'].includes(cs.color)) dark.push(el.tagName + '.' + el.className + ' "' + el.textContent.trim().slice(0, 12) + '" ' + cs.color); }
+      for (const el of document.querySelectorAll(sel)) { if (!el.textContent.trim()) continue; const cs = getComputedStyle(el); if (cs.display === 'none' || el.closest('[hidden]')) continue; const l = lum(cs.color); if (l < 100 && cs.color !== 'rgb(247, 21, 172)' && !onLightControl(el)) dark.push(el.tagName + '.' + el.className + ' "' + el.textContent.trim().slice(0, 12) + '" ' + cs.color); }
       // centring of tracked text: compare the glyph box (Range) centre with the container centre
       const centre = []; for (const el of document.querySelectorAll('.chapter-stack .eyebrow, .gate .go')) { const r = document.createRange(); r.selectNodeContents(el); const g = r.getBoundingClientRect(); const c = el.parentElement.getBoundingClientRect(); const ls = parseFloat(getComputedStyle(el).letterSpacing) || 0; centre.push({ text: el.textContent.trim().slice(0, 14), glyphCentreOffsetPx: +((g.left + g.right) / 2 - ls / 2 - (c.left + c.right) / 2).toFixed(1) }); }
       const map = document.querySelector('.maplink'); const arrow = map ? getComputedStyle(map, '::after') : null;

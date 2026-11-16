@@ -1,0 +1,64 @@
+# REYZ コーポレートサイトの体験設計
+
+## 目的と指示
+
+2026-11-16、CEOからサイトの全内容を確認し、先端技術企業かつクリエイターエコノミーの日本・アジア首位を目指すREYZにふさわしい品質へ生成するよう指示を受けた。汎用的なAI生成テンプレートに見える構造、実装の手軽さを理由にした表現の妥協を避ける。順位は目標であり、実績として表示しない。
+
+全10ページのHTML、現行実装、2026-10-27決定台帳、既存desktop/mobile画像を確認した。並行した独立レビューを、内容と導線、描画基盤、Creator/Creative、マニュアル体験の観点で統合した。外部の異なるモデル間の合議を実施したという意味ではない。
+
+## 保持する内容
+
+- Home4章、Creator6収益、Creative4束11項目、3事業の範囲、5項目のナビ。
+- CEO指定のコピー、TikTok LIVEの常時表示、会社情報、3拠点、許認可、既存URL。
+- デモは設計上の見本。案件の受注や複数AIによる実審査として扱わない。
+- 問い合わせは本人が内容を確認して送信する。描画や選択のために外部APIを増やさない。
+- PDFは42ページ、名称47か所、6配色、内部リンク、実画像と本文を維持。入力例はREYZ、初期値は空。
+
+## 構成と表現
+
+### 共通の描画・動き
+
+既存の∞、中央の線、各章の文字や形、フッターの∞という連続性を保持する。座標・意味の計算と描画を分け、WebGLで細い光と奥行きのある形を描く。利用できない環境ではCanvas 2Dへ戻す。実画素の取得口をQAへ提供し、描画方式が変わっても位置・重なりの判定を維持する。
+
+描画はタブ非表示、対象が画面外のときに停止し、動きを減らす設定の実行中変更にも応答する。本文と操作の読みやすさを装飾より優先する。形を読み取れる密度と、文字組み・間隔・黒い面の質感を全ページで揃える。
+
+### Homeと各ページの入口
+
+Homeの既存3行を各事業への直接の入口にする。Creatorは地図とマニュアル、Creativeは映像の型と確認の見本、AIは製品群と相談へ、初画面から進める。新しい説明を重ねず、既存の情報の役割と次の操作を明瞭にする。
+
+### Creator
+
+6収益の全見出しと説明を保ち、選択した経路が自分の入口へつながる様子をCanvasで表示する。選択に対応した実在の説明やマニュアルへ進める。架空の報酬額、顧客数、案件名を表示しない。
+
+### Creative
+
+認知・信頼・行動の選択と、構図・時間・制作レイヤーの表現を連動させる。REYZ専用の手続き的CG素材、Canvas、文字組み、再生制御を組み合わせる。顧客の制作実績や作品例として掲載しない。再生・停止と位置調整を利用者が操作でき、静止状態でも意図を読み取れる。
+
+CG素材は `tools/render_brand.py` で生成する連続した∞リボン。Blender 4.3.2、1440×810、frame 0、EEVEE、AgXで描画したPNGをWebP quality 94 / method 6へ変換する。公開する `site/assets/brand/infinity-ribbon.webp` は45,752 bytes。映像の操作体験はこの素材の構図とCanvasレイヤーを時間に合わせて変えるもので、動画ファイルの再生ではない。
+
+### 相談への継続
+
+各主要CTAから、既存の問い合わせ用件を選択状態で渡す。同じ訪問者がHomeで作った地図は対象が一致するときだけ引き継ぐ。見本の受注・判定結果を相談内容として保存しない。情報はsessionStorage内で渡し、URLへ入れない。Creativeの「確認を試す」は該当タブまで開く。
+
+### マニュアル
+
+PCは見出しと操作、実際の表紙を上端から一つの構図にまとめる。スマホは配色と小型プレビューを隣接させ、生成操作への距離を短くする。表紙の外側に紙の厚みと微小な立体表現を加える。拡大閲覧はnative dialogで行い、元PDFの代表ページをSVGとして閲覧時だけ読み込む。名称・色の定義は生成PDFと共通にする。
+
+### データの取り扱いの表示
+
+全内容の確認で、LegalがGoogle Fontsだけを外部サービスとして説明していたことを確認した。`workers/contact/src/index.js` のCloudflare受付・Turnstile・Google Workspace送信、`workers/consensus/src/index.js` のAnthropic API、マニュアルの端末内生成という、実装で確認できるデータの経路を追記した。各契約の保持期間・法的適合性・第三者による監査済みという主張は追加しない。
+
+## 技術の根拠
+
+- [WebGL best practices](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices)
+- [HTMLDialogElement.showModal](https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/showModal)
+- [Animations and performance](https://web.dev/articles/animations-and-performance)
+- [Cross-document view transitions](https://developer.chrome.com/docs/web-platform/view-transitions/cross-document)
+
+WebGLを必須経路にせず、入力・保存・問い合わせを装飾の失敗から独立させる。transform/opacityを中心に動かす。View Transitionsを使用する場合も標準ナビゲーションが基本となる。
+
+## 検証と未確認の扱い
+
+既存のコピー・リンク・文字色・各viewport・描画位置・地図と問い合わせ・PDF生成の関門を維持する。新しい検査は経路選択、映像操作、相談引継ぎ、読書dialog、描画フォールバックなど変更による具体的リスクへ追加する。
+
+実装中の画面、性能、GPUフォールバック、モバイル表示は未確認として扱い、実ブラウザとCIで順に閉じる。rAF内のCPU時間だけでGPU負荷や全端末のFPSを保証しない。iPhone実機確認とWebKitのエミュレーションは区別する。最終の検証結果はPR・Actionsの証跡を参照する。
