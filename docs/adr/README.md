@@ -17,3 +17,4 @@
 | [0011](0011-consensus-entry-on-home-map.md) | REYZ CONSENSUS の入口を Home の「あなたの地図」の続きに置き、入口の契約を先に固定する | 提案（PR のマージで採用） |
 | [0012](0012-browser-manual-download.md) | 配信マニュアルの名称・配色をブラウザ内でカスタマイズして保存する | 採用（2026-11-16 ユーザー実装指示） |
 | [0013](0013-authored-site-experience.md) | 独自のWebGL描画・CG素材・実原稿の閲覧を既存サイトの構造へ統合する | 採用（2026-11-16 ユーザー実装指示） |
+| [0014](0014-content-versioned-site-assets.md) | CSS・JavaScriptの6入口を内容hash付きURLで配信する | 採用（公開後に観測した版の不一致の是正） |

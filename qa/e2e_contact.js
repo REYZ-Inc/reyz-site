@@ -10,6 +10,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, arr) => (v.startsWith('--') ? [...a, [v.slice(2), arr[i + 1]]] : a), []));
 const MODE = args.mode || 'prod', BASE = (args.base || 'https://reyz.inc').replace(/\/$/, ''), CASE = args.case || 'pass';
+const SITE_SCRIPT_PATH = /^\/assets\/site(?:\.[0-9a-f]{16})?\.js$/;   // canonical source or build.py's SHA-256 prefix copy only
 const TEST_SITEKEY = { pass: '1x00000000000000000000AA', 'fail-widget': '2x00000000000000000000AB', interactive: '3x00000000000000000000FF', 'fail-secret': '1x00000000000000000000AA' };   // Cloudflare 公式テストキー
 const OUT = process.env.QA_OUT || 'qa/out';
 
@@ -23,7 +24,7 @@ const OUT = process.env.QA_OUT || 'qa/out';
   p.on('requestfailed', r => out.failed.push((r.failure() || {}).errorText + ' ' + r.url().slice(0, 160)));
   if (MODE === 'ci') {
     // サイトキーをケースごとのテストキーに差し替え（配信ファイルは触らず、ブラウザ側で書き換える）
-    await p.route('**/assets/site.js', async route => { const res = await route.fetch(); const body = (await res.text()).replace(/turnstileSiteKey: '[^']*'/, `turnstileSiteKey: '${TEST_SITEKEY[CASE]}'`); await route.fulfill({ response: res, body, headers: { ...res.headers(), 'content-type': 'text/javascript' } }); });
+    await p.route(url => url.origin === new URL(BASE).origin && SITE_SCRIPT_PATH.test(url.pathname), async route => { const res = await route.fetch(); const body = (await res.text()).replace(/turnstileSiteKey: '[^']*'/, `turnstileSiteKey: '${TEST_SITEKEY[CASE]}'`); await route.fulfill({ response: res, body, headers: { ...res.headers(), 'content-type': 'text/javascript' } }); });
     // 送信は dry_run に切り替え（メールは送らない）。pass は Google のトークン取得まで、他は照合まで
     await p.route('**/api/contact', async route => {
       const req = route.request(); if (req.method() !== 'POST') return route.continue();
