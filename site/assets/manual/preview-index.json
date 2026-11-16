@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "sourceSha256": "9a8757d14f089921a3f1d3ad8c550a340893cb9d1f9f12af7421f556cd0d20b1",
+  "templateSha256": "2a83e42fc84d4d37f9cdffbff92caf7cb975552a5fa6480b5054d970e35b465c",
+  "layoutSha256": "51e2b68059f6bb08cf03456fb6c3062857bc0eebb648eaf3c8a2f9fc6f4f4058",
+  "pageCount": 42,
+  "pages": [
+    {
+      "page": 1,
+      "title": "表紙",
+      "file": "preview-01.svg",
+      "description": "LIVE STREAMING MANUAL 01 / 42 TikTok LIVE GUIDE 配信 マニュアル はじめの配信から、 応援が集まるLIVEへ。 START / FAN / GROW / BATTLE / EVENT",
+      "bytes": 108248,
+      "sha256": "a6bea3c22e1c299b20a17e67bdea9f66fd361d09050db5a763638eec01fb1c1b",
+      "nameSlots": 2
+    },
+    {
+      "page": 3,
+      "title": "配信をはじめよう",
+      "file": "preview-03.svg",
+      "description": "もくじ 配信をはじめよう まずはアプリを開くところから。 01 / START 03 / 42 01 TikTokをインストール スマホにTikTokアプリを インストールしよう。 02 「＋」をタップ アプリを開いたら、 画面下の「＋」を押そう。",
+      "bytes": 228758,
+      "sha256": "b063ba3126e2e6553955d417a72c431fccd82f29368cbea4e1e56555931a7d78",
+      "nameSlots": 1
+    },
+    {
+      "page": 14,
+      "title": "ギフトギャラリー",
+      "file": "preview-14.svg",
+      "description": "もくじ ギフトギャラリーを 埋めてもらおう 03 / GROW 14 / 42 特定のギフトを一定数集めると、 そのギフトが「点灯」する ミッション系の機能。 名前が載るから盛り上がる 視聴者と一緒に点灯を楽しもう。 毎週リセット。週の始まりの習慣に！ 内容は、自分がいるリーグによって異なる。",
+      "bytes": 711276,
+      "sha256": "4ad45c9476f7345f87a5cfe4d26ae47e55373b66b885944cf9a715c77bb021d6",
+      "nameSlots": 1
+    },
+    {
+      "page": 37,
+      "title": "イベント",
+      "file": "preview-37.svg",
+      "description": "もくじ イベントって、なに？ 05 / EVENT 37 / 42 TikTok LIVEで、クリエイター向けに 開催されるイベントのこと。 初級・中級・上級・超上級の4グループ。 前月の獲得ダイヤ数などに基づいて、 参加できるイベントが決まるよ。 人気のイベント 初級 新人王 中級 ギフトスター 上級・超上級 盾イベ・ファンダム",
+      "bytes": 263493,
+      "sha256": "9d58f4e184d9276571320562f1a92ed8b4a2a865feb82ab15525a91dcccbef90",
+      "nameSlots": 1
+    }
+  ]
+}

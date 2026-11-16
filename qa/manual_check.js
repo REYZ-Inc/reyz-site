@@ -246,7 +246,7 @@ async function nodePDFChecks() {
       check('invalid input rejected before asset request ' + JSON.stringify(name), rejected && report.requests.length === before);
     }
     check('component normalizes NFC and trims', validateName('  Cafe\u0301  ').normalized === 'Café');
-    const cases = THEMES.map(([themeId, accent]) => ({ name: 'Apex by YG', themeId, accent, label: 'node-' + themeId }));
+    const cases = THEMES.map(([themeId, accent]) => ({ name: 'REYZ', themeId, accent, label: 'node-' + themeId }));
     cases.push(
       { name: '株式会社レイズ', themeId: 'pink', accent: '#f715ac', label: 'node-japanese' },
       { name: 'あ'.repeat(24), themeId: 'purple', accent: '#8b5cf6', label: 'node-max-name' },
@@ -266,17 +266,17 @@ async function nodePDFChecks() {
     }
     failNext = true;
     let failed;
-    try { await createManual({ name: 'Retry Studio', themeId: 'blue' }); } catch (error) { failed = error; }
+    try { await createManual({ name: 'REYZ Retry', themeId: 'blue' }); } catch (error) { failed = error; }
     check('component asset failure is explicit', failed?.code === 'network' && !!failed?.message, failed && { code: failed.code, message: failed.message });
-    const retried = await createManual({ name: 'Retry Studio', themeId: 'blue' });
+    const retried = await createManual({ name: 'REYZ Retry', themeId: 'blue' });
     check('component retries after failure', retried.pageCount === 42 && retried.bytes.length > 0);
     const controller = new AbortController();
     let aborted;
     try {
-      await createManual({ name: 'Cancel Studio', themeId: 'pink', signal: controller.signal, onProgress: update => { if (update.value >= 40) controller.abort(); } });
+      await createManual({ name: 'REYZ Cancel', themeId: 'pink', signal: controller.signal, onProgress: update => { if (update.value >= 40) controller.abort(); } });
     } catch (error) { aborted = error; }
     check('component cancels between generation stages', aborted?.name === 'AbortError', aborted && { name: aborted.name, message: aborted.message });
-    check('component name is not an asset URL', report.requests.every(req => !/Apex|Retry|株式会社|Cancel/.test(decodeURIComponent(req.url))));
+    check('component name is not an asset URL', report.requests.every(req => !/REYZ|株式会社/.test(decodeURIComponent(req.url))));
     report.requestSummary = { count: report.requests.length, source: 'local static-file adapter, not browser network' };
     delete report.requests;
   } finally { globalThis.fetch = originalFetch; }
@@ -333,8 +333,8 @@ async function main() {
   check('Creator link reaches manual', new URL(page.url()).pathname === '/manual');
 
   for (const [theme, accent] of THEMES) {
-    const file = await generate(page, 'Apex by YG', theme, 'chromium-' + theme);
-    await readPDF(file, 'Apex by YG', accent, baseline);
+    const file = await generate(page, 'REYZ', theme, 'chromium-' + theme);
+    await readPDF(file, 'REYZ', accent, baseline);
   }
   await page.screenshot({ path: path.join(OUT, 'mobile-result.png'), fullPage: true });
   const oldHref = await page.locator('#manualDownload').getAttribute('href');
@@ -371,16 +371,16 @@ async function main() {
   });
   const recovery = await openManual(recoveryContext);
   const rp = recovery.page;
-  await rp.locator('#manualName').fill('Retry Studio');
+  await rp.locator('#manualName').fill('REYZ Retry');
   await rp.locator('#manualGenerate').click();
   await rp.waitForFunction(() => document.getElementById('manualOptions').disabled);
   check('busy form prevents user changes', await rp.locator('#manualName').isDisabled() && await rp.locator('#manualGenerate').isDisabled());
   await rp.evaluate(() => document.getElementById('manualForm').requestSubmit());
   release();
   await rp.waitForFunction(() => !document.getElementById('manualOptions').disabled && !!document.getElementById('manualError').textContent.trim(), null, { timeout: 90000 });
-  check('fetch failure keeps input and no stale result', await rp.locator('#manualName').inputValue() === 'Retry Studio' && await rp.locator('#manualResult').isHidden());
-  const retried = await generate(rp, 'Retry Studio', 'blue', 'chromium-retry');
-  await readPDF(retried, 'Retry Studio', '#4169e1', baseline);
+  check('fetch failure keeps input and no stale result', await rp.locator('#manualName').inputValue() === 'REYZ Retry' && await rp.locator('#manualResult').isHidden());
+  const retried = await generate(rp, 'REYZ Retry', 'blue', 'chromium-retry');
+  await readPDF(retried, 'REYZ Retry', '#4169e1', baseline);
   check('failed fetch is retried once', templateAttempts === 2, templateAttempts);
   check('recovery has no unhandled errors', recovery.errors.length === 0, recovery.errors);
   await recoveryContext.close();
@@ -401,7 +401,7 @@ async function main() {
   await wkContext.close();
 
   check('Chromium has no unhandled errors', errors.length === 0, errors);
-  const names = ['Apex by YG', '株式会社レイズ', 'Retry Studio'];
+  const names = ['REYZ', '株式会社レイズ', 'REYZ Retry'];
   const leaked = report.requests.filter(req => {
     let text = req.url + ' ' + (req.body || '');
     try { text = decodeURIComponent(text); } catch {}

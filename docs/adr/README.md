@@ -16,3 +16,4 @@
 | [0010](0010-reyz-consensus-page-and-naming.md) | REYZ CONSENSUS の公開ページ `/consensus` を設け、サイト上の製品名を NAMING-001 に合わせる | 提案（PR のマージで採用） |
 | [0011](0011-consensus-entry-on-home-map.md) | REYZ CONSENSUS の入口を Home の「あなたの地図」の続きに置き、入口の契約を先に固定する | 提案（PR のマージで採用） |
 | [0012](0012-browser-manual-download.md) | 配信マニュアルの名称・配色をブラウザ内でカスタマイズして保存する | 採用（2026-11-16 ユーザー実装指示） |
+| [0013](0013-authored-site-experience.md) | 独自のWebGL描画・CG素材・実原稿の閲覧を既存サイトの構造へ統合する | 採用（2026-11-16 ユーザー実装指示） |

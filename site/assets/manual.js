@@ -19,6 +19,18 @@ if (form) {
   const preview = document.getElementById('manualPreview');
   const cover = document.getElementById('manualCover');
   const themeLabel = document.getElementById('manualThemeLabel');
+  const book = preview.querySelector('.manual-book');
+  const readButton = document.getElementById('manualRead');
+  const reader = document.getElementById('manualReader');
+  const readerPage = document.getElementById('manualReaderPage');
+  const readerTitle = document.getElementById('manualReaderTitle');
+  const readerCount = document.getElementById('manualReaderCount');
+  const readerStatus = document.getElementById('manualReaderStatus');
+  const readerPrev = document.getElementById('manualReaderPrev');
+  const readerNext = document.getElementById('manualReaderNext');
+  const readerClose = document.getElementById('manualReaderClose');
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)') || { matches: true, addEventListener() {} };
+  const finePointer = window.matchMedia?.('(hover: hover) and (pointer: fine)') || { matches: false, addEventListener() {} };
   const defaultTheme = themes.find(theme => theme.id === 'pink') || themes[0];
   let currentTheme = defaultTheme;
   let objectUrl = null;
@@ -27,7 +39,16 @@ if (form) {
   let generation = 0;
   let previewReady = false;
   let fitFrame = 0;
+  let bookMotion = null;
+  let tiltFrame = 0;
+  let readerIndex = 0;
+  let readerRequest = 0;
+  let readerManifestPromise = null;
+  let readerPages = [];
+  let readerFocusVersion = 0;
+  let readerSessionOpen = false;
   const previewFontLoads = new Map();
+  const readerSources = new Map();
 
   function setError(message = '', fieldError = false) {
     errorBox.textContent = message;
@@ -36,6 +57,7 @@ if (form) {
   }
 
   function invalidateResult() {
+    delete preview.dataset.completed;
     resultBox.hidden = true;
     download.removeAttribute('href');
     download.removeAttribute('download');
@@ -55,11 +77,13 @@ if (form) {
     form.setAttribute('aria-busy', String(busy));
     generateLabel.textContent = busy ? 'PDFをつくっています' : 'PDFをダウンロード';
     progress.hidden = !busy;
+    preview.dataset.generating = String(busy);
+    if (busy) preview.style.setProperty('--manual-progress', '0');
     if (!busy) activeRequest = null;
   }
 
   function fitPreviewName() {
-    if (!previewReady) return;
+    if (!previewReady && !readerPage?.querySelector('svg')) return;
     cancelAnimationFrame(fitFrame);
     fitFrame = requestAnimationFrame(() => {
       const checked = validateName(nameInput.value);
@@ -67,6 +91,7 @@ if (form) {
       // Match the PDF's whole-name font selection, including mixed Japanese/Latin names.
       const family = /^[\x20-\x7e]+$/.test(label) ? 'Manual Poppins' : 'Manual Noto JP';
       cover.style.setProperty('--manual-name-font', `"${family}"`);
+      if (readerPage) readerPage.style.setProperty('--manual-name-font', `"${family}"`);
       if (document.fonts && !previewFontLoads.has(family)) {
         const loaded = document.fonts.load(`700 16px "${family}"`, label);
         previewFontLoads.set(family, loaded);
@@ -86,6 +111,19 @@ if (form) {
         if (measured > width) node.setAttribute('font-size', String(size * width / measured));
       }
       preview.dataset.name = label;
+      if (readerPage?.querySelector('svg')) {
+        for (const node of readerPage.querySelectorAll('[data-manual-name]')) {
+          node.textContent = label;
+          const size = Number(node.dataset.baseSize);
+          const width = Number(node.dataset.maxWidth);
+          node.setAttribute('font-size', String(size));
+          const measured = node.getComputedTextLength();
+          if (measured > width) node.setAttribute('font-size', String(size * width / measured));
+        }
+        const sample = readerPages[readerIndex];
+        readerPage.setAttribute('aria-label', [label, sample?.title, sample?.description].filter(Boolean).join('。'));
+        readerPage.dataset.name = label;
+      }
     });
   }
 
@@ -96,6 +134,7 @@ if (form) {
     }
     themeLabel.textContent = theme.label;
     preview.dataset.theme = theme.id;
+    if (readerPage) readerPage.dataset.theme = theme.id;
   }
 
   function settingsChanged() {
@@ -108,7 +147,13 @@ if (form) {
     setError();
     status.textContent = '';
     const selected = form.querySelector('input[name="theme"]:checked');
-    applyTheme(themes.find(theme => theme.id === selected?.value) || defaultTheme);
+    const nextTheme = themes.find(theme => theme.id === selected?.value) || defaultTheme;
+    const colorChanged = nextTheme.id !== currentTheme.id;
+    applyTheme(nextTheme);
+    if (colorChanged && book && !reducedMotion.matches && book.animate) {
+      bookMotion?.cancel();
+      bookMotion = book.animate([{ opacity: 0.86 }, { opacity: 1 }], { duration: 240, easing: 'ease-out' });
+    }
     fitPreviewName();
   }
 
@@ -125,6 +170,7 @@ if (form) {
       input.checked = theme.id === defaultTheme.id;
       const body = document.createElement('span');
       body.className = 'manual-palette-body';
+      body.style.setProperty('--palette-wash', theme.accent + '12');
       const swatches = document.createElement('span');
       swatches.className = 'manual-palette-swatches';
       swatches.setAttribute('aria-hidden', 'true');
@@ -177,6 +223,231 @@ if (form) {
     }
   }
 
+  // The samples are actual pages of the reviewed PDF. Neither the full template
+  // nor its generation engine is needed to open this reader.
+  async function fetchSampleAsset(filename) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(new URL('./manual/' + filename, import.meta.url), { signal: controller.signal, cache: 'no-cache' });
+      if (!response.ok) throw new Error('sample-fetch');
+      return await response.arrayBuffer();
+    } finally { clearTimeout(timeout); }
+  }
+
+  function getSampleManifest() {
+    if (!readerManifestPromise) {
+      readerManifestPromise = fetchSampleAsset('preview-index.json').then(bytes => {
+        const manifest = JSON.parse(new TextDecoder().decode(bytes));
+        if (manifest.schema !== 1 || manifest.pageCount !== 42 || !Array.isArray(manifest.pages)
+          || !manifest.pages.length || manifest.pages.length > 42
+          || !manifest.pages.every(page => Number.isInteger(page.page) && page.page >= 1 && page.page <= 42
+            && /^preview-\d{2}\.svg$/.test(page.file) && typeof page.title === 'string'
+            && /^[0-9a-f]{64}$/.test(page.sha256) && Number.isSafeInteger(page.bytes) && page.bytes > 0)) {
+          throw new Error('sample-manifest');
+        }
+        readerPages = manifest.pages;
+        return manifest;
+      }).catch(error => { readerManifestPromise = null; throw error; });
+    }
+    return readerManifestPromise;
+  }
+
+  function getSampleSource(sample) {
+    if (!readerSources.has(sample.file)) {
+      const loading = fetchSampleAsset(sample.file).then(async bytes => {
+        if (bytes.byteLength !== sample.bytes) throw new Error('sample-size');
+        if (globalThis.crypto?.subtle) {
+          const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+          const digest = Array.from(hash, value => value.toString(16).padStart(2, '0')).join('');
+          if (digest !== sample.sha256) throw new Error('sample-hash');
+        }
+        const doc = new DOMParser().parseFromString(new TextDecoder().decode(bytes), 'image/svg+xml');
+        if (doc.documentElement.localName !== 'svg' || doc.querySelector('parsererror, script, foreignObject')) {
+          throw new Error('sample-svg');
+        }
+        return doc.documentElement;
+      }).catch(error => {
+        readerSources.delete(sample.file);
+        if (['sample-size', 'sample-hash'].includes(error.message)) readerManifestPromise = null;
+        throw error;
+      });
+      readerSources.set(sample.file, loading);
+    }
+    return readerSources.get(sample.file);
+  }
+
+  function sampleMessage(message, retry) {
+    const box = document.createElement('div');
+    box.className = 'manual-reader-loading';
+    const copy = document.createElement('p');
+    copy.textContent = message;
+    box.append(copy);
+    if (retry) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'manual-reader-retry';
+      button.textContent = 'もう一度表示する';
+      button.addEventListener('click', () => showSample(readerIndex, button), { once: true });
+      box.append(button);
+    }
+    readerPage.removeAttribute('role');
+    readerPage.removeAttribute('aria-label');
+    readerPage.replaceChildren(box);
+  }
+
+  async function showSample(index, trigger = document.activeElement) {
+    if (!reader?.open) return;
+    const request = ++readerRequest;
+    const navigationFocus = [readerPrev, readerNext].includes(trigger) ? trigger : null;
+    const contentFocus = readerPage.contains(trigger);
+    // A disabled button or a removed retry control loses focus in Chromium.
+    // Keep it on a persistent control while loading, then restore it only if
+    // the visitor has not moved elsewhere in the reader in the meantime.
+    let restoreFocusVersion = null;
+    if (navigationFocus || contentFocus || !reader.contains(document.activeElement)) {
+      readerClose.focus({ preventScroll: true });
+      restoreFocusVersion = readerFocusVersion;
+    }
+    readerStatus.textContent = 'ページを読み込んでいます。';
+    readerPage.setAttribute('aria-busy', 'true');
+    readerPrev.disabled = true;
+    readerNext.disabled = true;
+    sampleMessage('ページを読み込んでいます。', false);
+    try {
+      const manifest = await getSampleManifest();
+      if (request !== readerRequest || !reader.open) return;
+      readerIndex = Math.max(0, Math.min(index, manifest.pages.length - 1));
+      const sample = manifest.pages[readerIndex];
+      readerTitle.textContent = sample.title;
+      readerCount.textContent = `${readerIndex + 1} / ${manifest.pages.length}`;
+      const source = await getSampleSource(sample);
+      if (request !== readerRequest || !reader.open) return;
+      const rendered = document.importNode(source, true);
+      rendered.setAttribute('aria-hidden', 'true');
+      rendered.setAttribute('focusable', 'false');
+      readerPage.replaceChildren(rendered);
+      readerPage.setAttribute('role', 'img');
+      readerPage.dataset.page = String(sample.page);
+      readerPage.dataset.theme = currentTheme.id;
+      readerPage.closest('.manual-reader-canvas')?.scrollTo({ top: 0, behavior: 'instant' });
+      fitPreviewName();
+      readerStatus.textContent = `${sample.page}ページ目 · 全${manifest.pageCount}ページから抜粋`;
+      if (!reducedMotion.matches && readerPage.animate) {
+        readerPage.animate([{ opacity: 0.72, transform: 'translateY(5px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 220, easing: 'ease-out' });
+      }
+    } catch {
+      if (request !== readerRequest || !reader.open) return;
+      readerStatus.textContent = 'ページを表示できませんでした。もう一度お試しください。';
+      sampleMessage('ページを表示できませんでした。', true);
+    } finally {
+      if (request === readerRequest && reader.open) {
+        readerPage.setAttribute('aria-busy', 'false');
+        readerPrev.disabled = readerIndex <= 0;
+        readerNext.disabled = readerIndex >= readerPages.length - 1;
+        if (restoreFocusVersion !== null && restoreFocusVersion === readerFocusVersion
+          && document.activeElement === readerClose) {
+          const target = navigationFocus
+            ? !navigationFocus.disabled ? navigationFocus : !readerNext.disabled ? readerNext : !readerPrev.disabled ? readerPrev : readerClose
+            : readerPage.querySelector('.manual-reader-retry') || readerClose;
+          target.focus({ preventScroll: true });
+        }
+      }
+    }
+  }
+
+  if (readButton && reader && readerPage && readerClose && readerPrev && readerNext) {
+    const canvas = readerPage.closest('.manual-reader-canvas');
+    if (canvas) {
+      // The actual PDF page can be taller than the viewport on desktop.
+      // Let keyboard users focus and scroll it without leaving the modal.
+      canvas.tabIndex = 0;
+      canvas.setAttribute('role', 'region');
+      canvas.setAttribute('aria-label', 'マニュアル本文');
+    }
+    const focusableControls = () => Array.from(reader.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]'
+    )).filter(node => node.tabIndex >= 0 && node.getClientRects().length > 0
+      && !node.closest('[hidden], [inert]') && getComputedStyle(node).visibility !== 'hidden');
+    const finishReaderClose = () => {
+      // close is queued by the browser. Ignore an old event after reopening,
+      // and do not move focus a second time after a completed close.
+      if (reader.open || !readerSessionOpen) return;
+      readerSessionOpen = false;
+      readerRequest++;
+      document.documentElement.classList.remove('manual-reader-open');
+      readButton.focus({ preventScroll: true });
+    };
+    const closeReader = () => {
+      if (!reader.open) return;
+      reader.close();
+      finishReaderClose();
+    };
+    readButton.addEventListener('click', () => {
+      if (!reader.open) reader.showModal();
+      readerSessionOpen = true;
+      document.documentElement.classList.add('manual-reader-open');
+      readerClose.focus({ preventScroll: true });
+      showSample(readerIndex);
+    });
+    readerClose.addEventListener('click', closeReader);
+    reader.addEventListener('cancel', event => {
+      event.preventDefault();
+      closeReader();
+    });
+    reader.addEventListener('close', finishReaderClose);
+    reader.addEventListener('focusin', () => { readerFocusVersion++; });
+    document.addEventListener('focusin', event => {
+      if (reader.open && !reader.contains(event.target)) readerClose.focus({ preventScroll: true });
+    });
+    reader.addEventListener('click', event => {
+      if (event.target !== reader) return;
+      const rect = reader.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeReader();
+    });
+    readerPrev.addEventListener('click', () => { if (!readerPrev.disabled) showSample(readerIndex - 1, readerPrev); });
+    readerNext.addEventListener('click', () => { if (!readerNext.disabled) showSample(readerIndex + 1, readerNext); });
+    document.addEventListener('keydown', event => {
+      if (!reader.open || event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key === 'Tab') {
+        const controls = focusableControls();
+        const first = controls[0] || readerClose;
+        const last = controls[controls.length - 1] || readerClose;
+        const current = document.activeElement;
+        if (!controls.includes(current) || (event.shiftKey ? current === first : current === last)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus({ preventScroll: true });
+        }
+        return;
+      }
+      if (event.key === 'ArrowLeft' && !readerPrev.disabled) { event.preventDefault(); showSample(readerIndex - 1); }
+      if (event.key === 'ArrowRight' && !readerNext.disabled) { event.preventDefault(); showSample(readerIndex + 1); }
+    });
+  }
+
+  // A bounded response to a mouse, with no animation loop or mobile sensors.
+  if (book) {
+    const resetTilt = () => {
+      cancelAnimationFrame(tiltFrame);
+      book.style.removeProperty('--book-tilt-x');
+      book.style.removeProperty('--book-tilt-y');
+    };
+    book.addEventListener('pointermove', event => {
+      if (!finePointer.matches || reducedMotion.matches) return;
+      const rect = book.getBoundingClientRect();
+      const x = Math.max(-0.5, Math.min(0.5, (event.clientX - rect.left) / rect.width - 0.5));
+      const y = Math.max(-0.5, Math.min(0.5, (event.clientY - rect.top) / rect.height - 0.5));
+      cancelAnimationFrame(tiltFrame);
+      tiltFrame = requestAnimationFrame(() => {
+        book.style.setProperty('--book-tilt-x', `${(-y * 3).toFixed(2)}deg`);
+        book.style.setProperty('--book-tilt-y', `${(-4 + x * 5).toFixed(2)}deg`);
+      });
+    }, { passive: true });
+    book.addEventListener('pointerleave', resetTilt);
+    reducedMotion.addEventListener('change', resetTilt);
+    finePointer.addEventListener('change', resetTilt);
+  }
+
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (activeRequest) return;
@@ -227,7 +498,10 @@ if (form) {
         onProgress(update) {
           if (generation !== id || request.signal.aborted) return;
           const value = Number(update.value);
-          if (Number.isFinite(value)) progress.value = Math.min(100, Math.max(0, value));
+          if (Number.isFinite(value)) {
+            progress.value = Math.min(100, Math.max(0, value));
+            preview.style.setProperty('--manual-progress', String(progress.value / 100));
+          }
           if (update.label) status.textContent = update.label;
         }
       }), aborted]);
@@ -244,6 +518,10 @@ if (form) {
       open.rel = 'noopener';
       resultDetail.textContent = `${checked.normalized} · ${selectedTheme.label} · ${result.pageCount}ページ · ${(blob.size / 1000000).toFixed(1)} MB`;
       resultBox.hidden = false;
+      preview.dataset.completed = 'true';
+      if (!reducedMotion.matches && resultBox.animate) {
+        resultBox.animate([{ opacity: 0, transform: 'translateY(9px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 340, easing: 'ease-out' });
+      }
       try {
         share.hidden = !(navigator.share && navigator.canShare && navigator.canShare({ files: [currentFile] }));
       } catch { share.hidden = true; }
@@ -288,6 +566,7 @@ if (form) {
   paletteList.addEventListener('change', settingsChanged);
   window.addEventListener('resize', fitPreviewName, { passive: true });
   window.addEventListener('pagehide', event => {
+    if (reader?.open) reader.close();
     if (activeRequest) { generation++; activeRequest.abort(); setBusy(false); }
     // Back/forward cache can restore this UI with its result still usable.
     if (!event.persisted) invalidateResult();

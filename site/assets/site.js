@@ -40,22 +40,20 @@
     const canvas = document.getElementById('field');
     const slots = Array.from(document.querySelectorAll('[data-word]'));
     if (!canvas || !slots.length) return;
-    const ctx = canvas.getContext('2d'); if (!ctx) return;
+    const renderer = window.REYZFieldRenderer && window.REYZFieldRenderer.create(canvas);
+    if (!renderer) return;
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let fieldReduce = motionQuery.matches;
     let vw = 0, vh = 0, dpr = 1, N = 0, alphaGlobal = 1, skip = 1, lastNow = 0;
-    let px, py, psize, palpha, pphase, sprites = [], frameCost = [], skipChecked = false;
+    let px, py, psize, palpha, pphase, gatherX, gatherY, frameCost = [], skipChecked = false;
     let keys = [];             // { el, copy, word, box, cx, cy, kin, kout, soff, pts (local, centred), am }
     const bornAt = performance.now(); // intro: the first word gathers over ~1.2s and its copy appears with it
+    let gathering = true, introProgress = 0, frameCount = 0, lastFrameAt = 0;
     let streamPts = null, streamLoop = null;   // local thread shapes (chapter travel / footer ∞), re-generated on layout
     let laneX = 0;             // viewport x of the travel lane
     const pointer = { x: -9999, y: -9999, active: false };
     const rectPage = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top + window.scrollY, w: r.width, h: r.height }; };
 
-    function makeSprite(r) {
-      const c = document.createElement('canvas'); const s = Math.ceil(r * 4) + 2; c.width = c.height = s;
-      const g = c.getContext('2d'); const grad = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, r * 2);
-      grad.addColorStop(0, 'rgba(247, 21, 172, 1)'); grad.addColorStop(0.45, 'rgba(247, 21, 172, 0.6)'); grad.addColorStop(1, 'rgba(247, 21, 172, 0)');
-      g.fillStyle = grad; g.fillRect(0, 0, s, s); return { c, s };
-    }
     function sortByAngle(pts) {
       const n = pts.length / 2, idx = Array.from({ length: n }, (_, i) => i);
       idx.sort((a, b) => Math.atan2(pts[a * 2 + 1], pts[a * 2]) - Math.atan2(pts[b * 2 + 1], pts[b * 2]));
@@ -133,13 +131,14 @@
 
     function layout() {
       vw = window.innerWidth; vh = window.innerHeight; dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(vw * dpr); canvas.height = Math.round(vh * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      renderer.resize(vw, vh, dpr);
       const wantN = vw < 820 ? 1200 : 2400, aScale = vw < 820 ? 0.62 : 1;
       if (wantN !== N || aScale !== layout.aScale) {
         layout.aScale = aScale; N = wantN;
         px = new Float32Array(N); py = new Float32Array(N); psize = new Uint8Array(N); palpha = new Float32Array(N); pphase = new Float32Array(N);
+        gatherX = new Float32Array(N); gatherY = new Float32Array(N);
         for (let i = 0; i < N; i++) { psize[i] = (i % 5 === 0) ? 1 : 0; palpha[i] = (0.36 + (i % 10) * 0.07) * aScale; pphase[i] = (i / N) * Math.PI * 2; }
-        sprites = [makeSprite(1.3), makeSprite(2.1)]; layout.done = false;
+        layout.done = false;
       }
       keys = slots.map(el => { const r = rectPage(el); const w = el.dataset.word; const stack = el.parentElement; const copy = stack ? stack.querySelector('.copy') : null;
         return { el, copy, word: w, box: r, cx: 0, cy: 0, kin: 0, kout: 0, soff: 0, pts: null, am: ALPHA[w] || 1 }; });
@@ -148,8 +147,11 @@
       const loop = keys.find(k => k.word === 'loop'); streamLoop = stream(loop ? loop.box.h * 1.4 : Math.min(vh * 0.4, 300));
       measureKeys();
       if (!layout.done) { // first paint: gather into the first shape from a loose scatter (static when motion is reduced)
-        layout.done = true; const k0 = keys[0], P0 = shapeOf(k0); const sc = reduce ? 0 : 1;
-        for (let i = 0; i < N; i++) { px[i] = k0.cx + P0[i * 2] + (rnd(i, 21) - 0.5) * vw * 0.9 * sc; py[i] = k0.cy - window.scrollY + P0[i * 2 + 1] + (rnd(i, 22) - 0.5) * vh * 0.9 * sc; }
+        layout.done = true; gathering = true; const k0 = keys[0], P0 = shapeOf(k0); const sc = fieldReduce ? 0 : 1;
+        for (let i = 0; i < N; i++) {
+          gatherX[i] = (rnd(i, 21) - 0.5) * vw * 0.9 * sc; gatherY[i] = (rnd(i, 22) - 0.5) * vh * 0.9 * sc;
+          px[i] = k0.cx + P0[i * 2] + gatherX[i]; py[i] = k0.cy - window.scrollY + P0[i * 2 + 1] + gatherY[i];
+        }
       }
       startWarm();
     }
@@ -179,14 +181,18 @@
     }
     let lastA = null, lastB = null, prevPos = null;
     function syncCopy(k, clarity) {
-      if (!k.copy || reduce) return; const v = clarity.toFixed(3); if (k.copy.dataset.c === v) return; k.copy.dataset.c = v;
+      if (!k.copy || fieldReduce) return; const v = clarity.toFixed(3); if (k.copy.dataset.c === v) return; k.copy.dataset.c = v;
       // 語が溶けている間も本文は読める下限（0.35）を残す。2026-10-27 模擬ユーザー 2/2「章の間で止まると文字が薄くて読めない」
       k.copy.style.opacity = (clarity >= 0.999 ? 1 : 0.35 + 0.65 * clarity).toFixed(3); k.copy.style.transform = clarity >= 0.999 ? '' : `translateY(${((1 - clarity) * 14).toFixed(1)}px)`;
     }
     function draw(now) {
       const t0 = performance.now(); const dt = lastNow ? Math.min(now - lastNow, 100) : 16.7; lastNow = now;
       const { A, B, s } = segment(); const sy = s; const mid = vh * 0.5;
-      const intro = reduce ? 1 : smooth(clamp((now - bornAt) / 1200, 0, 1));
+      // Initial GPU work or a sparse RAF must not leave scatter behind after the
+      // copy has appeared. The gather and copy share this actual-time progress;
+      // the capped per-frame easing below is only for subsequent travel.
+      const intro = fieldReduce ? 1 : smooth(clamp((t0 - bornAt) / 1200, 0, 1));
+      introProgress = intro; lastFrameAt = t0;
       // rhythm. the word holds while its chapter is read; then, as the reader moves on, the word dissolves into a thread that
       // detaches from the page and hangs in the middle of the screen; the next word forms as its chapter arrives. the copy of a
       // chapter appears and fades with exactly the clarity of its word. into the footer ∞: the last word simply scrolls away with
@@ -208,10 +214,10 @@
       // a jump between two off-screen positions (the word left at the top, the ∞ waits below) is taken at once, never eased across the screen
       const snap = prevPos !== null && Math.abs(posY - prevPos) > vh * 0.8; prevPos = posY;
       const am = (A.am + (B.am - A.am) * (fa === 1 ? 1 : fa)) * (1 - 0.6 * Math.min(fa, 1 - fb));
-      const ease = (reduce || snap) ? 1 : 1 - Math.pow(0.86, dt / 16.67), breath = reduce ? 0 : 2.4;
-      ctx.clearRect(0, 0, vw, vh); ctx.globalCompositeOperation = 'lighter';
-      const R = 110, R2 = R * R, pointerOn = pointer.active && fine && !reduce;
+      const ease = (fieldReduce || snap) ? 1 : 1 - Math.pow(0.86, dt / 16.67), breath = fieldReduce ? 0 : 2.4;
+      const R = 110, R2 = R * R, pointerOn = pointer.active && fine && !fieldReduce;
       const P = shapeOf(A), Q = B === A ? P : shapeOf(B), firstHalf = fa < 1 || fb === 0;
+      let inView = false;
       for (let i = 0; i < N; i++) {
         const i2 = i * 2, ph = pphase[i], br = Math.sin(now * 0.0018 + ph) * breath;
         let lx, ly;
@@ -219,35 +225,83 @@
         else { lx = S[i2] + (Q[i2] - S[i2]) * fb; ly = S[i2 + 1] + (Q[i2 + 1] - S[i2 + 1]) * fb; }
         let tx = posX + lx + Math.cos(ph + now * 0.001) * br, ty = posY + ly + Math.sin(ph + now * 0.001) * br;
         if (pointerOn) { const dx = px[i] - pointer.x, dy = py[i] - pointer.y, d2 = dx * dx + dy * dy; if (d2 < R2 && d2 > 0.01) { const d = Math.sqrt(d2), f = 1 - d / R; tx += (dx / d) * f * f * 34; ty += (dy / d) * f * f * 34; } }
-        px[i] += (tx - px[i]) * ease; py[i] += (ty - py[i]) * ease;
-        if (skip > 1 && (i % skip)) continue;
-        const y = py[i]; if (y < -8 || y > vh + 8) continue; const x = px[i]; if (x < -8 || x > vw + 8) continue;
-        const sp = sprites[psize[i]]; ctx.globalAlpha = palpha[i] * am * alphaGlobal; ctx.drawImage(sp.c, x - sp.s / 2, y - sp.s / 2, sp.s, sp.s);
+        if (gathering) { px[i] = tx + gatherX[i] * (1 - intro); py[i] = ty + gatherY[i] * (1 - intro); }
+        else { px[i] += (tx - px[i]) * ease; py[i] += (ty - py[i]) * ease; }
+        // Continue while either the light or its destination can be seen. A field
+        // waiting below the viewport (for example on /manual) needs no RAF loop.
+        if (!inView) inView = (px[i] >= -12 && px[i] <= vw + 12 && py[i] >= -12 && py[i] <= vh + 12)
+          || (tx >= -12 && tx <= vw + 12 && ty >= -12 && ty <= vh + 12);
       }
-      ctx.globalAlpha = 1;
+      if (intro >= 1) gathering = false;
+      renderer.render({ x: px, y: py, size: psize, alpha: palpha, phase: pphase,
+        gain: am * alphaGlobal, skip, time: now, still: fieldReduce });
+      frameCount++;
       // a slow device draws every second particle: decided after the first 24 frames, then re-checked every 90
       frameCost.push(performance.now() - t0); if (frameCost.length >= (skipChecked ? 90 : 24)) { const avg = frameCost.reduce((a, c) => a + c, 0) / frameCost.length; skip = avg > 9 ? 2 : 1; frameCost.length = 0; skipChecked = true; }
+      return inView;
     }
-    let raf = 0, running = true;
-    function loop(now) { if (!running) return; draw(now); raf = requestAnimationFrame(loop); }
-    function start() { running = true; cancelAnimationFrame(raf); lastNow = 0; raf = requestAnimationFrame(loop); }
-    function stop() { running = false; cancelAnimationFrame(raf); }
+    let raf = 0, snapshot = 0, running = false, inView = false, pagePaused = false, failed = false;
+    function readableCopy() {
+      for (const k of keys) if (k.copy) {
+        k.copy.style.removeProperty('opacity'); k.copy.style.removeProperty('transform'); delete k.copy.dataset.c;
+      }
+      lastA = lastB = null;
+    }
+    function stop() { running = false; cancelAnimationFrame(raf); cancelAnimationFrame(snapshot); raf = snapshot = 0; }
+    function disable() { failed = true; stop(); readableCopy(); try { renderer.clear(); } catch { /* Decorative only. */ } }
+    function paint(now) {
+      try {
+        inView = draw(now);
+        if (renderer.state().renderer === 'none') { disable(); return false; }
+        return inView;
+      } catch { disable(); return false; }
+    }
+    function loop(now) {
+      if (!running || document.hidden || pagePaused || fieldReduce) { stop(); return; }
+      if (paint(now)) raf = requestAnimationFrame(loop);
+      else { running = false; raf = 0; }
+    }
+    function refresh() {
+      if (document.hidden || pagePaused || failed) return;
+      if (fieldReduce) {
+        if (!snapshot) snapshot = requestAnimationFrame(now => { snapshot = 0; paint(now); });
+      } else if (!running) {
+        running = true; lastNow = 0; raf = requestAnimationFrame(loop);
+      }
+    }
+    // QA and diagnostics read the real latest pixels; no synthetic 2D mirror.
+    window.REYZField = Object.freeze({
+      readPixels: () => renderer.readPixels(),
+      state: () => ({ ...renderer.state(), running, inView, reducedMotion: fieldReduce, failed,
+        introProgress, gathering, frameCount, lastFrameAt, introStartedAt: bornAt }),
+    });
     // resize: a small height change (browser toolbar) only re-sizes the canvas and re-reads the marks; anything else re-samples
     let resizeT = 0, lastW = 0, lastH = 0;
     const remember = () => { lastW = window.innerWidth; lastH = window.innerHeight; };
     const relayout = () => { clearTimeout(resizeT); resizeT = setTimeout(() => {
-      const dw = Math.abs(window.innerWidth - lastW), dh = Math.abs(window.innerHeight - lastH);
-      if (dw === 0 && dh < 160) { vw = window.innerWidth; vh = window.innerHeight; canvas.width = Math.round(vw * dpr); canvas.height = Math.round(vh * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); measureKeys(); }
-      else layout();
-      remember(); if (reduce) draw(performance.now()); }, 120); };
+      if (failed) return;
+      try {
+        const dw = Math.abs(window.innerWidth - lastW), dh = Math.abs(window.innerHeight - lastH);
+        if (dw === 0 && dh < 160) { vw = window.innerWidth; vh = window.innerHeight; dpr = Math.min(window.devicePixelRatio || 1, 2); renderer.resize(vw, vh, dpr); measureKeys(); }
+        else layout();
+        remember(); refresh();
+      } catch { disable(); }
+    }, 120); };
     window.addEventListener('resize', relayout);
     if ('ResizeObserver' in window) new ResizeObserver(relayout).observe(document.body);
-    if (fine) { window.addEventListener('pointermove', e => { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; }, { passive: true }); document.addEventListener('mouseleave', () => { pointer.active = false; }); }
-    document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else if (!reduce) start(); });
-    if (reduce) window.addEventListener('scroll', () => draw(performance.now()), { passive: true });
-    layout(); remember();
-    if (reduce) draw(performance.now()); else start();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { shapeCache.clear(); layout(); remember(); if (reduce) draw(performance.now()); });
+    if (fine) { window.addEventListener('pointermove', e => { if (fieldReduce) return; pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; }, { passive: true }); document.addEventListener('mouseleave', () => { pointer.active = false; }); }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else refresh(); });
+    window.addEventListener('scroll', refresh, { passive: true });
+    window.addEventListener('pagehide', () => { pagePaused = true; stop(); });
+    window.addEventListener('pageshow', () => { pagePaused = false; refresh(); });
+    const motionChanged = event => { fieldReduce = event.matches; pointer.active = false; stop(); readableCopy(); refresh(); };
+    if (motionQuery.addEventListener) motionQuery.addEventListener('change', motionChanged);
+    else if (motionQuery.addListener) motionQuery.addListener(motionChanged);
+    layout(); remember(); refresh();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
+      if (failed) return;
+      try { shapeCache.clear(); layout(); remember(); refresh(); } catch { disable(); }
+    });
   })(); } catch (err) { /* the field is decorative: never let it take the page down */ }
 
   /* ================================================================

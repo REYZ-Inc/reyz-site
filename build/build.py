@@ -89,7 +89,9 @@ FOOTER = f'''  <footer class="site-footer">
     </div>
   </footer>
 
+  <script src="assets/field-renderer.js"></script>
   <script src="assets/site.js"></script>
+  <script src="assets/experience.js"></script>
 </body>
 </html>
 '''
@@ -98,7 +100,7 @@ FOOTER = f'''  <footer class="site-footer">
 PAGES = []
 def page(fname, title, desc, col_text, current=None, styles=(), scripts=(), body_class=''):
     PAGES.append(fname)
-    body = '<body' + (f' class="{html.escape(body_class, quote=True)}"' if body_class else '') + '>\n'
+    body = '<body data-page="' + html.escape(fname.removesuffix('.html'), quote=True) + '"' + (f' class="{html.escape(body_class, quote=True)}"' if body_class else '') + '>\n'
     footer = FOOTER
     if scripts:
         extra_scripts = ''.join(f'  <script type="module" src="{html.escape(path, quote=True)}"></script>\n' for path in scripts)
@@ -156,7 +158,8 @@ def groups(lst):
     return '<div class="groups reveal">\n' + '\n'.join(out) + '\n          </div>'
 def more(href, label):
     """セクション末尾の次の一歩（相談する →）"""
-    return f'\n          <p class="more reveal"><a class="go" href="{href}">{label}</a></p>'
+    context = ' data-consult-page' if href == 'contact.html' else ''
+    return f'\n          <p class="more reveal"><a class="go" href="{href}"{context}>{label}</a></p>'
 def steps(lst, cls=''):
     return f'<div class="steps{" " + cls if cls else ""} reveal">\n' + '\n'.join(f'            <div class="step"><span class="n">{n}</span><h3>{t}</h3>{("<p>" + p + "</p>") if p else ""}</div>' for n, t, p in lst) + '\n          </div>'
 def cta(text, href='contact.html', primary=True):
@@ -176,17 +179,31 @@ def asks(lst):
     out = []
     for n, it in enumerate(lst, 1):
         q, a = it[0], it[1]
-        link = f'<a class="go" href="{it[2]}">{it[3]}</a>' if len(it) > 3 and it[2] else ''
+        state = ' data-open-check' if len(it) > 3 and it[2] == '#decide' and it[3] == '確認を試す' else ''
+        if len(it) > 3 and it[2] == '#decide' and it[3] == '地図を見る':
+            state = ' data-open-map'
+        link = f'<a class="go" href="{it[2]}"{state}>{it[3]}</a>' if len(it) > 3 and it[2] else ''
         extra = it[4] if len(it) > 4 else ''
         body = f'<p>{a}</p>' if a else ''   # 答えが図（extra）そのものなら、同じ文を重ねない
         out.append(f'            <details class="ask"><summary><span class="n">{n:02d}</span><span class="q">{q}</span></summary><div class="ask-body">{body}{extra}{link}</div></details>')
     return '<div class="asks reveal">\n' + '\n'.join(out) + '\n          </div>'
 def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     """lead2: 既決の導入文（lead）を変えずに、その下へ加える 2 行目（2026-10-26 正本 §10: /creator の冒頭）"""
+    actions = {
+        'Creator': [('index.html#map', '地図をつくる'), ('manual.html', 'マニュアルをつくる')],
+        'Creative': [('#show', '映像の型を見る'), ('#decide', '確認を試す')],
+        'AI': [('#products', '3つの製品を見る'), ('contact.html', '相談する')],
+        'Consensus': [('#offer', '提供の形を見る'), ('contact.html', '相談する')],
+    }.get(word, [])
+    action_html = '<div class="hero-actions">' + ''.join(
+        f'<a class="hero-action{" secondary" if n else ""}" href="{href}"'
+        + (' data-consult-page' if href == 'contact.html' else ' data-open-check' if href == '#decide' else '')
+        + f'>{label}<span aria-hidden="true">↗</span></a>' for n, (href, label) in enumerate(actions)
+    ) + '</div>' if actions else ''
     return f'''    <section class="chapter page-head" id="top">
       <div class="wrap chapter-stack">
         {slot(word, halo=True)}
-        <div class="head copy"><p class="eyebrow">{eyebrow}</p><h1 class="page-title">{h1}</h1>{('<p class="' + lead_cls + '">' + lead + '</p>') if lead else ''}{('<p class="lead lead2">' + lead2 + '</p>') if lead2 else ''}</div>
+        <div class="head copy"><p class="eyebrow">{eyebrow}</p><h1 class="page-title">{h1}</h1>{('<p class="' + lead_cls + '">' + lead + '</p>') if lead else ''}{('<p class="lead lead2">' + lead2 + '</p>') if lead2 else ''}{action_html}</div>
       </div>
     </section>
 '''
@@ -324,7 +341,7 @@ home = f'''    <section class="chapter" id="infinity">
         <div class="head copy">
           <h1><span>無限の可能性を</span><span>かたちに</span></h1>
           <p class="hero-sub">From Japan, <em>beyond.</em></p>
-          <p class="lead hero-lead">{jp('クリエイターの創造性を、|続く収入に。\n企業の発信を、|設計から確認まで。\nAIを、|安心して仕事に使える形に。')}</p>
+          <p class="lead hero-lead"><a class="hero-route" href="creator.html">{jp('クリエイターの創造性を、|続く収入に。')}</a><br><a class="hero-route" href="creative.html">{jp('企業の発信を、|設計から確認まで。')}</a><br><a class="hero-route" href="ai.html">{jp('AIを、|安心して仕事に使える形に。')}</a></p>
           <a class="cue" href="#origin" aria-label="下へ"><span class="cue-line"></span><span class="cue-dot"></span></a>
         </div>
       </div>
@@ -435,8 +452,8 @@ SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
     '          </div>')
 # 入口（正本 §4 の 6 収益源。§8「今すぐ書いてよい」の範囲: 費用ゼロ／報酬から取らない／直販手数料 0%／6 収益源を一つの窓口で）。
 # 「再生数・成果連動の案件」「TikTok Shop パートナー」「100% 還元」は揃ってから（T13・T10・T1）なので書かない
-INCOMES = ('<ol class="incomes reveal">\n' + '\n'.join(
-    f'            <li><span class="n">{n:02d}</span><b>{k}</b><span class="v">{v}</span></li>'
+INCOMES = ('<div class="income-experience reveal" data-income-experience><ol class="incomes">\n' + '\n'.join(
+    f'            <li><button type="button" class="income-choice" data-income="{("live", "product", "campaign", "direct", "media", "ip")[n - 1]}" aria-pressed="{"true" if n == 1 else "false"}"><span class="n">{n:02d}</span><b>{k}</b><span class="v">{v}</span></button></li>'
     for n, (k, v) in enumerate([
         ('ライブ配信', jp('費用ゼロで、立ち上げから。|報酬から引かない。')),
         ('商品の紹介・販売', jp('確認を通ったブランド商品の紹介と、|LIVEでの販売。')),
@@ -444,7 +461,7 @@ INCOMES = ('<ol class="incomes reveal">\n' + '\n'.join(
         ('ファンへの直販', jp('知識、作品、会員権を、あなたの価格で。|手数料は0%。')),
         ('広告・再生の収益', jp('あなたへ直接。|REYZは見える化だけ。')),
         ('映像・共同IP', jp('一緒につくる。|共同でつくったものだけを、共同所有。')),
-    ], 1)) + '\n          </ol>')
+    ], 1)) + '\n          </ol><div class="income-stage"><canvas class="income-canvas" aria-hidden="true"></canvas><a class="income-next" href="#services">提供すること<span aria-hidden="true">↗</span></a></div></div>')
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
                         lead2='あなたの収益の、全部の入口に。') + \
 section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'), '', INCOMES) + \
@@ -463,7 +480,7 @@ section('services', 'Services', '提供すること', '',
         f'              <p class="note">{TT_NOTE}</p>\n'
         '            </div>\n'
         '            <aside class="manual-entry" aria-labelledby="manualEntryTitle">\n'
-        '              <div class="manual-entry-art" aria-hidden="true"><span>LIVE<br>GUIDE</span><i></i></div>\n'
+        '              <div class="manual-entry-art" aria-hidden="true"><img src="assets/manual/cover.svg" alt="" width="540" height="960" loading="lazy"></div>\n'
         '              <div class="manual-entry-copy"><p class="eyebrow">Your live guide</p><h3 id="manualEntryTitle">配信マニュアル</h3><p>全42ページ。あなたの名前と色で。</p><a class="manual-entry-link" href="manual.html">マニュアルをつくる<span aria-hidden="true"> →</span></a></div>\n'
         '            </aside>\n'
         + fold(VD_H3, VD_P) + '\n'
@@ -485,13 +502,7 @@ page('creator.html', 'Creator — REYZ Inc.', 'REYZのクリエイター向け�
 # ------------------------------------------------------------------ MANUAL（名称・配色を選ぶ配信ガイド）
 # docs/manual-download.md / ADR-0012。PDF生成は端末内、共通ナビと既決本文は維持。
 manual = '''    <div class="manual-shell" id="manualBuilder">
-      <div class="manual-intro">
-        <a class="manual-back" href="creator.html"><span aria-hidden="true">←</span> クリエイターの方へ</a>
-        <p class="eyebrow">TikTok LIVE guide</p>
-        <h1>配信マニュアルを、<br>あなたの名前で。</h1>
-        <p class="manual-lead">名前と色を選んで、スマホで読めるPDFに。</p>
-        <ul class="manual-facts" aria-label="マニュアルの仕様"><li>42ページ</li><li>縦9:16</li><li>PDF</li></ul>
-      </div>
+      <a class="manual-back" href="creator.html"><span aria-hidden="true">←</span> クリエイターの方へ</a>
       <div class="manual-workspace">
         <section class="manual-editor" aria-labelledby="manualEditorTitle">
           <h2 class="sr-only" id="manualEditorTitle">名称と配色を選ぶ</h2>
@@ -499,6 +510,12 @@ manual = '''    <div class="manual-shell" id="manualBuilder">
             <fieldset class="manual-options" id="manualOptions" disabled>
               <legend class="sr-only">マニュアルの設定</legend>
               <div class="manual-layout">
+              <div class="manual-intro">
+                <p class="eyebrow">TikTok LIVE guide</p>
+                <h1>配信マニュアルを、<br>あなたの名前で。</h1>
+                <p class="manual-lead">名前と色を選んで、スマホで読めるPDFに。</p>
+                <ul class="manual-facts" aria-label="マニュアルの仕様"><li>42ページ</li><li>縦9:16</li><li>PDF</li></ul>
+              </div>
               <div class="manual-field">
                 <label class="manual-label" for="manualName"><span class="manual-number" aria-hidden="true">01</span> PDFに載せる名称</label>
                 <input id="manualName" type="text" placeholder="例：REYZ" maxlength="48" required autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="manualNameHint manualError">
@@ -510,7 +527,8 @@ manual = '''    <div class="manual-shell" id="manualBuilder">
               </fieldset>
               <figure class="manual-preview" id="manualPreview">
                 <figcaption><span>表紙プレビュー</span><span id="manualThemeLabel">ピンク</span></figcaption>
-                <div class="manual-cover-stage" id="manualCover" aria-busy="true"><div class="manual-cover-loading"><span>LIVE GUIDE</span><span>表紙を読み込んでいます</span></div></div>
+                <div class="manual-book"><div class="manual-cover-stage" id="manualCover" aria-busy="true"><div class="manual-cover-loading"><span>LIVE GUIDE</span><span>表紙を読み込んでいます</span></div></div></div>
+                <button class="manual-read" id="manualRead" type="button">中を見る<span aria-hidden="true">↗</span></button>
                 <p class="manual-preview-note" id="manualPreviewNote">名称と配色が、全ページに反映されます。</p>
               </figure>
               <div class="manual-generate-area">
@@ -542,6 +560,12 @@ manual = '''    <div class="manual-shell" id="manualBuilder">
           </div>
         </section>
       </div>
+      <dialog class="manual-reader" id="manualReader" aria-labelledby="manualReaderTitle">
+        <div class="manual-reader-head"><h2 id="manualReaderTitle">マニュアルの中を見る</h2><button id="manualReaderClose" type="button" aria-label="プレビューを閉じる">閉じる<span aria-hidden="true">×</span></button></div>
+        <div class="manual-reader-canvas"><div id="manualReaderPage"></div></div>
+        <div class="manual-reader-footer"><button id="manualReaderPrev" type="button" aria-label="前のサンプルページ">←</button><p id="manualReaderCount"></p><button id="manualReaderNext" type="button" aria-label="次のサンプルページ">→</button></div>
+        <p id="manualReaderStatus" role="status" aria-live="polite"></p>
+      </dialog>
     </div>
 '''
 page('manual.html', '配信マニュアルをカスタマイズ — REYZ Inc.', '名称と6つの配色から選んで、42ページのTikTok LIVE配信マニュアルをPDFでダウンロード。スマホで読みやすい縦9:16。', manual, current='creator.html', styles=('assets/manual.css',), scripts=('assets/manual.js',), body_class='manual-body')
@@ -554,14 +578,15 @@ page('manual.html', '配信マニュアルをカスタマイズ — REYZ Inc.', 
 # 映像の見せ方（2026-10-27 CEO「作品例なしで映像が体感できる見せ方に」→ 同日「よく分からない」）: 抽象の棒ではなく、言葉そのものを映像の時間で見せる。
 # 横の 1 本＝冒頭の既決文「誰に、何を届けるか」を 1 語ずつ映す。3 つの型＝それぞれが何のための映像かを 1 行で
 SHOWCASE = ('<div class="showcase reveal">\n'
-    '            <figure class="motion" aria-label="映像の見本">'
+    '            <figure class="motion cinematic" data-cinematic aria-label="映像の見本">'
+    '<canvas class="cinematic-canvas" aria-hidden="true"></canvas>'
     '<span class="film" aria-hidden="true"><i class="bar t"></i><i class="bar b"></i><i class="light"></i><i class="light l2"></i></span>'
     '<span class="words" aria-hidden="true"><b class="w1">誰に。</b><b class="w2">何を。</b><b class="w3">どう動いてもらうか。</b></span>'
     '<figcaption><span class="tag">Brand movie · PR · Recruit</span></figcaption></figure>\n'
     '            <ol class="types">\n'
-    '              <li><span class="tag">認知</span><b>企画型</b><span class="v">まず、知ってもらう。</span></li>\n'
-    '              <li><span class="tag">信頼</span><b>裏側ドキュメント型</b><span class="v">つくる過程を、見せる。</span></li>\n'
-    '              <li><span class="tag">行動</span><b>導線直結型</b><span class="v">見たら、動ける。</span></li>\n'
+    '              <li><button type="button" class="type-choice" data-scene="awareness" aria-pressed="true"><span class="tag">認知</span><b>企画型</b><span class="v">まず、知ってもらう。</span></button></li>\n'
+    '              <li><button type="button" class="type-choice" data-scene="trust" aria-pressed="false"><span class="tag">信頼</span><b>裏側ドキュメント型</b><span class="v">つくる過程を、見せる。</span></button></li>\n'
+    '              <li><button type="button" class="type-choice" data-scene="action" aria-pressed="false"><span class="tag">行動</span><b>導線直結型</b><span class="v">見たら、動ける。</span></button></li>\n'
     '            </ol>\n'
     '          </div>')
 # 2026-10-26 正本 §13: 「The first sheet（一枚）」の節を、企業の 3 つの画面「地図・確認・記録」に置き換える（設計上の見本と明記）
@@ -780,6 +805,9 @@ legal_grid = f'''<div class="legal-grid reveal">
           <div class="legal-block">
             <h2>個人情報の取り扱い</h2>
             <p>お問い合わせで取得した個人情報は、その対応の目的にのみ利用し、法令に基づく場合を除き第三者に提供しません。</p>
+            <p>お問い合わせの受付とメール送信には、Cloudflare と Google Workspace を利用します。確認画面のボット対策には Cloudflare Turnstile を使用します。</p>
+            <p>ホームのAI対話を利用する場合、送信した会話と地図の内容は、回答を生成するために Cloudflare を経由して Anthropic のAPIに送られます。</p>
+            <p>配信マニュアルの名称と配色は、お使いのブラウザ内で処理します。PDF生成のために入力内容をサーバーへ送信することはありません。</p>
             <p>本サイトはフォント配信に Google Fonts を利用しており、閲覧時にIPアドレス等の接続情報が Google に送信されます。</p>
           </div>
         </div>'''

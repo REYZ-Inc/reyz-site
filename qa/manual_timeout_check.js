@@ -108,7 +108,7 @@ async function engineCase(mode, outcome) {
   controller.signal.addEventListener = (...args) => { added++; return add(...args); };
   controller.signal.removeEventListener = (...args) => { removed++; return remove(...args); };
   const pending = module.namespace.generateManual({
-    name: 'Retry Studio', signal: controller.signal, onProgress: () => progressCount++,
+    name: 'REYZ Retry', signal: controller.signal, onProgress: () => progressCount++,
   }).then(result => ({ result }), error => ({ error }));
   await tick();
   if (outcome === 'timeout') clock.fireDeadline();
@@ -150,7 +150,7 @@ async function uiFixture(initialMode) {
     'manualError', 'manualProgress', 'manualResult', 'manualResultDetail', 'manualDownload', 'manualOpen',
     'manualShare', 'manualPreview', 'manualCover', 'manualThemeLabel'];
   const e = Object.fromEntries(ids.map(id => [id, new Element()]));
-  e.manualName.value = 'Retry Studio'; e.manualGenerate.label = new Element(); e.manualResult.hidden = true;
+  e.manualName.value = 'REYZ Retry'; e.manualGenerate.label = new Element(); e.manualResult.hidden = true;
   class FakeURL extends URL {
     static createObjectURL() { return 'blob:test-' + (++state.urls); }
     static revokeObjectURL() {}
@@ -204,7 +204,7 @@ const uiCases = {
     await tick(); assert.equal(x.e.manualOptions.disabled, true);
     x.clock.fireDeadline(); await pending; idle(x);
     assert.match(x.e.manualError.textContent, /時間がかかりすぎ/);
-    assert.equal(x.e.manualResult.hidden, true); assert.equal(x.e.manualName.value, 'Retry Studio');
+    assert.equal(x.e.manualResult.hidden, true); assert.equal(x.e.manualName.value, 'REYZ Retry');
     x.state.finishImport(); await tick(); assert.equal(x.state.calls, 0);
   },
   async 'generation timeout, retry and late result'() {
@@ -213,11 +213,11 @@ const uiCases = {
     x.clock.fireDeadline(); await pending; idle(x);
     assert.equal(x.state.signal.aborted, true); assert.equal(x.e.manualResult.hidden, true);
     lateProgress({ value: 100, label: 'incorrect completion' }); assert.equal(x.e.manualStatus.textContent, '');
-    x.state.mode = 'engine-success'; x.e.manualName.value = 'Recovered Studio';
+    x.state.mode = 'engine-success'; x.e.manualName.value = 'REYZ Recovered';
     await x.submit(); idle(x);
-    assert.equal(x.e.manualDownload.download, 'Recovered Studio.pdf'); assert.equal(x.state.clicks, 1);
+    assert.equal(x.e.manualDownload.download, 'REYZ Recovered.pdf'); assert.equal(x.state.clicks, 1);
     late({ bytes: new Uint8Array([1]), fileName: 'STALE.pdf', pageCount: 42 }); await tick();
-    assert.equal(x.e.manualDownload.download, 'Recovered Studio.pdf'); assert.equal(x.state.clicks, 1);
+    assert.equal(x.e.manualDownload.download, 'REYZ Recovered.pdf'); assert.equal(x.state.clicks, 1);
   },
   async 'success cleanup'() {
     const x = await uiFixture('engine-success'); await x.submit(); idle(x);
