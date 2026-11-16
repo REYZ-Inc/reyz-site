@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "html-validate": "^11.17.0",
+    "pdfjs-dist": "6.5.438",
     "playwright": "1.64.1",
     "vnu-jar": "^26.10.12"
   }
