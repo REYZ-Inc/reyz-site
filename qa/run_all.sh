@@ -25,9 +25,15 @@ console.log("Nu messages:", r.messages.length); for (const m of r.messages) cons
 if (r.messages.length) process.exit(1);' "$QA_OUT/nu.json"
 
 echo "== 4/8 独自描画 / 経路と構図の操作 / 実原稿の閲覧"
-node qa/field_check.js "$SITE" "$QA_OUT/field" > "$QA_OUT/field-summary.json"
-node qa/experience_check.js "$SITE" "$QA_OUT/experience" > "$QA_OUT/experience-summary.json"
-node qa/manual_experience_check.js "$SITE" "$QA_OUT/manual-experience" > "$QA_OUT/manual-experience-summary.json"
+# Collect all three independent journeys before failing, so one rendering issue
+# cannot hide another page's layout evidence. Every failed journey still blocks.
+experience_status=0
+node qa/field_check.js "$SITE" "$QA_OUT/field" > "$QA_OUT/field-summary.json" || experience_status=1
+node qa/experience_check.js "$SITE" "$QA_OUT/experience" > "$QA_OUT/experience-summary.json" || experience_status=1
+node qa/manual_experience_check.js "$SITE" "$QA_OUT/manual-experience" > "$QA_OUT/manual-experience-summary.json" || experience_status=1
+if [ "$experience_status" -ne 0 ]; then
+  echo "FAIL: 独自描画・操作・実原稿の閲覧（詳細: 各 report.json）"; exit 1
+fi
 
 echo "== 5/8 chapters / thread / copy sync / links（全ページ × 3 画面）"
 node qa/v8_check.js "$SITE" "$QA_OUT/v8" >/dev/null

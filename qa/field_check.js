@@ -81,6 +81,8 @@ function observeNativeRendering(denied) {
 // Compare every returned byte against a fresh native read of the SAME canvas,
 // in the same JS turn. Only GPU rows are reversed: its origin is bottom-left.
 function actualPixels(selector) {
+  const observedAt = performance.now();
+  const beforeRead = { ...window.__fieldProbe };
   const pixels = window.REYZField.readPixels();
   const canvas = document.getElementById('field'), state = window.REYZField.state();
   const { width, height, data } = pixels;
@@ -118,7 +120,9 @@ function actualPixels(selector) {
     const h = Math.max(0, Math.min(bbox.y + bbox.h, slot.y + slot.h) - Math.max(bbox.y, slot.y));
     inSlot = w * h / (bbox.w * bbox.h);
   }
-  return { state, width, height, byteLength: data.length, dimensions, nativeSame: same, glError,
+  return { state, observedAt, beforeRead, frameCheckpoint: window.__fieldFrameCheckpoint,
+    scrollY, viewport: { width: innerWidth, height: innerHeight },
+    width, height, byteLength: data.length, dimensions, nativeSame: same, glError,
     checksum: (hash >>> 0).toString(16), lit, peakAlpha, bbox, slot, inSlot,
     meanColor: lit ? [red / lit, green / lit, blue / lit] : null };
 }
@@ -129,9 +133,17 @@ const probeState = () => ({ state: window.REYZField.state(),
 async function open(page, route) {
   await page.goto(new URL(route, base).href, { waitUntil: 'load' });
   await page.waitForFunction(() => window.REYZField && window.REYZField.state().width > 1);
-  await page.evaluate(() => document.fonts && document.fonts.ready);
+  await page.evaluate(async () => { if (document.fonts) await document.fonts.ready; });
   // Let the existing 1.2s intro and 1.5s start-at-top settle window complete.
   await page.waitForTimeout(1750);
+  // Inspect a frame that the browser has actually delivered after that deadline,
+  // not the old cold-start buffer. This neither advances the renderer nor changes
+  // its clock; failure to deliver a native frame within 5s fails the case.
+  await page.evaluate(() => {
+    window.__fieldFrameCheckpoint = { requestedAt: performance.now(), deliveredAt: null };
+    requestAnimationFrame(() => { window.__fieldFrameCheckpoint.deliveredAt = performance.now(); });
+  });
+  await page.waitForFunction(() => window.__fieldFrameCheckpoint.deliveredAt !== null, undefined, { polling: 25, timeout: 5000 });
 }
 async function capture(page, result, name) {
   const file = result.id + '-' + name + '.png';
@@ -146,6 +158,7 @@ async function measure(page, result, name, selector = '[data-word]') {
   return pixels;
 }
 function visible(result, label, pixels, containment = 0.95) {
+  check(result, label + ': initial scatter has completed on the actual-time deadline', pixels.state.introProgress === 1 && !pixels.state.gathering, pixels.state);
   check(result, label + ': actual light pixels exist', pixels.lit > 100, pixels.lit);
   check(result, label + ': shape remains inside its slot', pixels.inSlot >= containment, { bbox: pixels.bbox, slot: pixels.slot, inSlot: pixels.inSlot });
   const color = pixels.meanColor;
@@ -268,7 +281,7 @@ async function runCase(browser, id, options, denied, action) {
       await open(page, 'manual');
       await page.waitForFunction(() => !window.REYZField.state().running && !window.REYZField.state().inView);
       const top = await measure(page, result, 'manual-top', '.foot-slot');
-      check(result, 'manual starts at top with its field entirely below the viewport', top.slot && top.slot.y >= 844 && top.peakAlpha === 0 && !top.state.reducedMotion, top);
+      check(result, 'manual starts at top with its field entirely below the viewport', top.scrollY === 0 && top.slot && top.slot.y >= top.viewport.height && top.peakAlpha === 0 && !top.state.reducedMotion, top);
       await stopped(page, result, 'manual-offscreen');
       await page.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
       await resumed(page, result, 'manual-footer'); await page.waitForTimeout(900);
@@ -302,6 +315,7 @@ async function runCase(browser, id, options, denied, action) {
     await runCase(wk, 'webkit-mobile', mobile, '', async (page, result) => {
       await open(page, './');
       const pixels = await measure(page, result, 'webkit'); visible(result, 'webkit', pixels);
+      await capture(page, result, 'initial-normal');
       // Linux WebKit may expose no GPU context. Its native 2D fallback must still
       // draw; Chromium above must pass the strict WebGL2 AND WebGL1 shader gates.
       check(result, 'WebKit selects a working native renderer', ['webgl2', 'webgl', 'canvas2d'].includes(pixels.state.renderer), pixels.state);

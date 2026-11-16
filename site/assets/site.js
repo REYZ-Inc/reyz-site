@@ -45,9 +45,10 @@
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     let fieldReduce = motionQuery.matches;
     let vw = 0, vh = 0, dpr = 1, N = 0, alphaGlobal = 1, skip = 1, lastNow = 0;
-    let px, py, psize, palpha, pphase, frameCost = [], skipChecked = false;
+    let px, py, psize, palpha, pphase, gatherX, gatherY, frameCost = [], skipChecked = false;
     let keys = [];             // { el, copy, word, box, cx, cy, kin, kout, soff, pts (local, centred), am }
     const bornAt = performance.now(); // intro: the first word gathers over ~1.2s and its copy appears with it
+    let gathering = true, introProgress = 0, frameCount = 0, lastFrameAt = 0;
     let streamPts = null, streamLoop = null;   // local thread shapes (chapter travel / footer ∞), re-generated on layout
     let laneX = 0;             // viewport x of the travel lane
     const pointer = { x: -9999, y: -9999, active: false };
@@ -135,6 +136,7 @@
       if (wantN !== N || aScale !== layout.aScale) {
         layout.aScale = aScale; N = wantN;
         px = new Float32Array(N); py = new Float32Array(N); psize = new Uint8Array(N); palpha = new Float32Array(N); pphase = new Float32Array(N);
+        gatherX = new Float32Array(N); gatherY = new Float32Array(N);
         for (let i = 0; i < N; i++) { psize[i] = (i % 5 === 0) ? 1 : 0; palpha[i] = (0.36 + (i % 10) * 0.07) * aScale; pphase[i] = (i / N) * Math.PI * 2; }
         layout.done = false;
       }
@@ -145,8 +147,11 @@
       const loop = keys.find(k => k.word === 'loop'); streamLoop = stream(loop ? loop.box.h * 1.4 : Math.min(vh * 0.4, 300));
       measureKeys();
       if (!layout.done) { // first paint: gather into the first shape from a loose scatter (static when motion is reduced)
-        layout.done = true; const k0 = keys[0], P0 = shapeOf(k0); const sc = fieldReduce ? 0 : 1;
-        for (let i = 0; i < N; i++) { px[i] = k0.cx + P0[i * 2] + (rnd(i, 21) - 0.5) * vw * 0.9 * sc; py[i] = k0.cy - window.scrollY + P0[i * 2 + 1] + (rnd(i, 22) - 0.5) * vh * 0.9 * sc; }
+        layout.done = true; gathering = true; const k0 = keys[0], P0 = shapeOf(k0); const sc = fieldReduce ? 0 : 1;
+        for (let i = 0; i < N; i++) {
+          gatherX[i] = (rnd(i, 21) - 0.5) * vw * 0.9 * sc; gatherY[i] = (rnd(i, 22) - 0.5) * vh * 0.9 * sc;
+          px[i] = k0.cx + P0[i * 2] + gatherX[i]; py[i] = k0.cy - window.scrollY + P0[i * 2 + 1] + gatherY[i];
+        }
       }
       startWarm();
     }
@@ -183,7 +188,11 @@
     function draw(now) {
       const t0 = performance.now(); const dt = lastNow ? Math.min(now - lastNow, 100) : 16.7; lastNow = now;
       const { A, B, s } = segment(); const sy = s; const mid = vh * 0.5;
-      const intro = fieldReduce ? 1 : smooth(clamp((now - bornAt) / 1200, 0, 1));
+      // Initial GPU work or a sparse RAF must not leave scatter behind after the
+      // copy has appeared. The gather and copy share this actual-time progress;
+      // the capped per-frame easing below is only for subsequent travel.
+      const intro = fieldReduce ? 1 : smooth(clamp((t0 - bornAt) / 1200, 0, 1));
+      introProgress = intro; lastFrameAt = t0;
       // rhythm. the word holds while its chapter is read; then, as the reader moves on, the word dissolves into a thread that
       // detaches from the page and hangs in the middle of the screen; the next word forms as its chapter arrives. the copy of a
       // chapter appears and fades with exactly the clarity of its word. into the footer ∞: the last word simply scrolls away with
@@ -216,14 +225,17 @@
         else { lx = S[i2] + (Q[i2] - S[i2]) * fb; ly = S[i2 + 1] + (Q[i2 + 1] - S[i2 + 1]) * fb; }
         let tx = posX + lx + Math.cos(ph + now * 0.001) * br, ty = posY + ly + Math.sin(ph + now * 0.001) * br;
         if (pointerOn) { const dx = px[i] - pointer.x, dy = py[i] - pointer.y, d2 = dx * dx + dy * dy; if (d2 < R2 && d2 > 0.01) { const d = Math.sqrt(d2), f = 1 - d / R; tx += (dx / d) * f * f * 34; ty += (dy / d) * f * f * 34; } }
-        px[i] += (tx - px[i]) * ease; py[i] += (ty - py[i]) * ease;
+        if (gathering) { px[i] = tx + gatherX[i] * (1 - intro); py[i] = ty + gatherY[i] * (1 - intro); }
+        else { px[i] += (tx - px[i]) * ease; py[i] += (ty - py[i]) * ease; }
         // Continue while either the light or its destination can be seen. A field
         // waiting below the viewport (for example on /manual) needs no RAF loop.
         if (!inView) inView = (px[i] >= -12 && px[i] <= vw + 12 && py[i] >= -12 && py[i] <= vh + 12)
           || (tx >= -12 && tx <= vw + 12 && ty >= -12 && ty <= vh + 12);
       }
+      if (intro >= 1) gathering = false;
       renderer.render({ x: px, y: py, size: psize, alpha: palpha, phase: pphase,
         gain: am * alphaGlobal, skip, time: now, still: fieldReduce });
+      frameCount++;
       // a slow device draws every second particle: decided after the first 24 frames, then re-checked every 90
       frameCost.push(performance.now() - t0); if (frameCost.length >= (skipChecked ? 90 : 24)) { const avg = frameCost.reduce((a, c) => a + c, 0) / frameCost.length; skip = avg > 9 ? 2 : 1; frameCost.length = 0; skipChecked = true; }
       return inView;
@@ -260,7 +272,8 @@
     // QA and diagnostics read the real latest pixels; no synthetic 2D mirror.
     window.REYZField = Object.freeze({
       readPixels: () => renderer.readPixels(),
-      state: () => ({ ...renderer.state(), running, inView, reducedMotion: fieldReduce, failed }),
+      state: () => ({ ...renderer.state(), running, inView, reducedMotion: fieldReduce, failed,
+        introProgress, gathering, frameCount, lastFrameAt, introStartedAt: bornAt }),
     });
     // resize: a small height change (browser toolbar) only re-sizes the canvas and re-reads the marks; anything else re-samples
     let resizeT = 0, lastW = 0, lastH = 0;

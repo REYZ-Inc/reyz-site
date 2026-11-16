@@ -9,7 +9,7 @@ const { chromium, webkit } = require('playwright');
 
 const ROOT = path.resolve(process.argv[2] || 'site');
 const OUT = path.resolve(process.argv[3] || path.join(process.env.QA_OUT || 'qa/out', 'experience'));
-const report = { checks: 0, fails: [], browsers: [], scenes: [], contacts: [], mutationRequests: [] };
+const report = { checks: 0, fails: [], browsers: [], scenes: [], contacts: [], screenshots: [], mutationRequests: [] };
 const launched = [];
 let server;
 let base = process.env.BASE || process.env.QA_BASE;
@@ -80,6 +80,47 @@ async function controlsFit(page, selector, label) {
   }));
   check(label + ': controls at least 44px', sizes.length > 0 && sizes.every(r => r.width >= 44 && r.height >= 44), sizes);
   check(label + ': no horizontal overflow', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+}
+
+// Layout evidence, separate from the behavioral assertions below. Capture this
+// first so a later failed action does not erase the other pages' visual evidence.
+async function visualSections(browser) {
+  for (const [label, options] of [
+    ['chromium-1440', { viewport: { width: 1440, height: 900 } }],
+    ['chromium-390', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }],
+  ]) {
+    const context = await contextFor(browser, options), page = await context.newPage();
+    const capture = async (name, locator) => {
+      const file = label + '-' + name + '.png';
+      if (locator) await locator.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      if (locator) await locator.screenshot({ path: path.join(OUT, file) });
+      else await page.screenshot({ path: path.join(OUT, file) });
+      report.screenshots.push(file);
+    };
+    try {
+      await open(page, 'index');
+      await capture('home-hero');
+      await capture('home-structure', page.locator('#origin .copy'));
+      await capture('home-company', page.locator('#reyz .copy'));
+      await open(page, 'creative');
+      await capture('creative-services', page.locator('#services .section-text'));
+      const groups = page.locator('#services .group');
+      for (let i = 0; i < await groups.count(); i++) {
+        const group = groups.nth(i), summaries = group.locator('details > summary');
+        for (let j = 0; j < await summaries.count(); j++) await click(summaries.nth(j));
+        await capture('creative-services-' + (i + 1) + '-open', group);
+      }
+      await open(page, 'ai');
+      await capture('ai-products', page.locator('#products .section-text'));
+      await open(page, 'contact');
+      await capture('contact-form', page.locator('#form .section-text'));
+      await open(page, 'legal');
+      await capture('legal-notices', page.locator('#notices .legal-grid'));
+    } catch (error) {
+      report.fails.push(label + ': visual evidence did not finish: ' + String(error.stack || error));
+    } finally { await context.close(); }
+  }
 }
 
 async function creatorChoices(page, label) {
@@ -265,6 +306,7 @@ async function motionAndFailure(browser) {
     base = base.replace(/\/$/, '');
     const chrome = await chromium.launch(); launched.push(chrome);
     const safari = await webkit.launch(); launched.push(safari);
+    await visualSections(chrome);
     for (const [label, browser, options] of [
       ['chromium-1440', chrome, { viewport: { width: 1440, height: 900 } }],
       ['chromium-390', chrome, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }],
