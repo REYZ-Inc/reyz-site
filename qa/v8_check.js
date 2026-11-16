@@ -40,6 +40,7 @@ const measure = (litFn, idx) => { const fn = eval('(' + litFn + ')'); const bb =
           await page.evaluate(([i, mf]) => { const ks = eval('(' + mf + ')')(); const A = ks[i], B = ks[i + 1]; const y = B.word === 'loop' ? B.kin - innerHeight * 0.45 : (A.kout + B.kin) / 2; window.scrollTo({ top: Math.max(0, y), behavior: 'instant' }); }, [i, marksFn.toString()]); await page.waitForTimeout(1500);
           const mt = await page.evaluate(([litFn, mFn, i]) => { const f = eval('(' + mFn + ')'); const res = f(litFn, i); const cps = [i, i + 1].map(j => { const cp = document.querySelectorAll('[data-word]')[j].parentElement.querySelector('.copy'); return cp ? +getComputedStyle(cp).opacity : null; }); return { textOverlap: res.textOverlap, inView: res.inView, bbox: res.bbox, lit: res.lit, copyOpacities: cps }; }, [litBBox.toString(), measure.toString(), i]);
           r.chapters.push({ word: 'thread→' + document_word(i + 1), ...mt });
+          if (pg === 'index.html' && vp.n !== 'l1280x640') await page.screenshot({ path: path.join(OUT, `index_${vp.n}_thread_${i}_${document_word(i + 1)}.png`) });
         }
       }
       await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })); await page.waitForTimeout(1500);
