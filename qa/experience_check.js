@@ -173,7 +173,7 @@ async function creativeContent(page, label) {
   await page.locator('#show').scrollIntoViewIfNeeded();
   const film = page.locator('#show [data-editorial]');
   check(label + ': production shown once without duplicated device mockup', await film.locator('video').count() === 1 && await page.locator('#show .editorial-device, #show [data-cinematic]').count() === 0);
-  check(label + ': footage is identified as illustrative', /イメージ映像/.test(await film.innerText()) && /Pexels/.test(await film.innerText()));
+  check(label + ': production image is identified as AI-generated illustration', /制作のイメージ映像（AI生成）/.test(await film.innerText()) && /REYZ \/ Original visual/.test(await film.innerText()) && !/Pexels/.test(await film.innerText()));
   await film.screenshot({ path: path.join(OUT, label + '-production-film.png') });
 }
 

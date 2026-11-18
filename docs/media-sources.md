@@ -2,7 +2,7 @@
 
 Stock footage sources verified: 2026-11-18 (JST session date).
 
-The first two entries are licensed stock footage used as editorial imagery for the REYZ website. They are not REYZ client work, affiliated creators, employees, testimonials, or endorsements. Their visible media captions must say `イメージ映像` or equivalent. Do not describe the people as REYZ members or infer their individual identities or nationalities. Original brand graphics are documented separately below.
+The first two entries document licensed stock footage used as editorial imagery for the REYZ website. The Creator film remains current; the old Production film is retained for previously cached pages and is replaced in the current build by the generated production image documented below. They are not REYZ client work, affiliated creators, employees, testimonials, or endorsements. Their visible media captions must say `イメージ映像` or equivalent. Do not describe the people as REYZ members or infer their individual identities or nationalities. Original brand graphics are documented separately below.
 
 ## Stock footage license
 
@@ -31,7 +31,7 @@ The first two entries are licensed stock footage used as editorial imagery for t
 | Video SHA-256 | `09d037dbb4b99dc891beff2dabc76d0b8914447579e8b02d7ac90568d61a57ff` |
 | Poster SHA-256 | `4f956abd5fb0a03590c882d3aea9ba7e1655a1ecab5f8e5c930c2dd59ef4cc66` |
 
-## 2. Production film
+## 2. Previous production film (retained for cached pages)
 
 | Field | Value |
 | --- | --- |
@@ -57,6 +57,33 @@ The first two entries are licensed stock footage used as editorial imagery for t
 - Total delivered media: 1,179,491 bytes (approximately 1.18 MB).
 - Playback should use `muted playsinline loop` and a visible play/pause control. Prefer poster-first / lazy source loading, and do not autoplay when reduced motion is requested.
 - Source files are documentary stock-camera footage published in 2020 and 2021. They were not generated with an AI image or video model for this project.
+
+## 3. Current production image — generated editorial film
+
+Recovered and prepared: 2026-11-19 JST. This is the existing completed REYZ video from the preceding site work, not a new generation. ADR-0016 replaces only the Creative production footage selection in ADR-0015.
+
+| Field | Value |
+| --- | --- |
+| Local video | `site/assets/editorial/production-editorial-20261119.mp4` |
+| Local poster | `site/assets/editorial/production-editorial-20261119.webp` |
+| Existing HeyGen video | `d7bf8e4a4d8e4e00baaffc7b50921b3b` |
+| Source record | https://app.heygen.com/videos/d7bf8e4a4d8e4e00baaffc7b50921b3b |
+| Source download | https://resource2.heygen.ai/videos/2273ea89626f44e3957ad5e16876b59e/2273ea89626f44e3957ad5e16876b59e/01a1ef9c-aaff-7053-8683-322104bfd35a.mp4 |
+| Source properties | Completed 8.000-second generated video, 2688 × 1536, 24 fps, H.264 with AAC audio |
+| Visual | An unbranded bottle on a stone plinth, a large light, a camera and an operator preparing a product scene |
+| Selected interval | Source frames 76–191 inclusive: 3.166666…–8.000 seconds, 116 frames |
+| Transformation | Trim by source frame, reset timestamps, Lanczos scale to width 1280, centered crop to 1280 × 674, H.264 CRF 22, yuv420p, 24 fps, muted, fast-start MP4 |
+| Poster | First frame of the delivered MP4, WebP quality 88 |
+| Delivered duration | 4.833333 seconds |
+| Video size | 551,459 bytes |
+| Poster size | 45,700 bytes |
+| Video SHA-256 | `2c2b18d7491eaa4d0bf063e12e441c3d2a2afc85343f206cb5a0e3aba7669ddf` |
+| Poster SHA-256 | `748faa6e8f45bd6c814071aca986b9296b416cb890dfcb785b1ca6336f9293d7` |
+| Visible disclosure | `制作のイメージ映像（AI生成）`; the cycle preview labels this poster `AI生成イメージ` |
+
+The image illustrates a production process. It is not a real REYZ shoot, a client case, a camera specification, a testimonial, or a claim about an identifiable person. No client or equipment identity is inferred from the generated image. The recovered record supplies the source title and output; a full original generation prompt was not available and is not reconstructed as fact.
+
+All delivered frames decode without errors; ffprobe reports exactly 116 video frames and no audio. The selected start is after the source's cut from the lens close-up. Start, middle and final frames were independently reviewed for product shape, composition and visible artifacts. The camera framing and light change over time; replay has a visible edit and is not described as a seamless loop. The same play/pause, lazy loading, offscreen pause and reduced-motion behavior applies as to the existing editorial films. Browser playback and layout acceptance are part of `qa/experience_check.js` and `qa/cycle_check.js` in CI.
 
 ## Original 3D brand loop
 

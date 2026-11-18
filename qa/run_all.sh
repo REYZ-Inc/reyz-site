@@ -33,8 +33,9 @@ node qa/field_check.js "$SITE" "$QA_OUT/field" > "$QA_OUT/field-summary.json" ||
 node qa/experience_check.js "$SITE" "$QA_OUT/experience" > "$QA_OUT/experience-summary.json" || experience_status=1
 node qa/manual_experience_check.js "$SITE" "$QA_OUT/manual-experience" > "$QA_OUT/manual-experience-summary.json" || experience_status=1
 node qa/cycle_check.js "$SITE" "$QA_OUT/cycle" > "$QA_OUT/cycle-summary.json" || experience_status=1
+node qa/refinement_check.js "$SITE" "$QA_OUT/refinement" > "$QA_OUT/refinement-summary.json" || experience_status=1
 if [ "$experience_status" -ne 0 ]; then
-  echo "FAIL: 独自描画・操作・実原稿の閲覧・案件と映像（詳細: 各 report.json）"; exit 1
+  echo "FAIL: 独自描画・操作・実原稿の閲覧・案件と映像・相談の継続（詳細: 各 report.json / refinement.json）"; exit 1
 fi
 
 echo "== 5/8 chapters / thread / copy sync / links（全ページ × 3 画面）"

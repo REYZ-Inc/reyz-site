@@ -64,6 +64,12 @@ Home 章 3 の地図カード                                    reyz.inc/api/co
 
 chain の式: `chain_n = SHA-256( chain_{n-1} | SHA-256(入力) | SHA-256(出力 JSON) )`。初回の `chain_0` は 64 個の `0`。
 
+### 選び直しと相談への継続（2026-11-19、ADR-0016）
+
+選択が変わったら以前の要求を中断し、選択世代が一致しない応答は反映しない。地図が未完成の間は前の地図を引き継がない。接続確認は5秒、AI応答は20秒を期限とし、応答が得られない場合も入力と相談経路を残す。
+
+相談へ進むときは、返答済みの会話に加えて、未返信の発話と未送信の下書きを保持する。HomeからCreator・Creativeを経由する場合も同じ内容を保持し、Creatorで本人が選んだ目的と収益経路を添える。本人が相談フォームで確認して送信するまで、問い合わせAPIへは送らない。5,000文字を超える内容は黙って切り詰めず、フォームで全文を保持して編集を求める。見本の受注・承認・公開・精算結果は引き継がない。
+
 ## 5. 関門（何が通らなければ main に入らないか）
 
 | 関門 | 内容 | どこで |
@@ -71,6 +77,7 @@ chain の式: `chain_n = SHA-256( chain_{n-1} | SHA-256(入力) | SHA-256(出力
 | `consensus-tests` | Worker の自己テスト（形・origin・レート制限・往復上限・禁止語の再生成と Fail-Closed・chain・モデル失敗）＋ wrangler dry-run | `.github/workflows/consensus-worker.yml`（PR） |
 | `consensus-stack` | CI 内で Worker を起動し、health / dry_run / 他 origin 拒否 / 往復上限 を実機で確認（モデルは呼ばない） | 同上（PR） |
 | `site-verify` → `qa/talk_check.js` | 入口なし: 出ない。入口（模擬）あり: 表示 → 送る → 返事 → 地図の引き直し → chain → 相談へ引き継ぎ → 選択変更で捨てる → 上限で閉じる → 失敗で戻れる。2 画面幅 | `qa/run_all.sh` 6/7（PR） |
+| `site-verify` → `qa/refinement_check.js` | 遅延応答・選び直し・未返信／下書き・サービスページ経由の保持・応答期限。ChromiumとWebKit、localhostの模擬受付のみ | `qa/run_all.sh`（PR） |
 | 状態語・除外語スキャン | 本文・JS の文面 | `qa/run_all.sh`（PR） |
 
 ## 6. 未検証の方針（事実として書かないもの）
