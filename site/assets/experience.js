@@ -424,14 +424,199 @@
       const even = Math.ceil(fee * 60 / (count * wage));
       $('gainNo').textContent = count + '本'; $('gainMo').textContent = minutes + '分'; $('gainWo').textContent = yen(wage) + '円';
       $('gainNow').textContent = '月' + (Number.isInteger(hours) ? hours : hours.toFixed(1)) + '時間・' + yen(cost) + '円';
-      $('gainFee').textContent = '月' + yen(fee) + '円' + (fee < cost ? '（いまの' + Math.round(fee / cost * 100) + '%）' : '');
+      $('gainFee').textContent = '月' + yen(fee) + '円';
       root.style.setProperty('--fee', Math.min(100, fee / cost * 100) + '%');
       root.style.setProperty('--even', Math.min(100, even / minutes * 100) + '%');
-      $('gainEven').textContent = even < minutes
-        ? '1本あたり' + even + '分、短くなったとき'
-        : '時間の短縮だけでは届きません。まずは、無料の確認から';
+      // Feasibility uses the unrounded cost. A rounded minute threshold can equal
+      // the current time even when the actual threshold is lower (65 × 20 × 5k).
+      const equal = Math.abs(fee - cost) < 0.005;
+      const possible = fee < cost || equal;
+      const value = document.createElement('span'); value.className = 'gain-amount';
+      const explanation = document.createElement('span'); explanation.className = 'gain-note';
+      value.textContent = equal ? '全' + minutes + '分／本' : possible ? '約' + even + '分／本' : '利用料に届きません';
+      explanation.textContent = equal ? '現在の作業時間をすべて削減すると、利用料と同額です。'
+        : possible ? '利用料に相当する削減時間。分単位で切り上げています。'
+        : '現在の作業時間をすべて削減しても、掲載利用料を下回ります。';
+      $('gainEven').classList.toggle('is-unreachable', !possible);
+      $('gainEven').replaceChildren(value, explanation);
     };
     for (const input of [n, m, w]) input.addEventListener('input', update);
     update();
+  }
+})();
+
+/* One illustrative case. No network, persistence, payment or real approval.
+   Viewing a later stage never changes the evidence or completes a task. */
+(() => {
+  'use strict';
+  for (const root of document.querySelectorAll('[data-cycle]')) {
+    const $ = id => root.querySelector('#' + id);
+    const steps = Array.from(root.querySelectorAll('[data-cycle-step]'));
+    const next = $('cycleNext');
+    let state;
+    const key = () => state.asset + ':' + state.terms;
+    const active = () => ['requested', 'unknown', 'confirmed', 'stop-pending'].includes(state.publication);
+    const record = text => {
+      state.history.push(text);
+      state.history = state.history.slice(-14);
+    };
+    const reset = () => {
+      state = { step: 0, asset: 1, terms: 1, days: 30, approval: null,
+        publication: 'none', publishedKey: null, result: false, statement: false,
+        expired: false, changed: false, notice: '工程を選ぶと、その段階で任せることと、決めることが見えます。',
+        history: ['企画の整理から開始（見本）'] };
+      render();
+    };
+    const stages = [
+      ['01 / PLAN', 'やることと、決めることを。', '目的、制作物、担当、使う場所。最初の地図で、仕事の全体をそろえます。', 'REYZ：進め方と判断の材料を整理 ／ お客様：目的と条件を決める'],
+      ['02 / CREATE + CHECK', '出すものと、使い方を確かめる。', '素材、表現、利用条件をそろえ、どの版に承認したかを残します。条件が変われば、その承認を取り直します。', 'REYZ：制作と確認の流れを整理 ／ お客様：対象の版と条件を承認する'],
+      ['03 / PUBLISH', '指示した。と、終わった。を分ける。', '公開の要求と、公開されたことの確認を分けます。結果が分からない間は、同じ要求を重ねません。', 'REYZ：実行状況と結果の確認を追う ／ お客様：契約で決めた範囲を判断する'],
+      ['04 / MEASURE', '届けた、その先を見る。', '公開した素材と結果を同じ案件へ。取れていない数値は未取得と示し、取得した結果と混ぜません。', 'REYZ：取得できる結果を照合 ／ お客様：結果を見て次の施策を決める'],
+      ['05 / RECORD', '仕事の終わりを、次の始まりに。', '条件、承認、実行の記録、結果、費用と報酬の明細。同じ案件として振り返り、次の仕事につなぎます。', 'REYZ：記録と明細を整理 ／ お客様：内容を確認し、支払いを決める'],
+    ];
+    function render() {
+      const approved = state.approval === key();
+      const row = stages[state.step];
+      $('cycleKicker').textContent = row[0]; $('cycleTitle').textContent = row[1];
+      $('cycleCopy').textContent = row[2]; $('cycleOwner').textContent = row[3];
+      $('cycleVersion').textContent = 'v' + state.asset;
+      $('cycleTerms').textContent = state.days + '日・条件版 ' + state.terms + (state.expired ? '（期限到来）' : approved ? '（見本で合意）' : '（合意前）');
+      $('cycleApproval').textContent = approved ? 'v' + state.asset + '・条件版 ' + state.terms + ' を承認（見本）' : state.changed ? '以前の承認は失効・再確認待ち' : '未承認';
+      const publication = { none: '未実行', requested: '公開要求済み・確認待ち', unknown: '公開結果が未確認・再送しない', confirmed: '公開確認済み（見本）', 'stop-pending': '停止未確認・完了にしない', stopped: '停止確認済み（見本）' };
+      $('cyclePublication').textContent = publication[state.publication];
+      $('cycleOutcome').textContent = state.statement ? '結果の取込・明細の照合済み（見本）' : state.result ? '結果の取込済み・明細の照合待ち（見本）' : '未取得・未確定';
+      $('cycleResult').textContent = state.notice;
+      $('cycleStatus').textContent = state.publication === 'stop-pending' ? '停止未確認' : state.publication === 'unknown' ? '結果未確認' : state.expired ? '期限終了・条件更新待ち' : state.statement ? '明細まで確認（見本）' : state.changed && !approved ? '再承認待ち' : ['企画を整理', '素材と条件を確認', '公開の確認', '結果を確認', '明細を確認'][state.step];
+      root.dataset.state = state.publication === 'stop-pending' || state.publication === 'unknown' ? 'pending' : state.expired ? 'changed' : state.statement ? 'complete' : state.changed && !approved ? 'changed' : 'brief';
+      root.dataset.step = String(state.step);
+      for (const b of steps) b.setAttribute('aria-pressed', String(Number(b.dataset.cycleStep) === state.step));
+      next.disabled = false;
+      if (state.publication === 'stop-pending') next.textContent = '停止を確認する（見本）';
+      else if (state.expired && state.publication === 'stopped') { next.textContent = '利用条件の更新が必要です'; next.disabled = true; }
+      else if (state.step === 0) next.textContent = '制作・確認へ';
+      else if (state.step === 1) next.textContent = approved ? '公開の確認へ' : 'この版と条件を承認する（見本）';
+      else if (state.step === 2) next.textContent = !approved ? '素材と条件を確認する' : ['requested', 'unknown'].includes(state.publication) ? '公開の結果を確認する（見本）' : state.publication === 'confirmed' ? '結果の確認へ' : '公開を要求する（見本）';
+      else if (state.step === 3) next.textContent = state.publication === 'confirmed' ? '結果を取り込む（見本）' : '公開の状態を確かめる';
+      else next.textContent = state.statement ? 'もう一度体験する' : state.result ? '明細を照合する（見本）' : '結果の確認へ';
+      const expire = root.querySelector('[data-cycle-action="expire"]');
+      const network = root.querySelector('[data-cycle-action="network"]');
+      expire.disabled = !active() || state.expired;
+      network.disabled = state.publication !== 'requested';
+      expire.title = expire.disabled ? '公開を要求した後に試せます' : '';
+      network.title = network.disabled ? '公開を要求し、確認する前に試せます' : '';
+      const history = $('cycleHistory'); history.replaceChildren();
+      for (const text of state.history) { const li = document.createElement('li'); li.textContent = text; history.append(li); }
+      const preview = $('cyclePreview');
+      if (preview) {
+        const src = state.asset % 2 ? 'assets/editorial/creator-film.webp' : 'assets/editorial/production-film.webp';
+        if (preview.getAttribute('src') !== src) preview.src = src;
+      }
+      const badge = $('cycleScreenVersion'); if (badge) badge.textContent = 'v' + state.asset;
+    }
+    function advance() {
+      if (state.publication === 'stop-pending') {
+        state.publication = 'stopped'; state.publishedKey = null;
+        state.notice = state.expired
+          ? '期限が終了した素材の停止を確認しました。再開する場合は「利用条件を変える」で条件を更新し、あらためて確認・承認します。'
+          : '停止の確認が取れました。新しい素材や条件は、あらためて確認・承認してから進めます。';
+        record('停止の確認を記録（見本）'); state.step = state.expired ? 4 : 1;
+      } else if (state.expired) return;
+      else if (state.step === 0) { state.step = 1; state.notice = '同じ案件の素材と条件を確認します。まだ公開は行いません。'; }
+      else if (state.step === 1) {
+        state.approval = key(); state.step = 2;
+        state.notice = 'v' + state.asset + ' と条件版 ' + state.terms + ' への承認を記録しました。公開の要求とは別です。';
+        record('v' + state.asset + '・条件版 ' + state.terms + ' を承認（見本）');
+      } else if (state.step === 2) {
+        if (state.approval !== key()) { state.step = 1; state.notice = 'この版・条件への承認が必要です。以前の承認は使いません。'; }
+        else if (['requested', 'unknown'].includes(state.publication)) {
+          state.publication = 'confirmed'; state.publishedKey = key(); state.step = 3;
+          state.notice = '公開の確認を記録しました。次は、この素材に対応する結果を確認します。'; record('公開の確認を記録（見本）');
+        } else if (state.publication === 'confirmed') state.step = 3;
+        else { state.publication = 'requested'; state.notice = '公開を要求した段階です。結果を確認するまでは、公開済みにしません。'; record('公開を要求・結果の確認待ち（見本）'); }
+      } else if (state.step === 3) {
+        if (state.publication !== 'confirmed') { state.step = 2; state.notice = 'まず公開されたことを確認します。未確認の結果は埋めません。'; }
+        else { state.result = true; state.step = 4; state.notice = '結果の取り込みを体験しました。売上や再生数の実績を示すものではありません。'; record('公開素材に対応する結果を取り込む（見本）'); }
+      } else if (state.statement) { reset(); return; }
+      else if (!state.result) { state.step = 3; state.notice = '結果の確認と、明細の照合を分けて進めます。'; }
+      else { state.statement = true; state.notice = '条件から明細までが同じ案件に残ります。この見本から支払いは行われません。'; record('条件と費用・報酬の明細を照合（見本）'); }
+      render();
+    }
+    root.addEventListener('click', e => {
+      const step = e.target.closest('[data-cycle-step]');
+      if (step) { state.step = Number(step.dataset.cycleStep); render(); return; }
+      const button = e.target.closest('[data-cycle-action]'); if (!button || button.disabled) return;
+      const action = button.dataset.cycleAction;
+      if (action === 'reset') { reset(); return; }
+      if (action === 'next') { advance(); return; }
+      if (action === 'asset' || action === 'terms') {
+        if (action === 'asset') state.asset++;
+        else { state.terms++; state.days = state.days === 30 ? 60 : 30; state.expired = false; }
+        const wasActive = active();
+        state.approval = null; state.result = false; state.statement = false; state.changed = true; state.step = 1;
+        if (wasActive) state.publication = 'stop-pending';
+        state.notice = (action === 'asset' ? '素材が変わったため、以前の版への承認は失効しました。' : '利用条件が変わったため、以前の条件への承認は失効しました。') + (state.expired
+          ? '利用期限も終了しています。停止を確認後、「利用条件を変える」で条件を更新してください。'
+          : wasActive ? 'まず旧条件の停止を確認し、新しい承認を取り直します。' : '必要な確認から続け、承認を取り直します。');
+        record((action === 'asset' ? '素材を v' + state.asset + ' に差し替え' : '条件版 ' + state.terms + ' に変更') + '・承認失効（見本）');
+      } else if (action === 'expire') {
+        state.expired = true; state.approval = null; state.publication = 'stop-pending'; state.step = 2;
+        state.notice = '利用期限に達しました。停止要求を出しただけでは完了にせず、停止が確認できるまで追います。'; record('期限到来・停止未確認（見本）');
+      } else if (action === 'network') {
+        state.publication = 'unknown'; state.step = 2;
+        state.notice = '要求のあとに通信が途切れました。公開結果が分かるまで、同じ要求を送り直しません。'; record('通信断・公開結果未確認（見本）');
+      }
+      render();
+    });
+    reset();
+  }
+})();
+
+/* Self-hosted editorial footage. The poster is the first render; media stays
+   unloaded until visible or explicitly played. Every automatic action is local. */
+(() => {
+  'use strict';
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  for (const root of document.querySelectorAll('[data-editorial]')) {
+    const video = root.querySelector('video[data-editorial-video]');
+    const button = root.querySelector('[data-editorial-toggle]');
+    if (!video || !button) continue;
+    let visible = false, manuallyPaused = false, loading = false, failed = false;
+    video.muted = true;
+    const sync = () => {
+      button.textContent = failed ? '静止画を表示' : video.paused ? '映像を再生' : '一時停止';
+      button.setAttribute('aria-pressed', String(!video.paused));
+      root.classList.toggle('is-playing', !video.paused);
+    };
+    const play = async () => {
+      if (loading || failed) return;
+      loading = true;
+      if (!video.getAttribute('src')) { video.src = video.dataset.src; video.load(); }
+      try { await video.play(); } catch (_) { /* A browser may require a gesture; the button remains. */ }
+      loading = false; sync();
+    };
+    const automatic = () => {
+      if (!visible || document.hidden || motion.matches || manuallyPaused || navigator.connection?.saveData) video.pause();
+      else play();
+      sync();
+    };
+    button.hidden = false;
+    button.addEventListener('click', () => {
+      if (video.paused) { manuallyPaused = false; play(); }
+      else { manuallyPaused = true; video.pause(); }
+      sync();
+    });
+    video.addEventListener('play', sync); video.addEventListener('pause', sync);
+    video.addEventListener('error', () => { failed = true; video.pause(); button.disabled = true; sync(); });
+    video.addEventListener('timeupdate', () => {
+      const progress = Number.isFinite(video.duration) && video.duration > 0 ? video.currentTime / video.duration : 0;
+      root.style.setProperty('--film-progress', progress.toFixed(4));
+    });
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(entries => { visible = entries[0].isIntersecting; automatic(); }, { threshold: 0.2 });
+      observer.observe(root);
+    }
+    document.addEventListener('visibilitychange', automatic);
+    motion.addEventListener('change', automatic);
+    sync();
   }
 })();

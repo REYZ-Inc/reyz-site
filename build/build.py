@@ -237,7 +237,7 @@ def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     """lead2: 既決の導入文（lead）を変えずに、その下へ加える 2 行目（2026-10-26 正本 §10: /creator の冒頭）"""
     actions = {
         'Creator': [('index.html#map', '地図をつくる'), ('manual.html', 'マニュアルをつくる')],
-        'Creative': [('#show', '映像の型を見る'), ('#decide', '確認を試す')],
+        'Creative': [('#guard', '仕事の流れを体験する'), ('#show', '映像の型を見る')],
         'AI': [('#products', '3つの製品を見る'), ('contact.html', '相談する')],
         'Consensus': [('#offer', '提供の形を見る'), ('contact.html', '相談する')],
     }.get(word, [])
@@ -427,6 +427,27 @@ home = f'''    <section class="chapter" id="infinity">
 page('index.html', 'REYZ Inc. — 無限の可能性を かたちに', '株式会社レイズ（REYZ Inc.）— Creator Economy × AI。クリエイターの活動と企業の成長を支え、AIを安心して仕事に使える仕組みを提供する会社です。', home, current='index.html')
 
 # ------------------------------------------------------------------ CREATOR
+def editorial_film(kind, headline, line):
+    """Real, licensed illustrative footage in a designed device, not a portfolio."""
+    is_creator = kind == 'creator'
+    prefix = 'creator' if is_creator else 'production'
+    label = 'CREATOR / YOUR OWN WAY' if is_creator else 'CREATIVE / FROM INTENT TO IMPACT'
+    screen = 'YOUR STORY' if is_creator else 'THE MAKING'
+    return f'''<figure class="editorial-visual is-{prefix} reveal">
+      <div class="editorial-film" data-editorial>
+        <img class="editorial-background" src="assets/editorial/{prefix}-film.webp" width="1280" height="674" alt="" loading="lazy" decoding="async">
+        <div class="editorial-film-shade" aria-hidden="true"></div>
+        <div class="editorial-film-copy"><span class="tag">{label}</span><h3>{headline}</h3><p>{line}</p></div>
+        <div class="editorial-device">
+          <div class="device-top" aria-hidden="true"><span>REY<span class="z">Z</span></span><span>{screen}</span></div>
+          <div class="device-screen"><video id="{prefix}Film" data-editorial-video data-src="assets/editorial/{prefix}-film.mp4" poster="assets/editorial/{prefix}-film.webp" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video></div>
+          <div class="device-foot" aria-hidden="true"><span>IMAGE FILM</span><span class="device-progress"></span><span>08 SEC</span></div>
+        </div>
+        <button class="video-toggle" type="button" data-editorial-toggle aria-controls="{prefix}Film" aria-pressed="false" hidden>映像を再生</button>
+      </div>
+      <figcaption id="{prefix}Caption" class="editorial-caption"><span>イメージ映像</span><span>Footage: cottonbro studio / Pexels</span></figcaption>
+    </figure>'''
+
 # 本文の改行は本人指定（2026-09-27）。'|' は画面幅が足りない時だけ使う折返し点。TT_P1・TT_P2・TT_NOTE は HOME の前で定義
 VD_H3 = jp('動画・映像制作[（PR・PV・MV・|ドキュメンタリー・ドラマ）]')
 VD_P = jp('''インフルエンス力向上、ブランド化、リブランディングなど、
@@ -475,6 +496,7 @@ def demo_map(prefix, place, step, goal, nxt, label, cap=''):
             f'                  <button class="go-btn" type="button" data-next="{nxt}">{label}</button>\n')
 SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
     '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><p class="echo" aria-hidden="true">地図から、始める。</p></div>\n'
+    '            <p class="sample-disclosure">操作の見本です。受注・契約・支払いは行われません。</p>\n'
     '            <div class="demo" id="demoC" data-demo="creator">\n' + demo_tabs('dc', [('map', '地図'), ('gate', '入口'), ('stmt', '明細')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
     demo_pane('dc', 1, 'map', demo_map('dm', '場所は決まっている。費用ゼロのLIVE支援と、商品紹介・案件を重ねる段階。', 'どこで、何を、いつ出すかをAIと一緒に決める。', '言葉にできている目的を、活動の順番にする。',
@@ -482,7 +504,7 @@ SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
     demo_pane('dc', 2, 'gate',
               '                  <p class="pane-cap">確認を通ったものだけが、届く。</p>\n'
               '                  <ul class="offers">'
-              '<li class="offer"><b>案件</b><button class="take" type="button" aria-pressed="false" data-k="案件" data-v="full">受ける</button></li>'
+              '<li class="offer"><div><b>案件</b><details class="offer-terms"><summary>確認する項目を見る</summary><dl><div><dt>制作物</dt><dd>新商品の紹介動画</dd></div><div><dt>利用範囲</dt><dd>媒体と期間を確認して合意</dd></div><div><dt>報酬</dt><dd>金額・支払日を確認して合意</dd></div><div><dt>REYZ手数料</dt><dd>報酬からの控除なし</dd></div></dl></details></div><button class="take" type="button" aria-pressed="false" data-k="案件" data-v="full">受ける</button></li>'
               '<li class="offer"><b>商品の紹介</b><button class="take" type="button" aria-pressed="false" data-k="商品の紹介" data-v="full">受ける</button></li>'
               '<li class="offer"><b>LIVE支援</b><button class="take" type="button" aria-pressed="false" data-k="LIVE支援" data-v="zero">受ける</button></li>'
               '</ul>\n'
@@ -547,17 +569,14 @@ def vs(head, rows, note=''):
         ''.join(f'<span class="c{" rz" if i == len(head) - 1 else ""}" data-c="{head[i]}"><span class="t">{c}</span></span>' for i, c in enumerate(r[1:])) + '</div>'
         for r in rows)
     return ('<div class="vs reveal">\n            ' + hd + '\n' + body + '\n' + (f'            <p class="vs-note">{note}</p>\n' if note else '') + '          </div>')
-COMPARE_CREATOR = vs(['ひとりで', 'ライブ配信の事務所で', 'REYZで'], [
-    ('収益の入口', jp('自分で、|ひとつずつ開く'), jp('ライブ配信が中心'), jp('6つを、|ひとつの入口で')),
-    ('進め方', jp('自分で調べて、|決める'), jp('配信を、|担当者と伸ばす'), jp('目的から地図に。|変われば、引き直す')),
-    ('出す前の確認', jp('自分で確かめる'), jp('事務所による'), jp('4つの法令に照らして、|確かめる')),
-    ('報酬からの手数料', jp('なし'), jp('事務所による'), jp('0')),
-    ('やめた後', jp('—'), jp('契約による※'), jp('制限なし')),
-    ('記録', jp('サービスごとに、|分かれる'), jp('事務所による'), jp('全部の収益をひとつに。|持ち出せる')),
-], note=jp('※ 公正取引委員会は2025年12月9日、|契約終了後の活動を制限していた|ライバー事務所4社に注意を行っています。'))
+COMPARE_CREATOR = ('<div class="choice-grid reveal">'
+    '<article><span class="choice-n">01 / CHOOSE</span><h3>入口を、選べる。</h3><p>配信、投稿、販売、企業の案件。<br>目的に合わせて、始める順番を決める。</p><a class="go" href="#path">自分の道を見る</a></article>'
+    '<article><span class="choice-n">02 / DECIDE</span><h3>条件を見て、決める。</h3><p>使われる場所、期間、報酬。<br>納得した仕事を、自分で選ぶ。</p><a class="go" href="#model">案件の入口を体験する</a></article>'
+    '<article><span class="choice-n">03 / KEEP</span><h3>続ける。変える。選べる。</h3><p>報酬からの手数料はゼロ。<br>やめた後も、配信を制限しない。<br>記録は、あなたのもの。</p><a class="go" href="#model">条件を確かめる</a></article>'
+    '</div>')
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
                         lead2='あなたの収益の、全部の入口に。') + \
-section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'), '', INCOMES) + \
+section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'), '', editorial_film('creator', 'あなたらしさが、<br>仕事になっていく。', '配信も、映像も、作品も。<br>自分に合う入口から、次の可能性へ。') + INCOMES) + \
 section('path', 'Your path', jp('目的から、|道を選ぶ。'), '', PATHS + more('contact.html', 'この道で、はじめる')) + \
 section('pain', 'For you', 'こんな困りごとに', '',
         asks([(jp('自分に合うSNSはどれか。|いつ、何を、どう出せば|目標に近づくのか、迷う。'), jp('合う場所と、いつ何を出すかを、|最初の地図で決めます。'), 'index.html#map', '地図をつくる'),
@@ -583,7 +602,7 @@ section('services', 'Services', '提供すること', '',
         + fold('AIと、最初の地図から', jp('''最初の相談で、地図を返します。
 毎日の次の一手も、AIが材料を揃え、|決めるのはあなたです。''')) + '\n'
         '          </div>') + \
-section('compare', 'Compare', jp('ほかの進め方と、|くらべる。'), '', COMPARE_CREATOR) + \
+section('compare', 'Your choice', jp('自分の未来を、|自分で選ぶ。'), '', COMPARE_CREATOR) + \
 section('how', 'How to start', 'はじめ方', '',
         steps([('01', '相談', jp('''まずは現在の状況を伺います。
 その上で、その人に合った|活動方法を共に考えます。''')),
@@ -689,9 +708,10 @@ SHOWCASE = ('<div class="showcase reveal">\n'
 # 公的ガイドラインと自主基準への照合の例であり、法律の鑑定ではない（正本 §11「今すぐ書いてよい」の添え書き）
 SCREENS_ENT = ('<div class="screens3 reveal">\n'
     '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><p class="cap">' + jp('公的なきまりと自主基準への|照合の例。|法律の鑑定ではありません。') + '</p><p class="echo" aria-hidden="true">目的から、逆算。</p></div>\n'
+    '            <p class="sample-disclosure">表現の確認を体験する見本です。実際の複数AIによる審査や、公開・契約・支払いは行いません。</p>\n'
     '            <div class="demo" id="demoE" data-demo="company" data-run="">\n' + demo_tabs('de', [('map', '地図'), ('check', '確認'), ('rec', '記録')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
-    demo_pane('de', 1, 'map', demo_map('dn', '事業と表現をつなぐ段階。映像制作・SNS運用と、クリエイターとの販売設計を重ねる。', '公開前に4つの法令（ステマ規制・景表法・医療広告・薬機法）に照らして確認する流れを組み込み、判断の材料を揃える。', '決まっている目的から逆算し、最短で届く手段と順番を決める。',
+    demo_pane('de', 1, 'map', demo_map('dn', '事業と表現をつなぐ段階。映像制作・SNS運用と、クリエイターとの販売設計を重ねる。', '公開前に広告表現のルールに照らして確認する流れを組み込み、判断の材料を揃える。', '決まっている目的から逆算し、最短で届く手段と順番を決める。',
                                       'check', 'この地図で、確認へ', cap=jp('目的から逆算した、進め方と判断の材料。|「はい」か「いいえ」で決める。'))) +
     demo_pane('de', 2, 'check',
               '                  <p class="pane-cap">' + jp('公開前に、表現を確かめる。|投稿の例を、ひとつ選ぶ。') + '</p>\n'
@@ -738,63 +758,60 @@ GAIN = ('<div class="gain reveal" data-gain>\n'
     '            </div>\n'
     '            <dl class="gain-out" aria-live="polite">\n'
     '              <div class="now"><dt>いま、確認と管理に</dt><dd id="gainNow">月30時間・150,000円</dd></div>\n'
-    '              <div class="fee"><dt>REYZの利用料</dt><dd id="gainFee">月62,500円（いまの42%）</dd></div>\n'
-    '              <div class="even"><dt>元が取れるのは</dt><dd id="gainEven">' + jp('1本あたり25分、|短くなったとき') + '</dd></div>\n'
+    '              <div class="fee"><dt>掲載利用料での試算</dt><dd id="gainFee">月62,500円</dd></div>\n'
+    '              <div class="even"><dt>利用料に相当する削減時間</dt><dd id="gainEven">' + jp('1本あたり25分、|短くなったとき') + '</dd></div>\n'
     '            </dl>\n'
     '            <p class="gain-cap">' + jp('月額50,000円で、20本まで。|21本目からは、1本1,250円。\n公開前の確認は、|月30件まで無料です。') + '</p>\n'
+    '            <p class="gain-disclosure">入力した時間・費用と掲載利用料を比べる試算です。実際の削減効果を示すものではありません。</p>\n'
+    '            <details class="terms gain-terms"><summary class="terms-head">料金に含まれる範囲を、確認する</summary><div class="fold-body"><p>公開前の確認は月30件まで無料。継続利用の掲載料金は月額50,000円・20本までです。</p><p>対象素材、無料確認と有料利用の範囲、1本・1件の数え方、修正や再確認、連携先を、契約前の見積もりに明記します。</p><p>制作・出演・広告・導入にかかる費用、税、契約期間・解約条件も、同じ見積もりで確認できます。この試算には、それらの費用とお客様に残る作業の費用を加えていません。</p><a class="go" href="contact.html" data-consult-page>対象と費用を相談する</a></div></details>\n'
     '            <div class="gain-split">\n'
-    '              <div class="gs gs-auto"><p class="gs-h">人の手を離れること</p><ul>' + ''.join(f'<li>{t}</li>' for t in (jp('4つの法令への照合'), jp('複数のAIによる確認'), jp('条件が変わったときの、|承認の取り消し'), jp('利用期限と、|停止の追跡'), jp('決定ごとの記録'), jp('報酬の明細'))) + '</ul></div>\n'
+    '              <div class="gs gs-auto"><p class="gs-h">仕組みに任せること</p><ul>' + ''.join(f'<li>{t}</li>' for t in (jp('広告表現のルールへの照合'), jp('複数のAIによる確認'), jp('条件が変わったときの、|承認の取り消し'), jp('利用期限と、|停止の追跡'), jp('決定ごとの記録'), jp('報酬の明細'))) + '</ul></div>\n'
     '              <div class="gs gs-human"><p class="gs-h">人が決めること</p><ul>' + ''.join(f'<li>{t}</li>' for t in (jp('条件への合意'), jp('最後の「はい」か「いいえ」'), jp('支払い'))) + '</ul></div>\n'
     '            </div>\n'
     '          </div>')
 # ------------------------------------------------------------------ 起きたことに、自動で応える（2026-11-18 CEO「様々なリスク回避が人の手を介さずにできる」）
 # 4 つの出来事を押すと、仕組みがすることが出る。文は仕組みの動作そのもの（承認の失効・停止の追跡・結果不明の保持）。架空の社名・金額・日付は置かない
-GUARD_EVENTS = [
-    ('expire', '利用期限が来る', '停止', jp('止まったと確認できるまで、|追い続ける。'), jp('確認できない間は「停止未確認」と表示し、|済んだことにしません。')),
-    ('terms', '契約の条件が変わる', '承認', jp('関係する承認を、|無効にする。'), jp('全員の合意がそろうまで、|新しい条件では進めません。')),
-    ('asset', '動画が差し替わる', '承認', jp('前の版への承認は、|使えない。'), jp('確認からやり直し、|承認を取り直します。')),
-    ('net', '通信が途切れる', '広告', jp('結果が分かるまで、|送り直さない。'), jp('同じ広告を、|二重に出しません。')),
-]
-GUARD = ('<div class="guard reveal" data-guard>\n'
-    '            <div class="sheet-head"><p class="eyebrow">Autopilot · 設計上の見本（例）</p></div>\n'
-    '            <div class="guard-ev" role="group" aria-label="起きること">' +
-    ''.join(f'<button type="button" class="guard-b" data-ev="{k}" aria-pressed="{"true" if n == 0 else "false"}">{label}</button>' for n, (k, label, _, _, _) in enumerate(GUARD_EVENTS)) + '</div>\n'
-    '            <div class="guard-card">\n'
-    '              <ol class="guard-line" aria-hidden="true">' + ''.join(f'<li data-s="{t}">{t}</li>' for t in ('約束', '承認', '広告', '期限', '停止')) + '</ol>\n' +
-    '\n'.join(f'              <div class="guard-res{" is-on" if n == 0 else ""}" data-ev="{k}" data-at="{at}"><p class="ev">{label}</p><p class="do">{do}</p><p class="why">{why}</p></div>'
-              for n, (k, label, at, do, why) in enumerate(GUARD_EVENTS)) + '\n'
-    '            </div>\n'
-    '          </div>')
-# ------------------------------------------------------------------ ほかの道具とくらべる（各社の公開情報から、道具の種類ごとの一般的な範囲。2026-11）
-def marks(v):
-    return {'o': '<i class="m on"></i><span class="sr-only">できる</span>', 't': '<i class="m half"></i><span class="sr-only">一部</span>', 'x': '<i class="m off"></i><span class="sr-only">対象外</span>'}[v]
-MATRIX_HEAD = [jp('起用・|管理の道具'), jp('投稿活用の|道具'), jp('表現チェックの|道具'), 'REYZ']
-MATRIX_SHORT = ['起用・管理', '投稿活用', '表現チェック', 'REYZ']
-MATRIX = ('<div class="matrix reveal">\n'
-    '            <div class="mx-head" aria-hidden="true">' + ''.join(f'<span{" class=\"rz\"" if i == 3 else ""}>{h}</span>' for i, h in enumerate(MATRIX_HEAD)) + '</div>\n' +
-    '\n'.join('            <div class="mx-row"><b class="k">' + k + '</b><div class="mx-cells">' + ''.join(f'<span{" class=\"rz\"" if i == 3 else ""} data-c="{MATRIX_SHORT[i]}">{marks(v)}</span>' for i, v in enumerate(vs_)) + '</div></div>'
-              for k, vs_ in [
-                  (jp('クリエイターを探す・分析する'), 'oxxx'),
-                  (jp('投稿を集めて、活用する'), 'ooxx'),
-                  (jp('公開前に、表現を確かめる'), 'txoo'),
-                  (jp('提供元の異なる複数のAIで確かめ、|人が決める'), 'xxxo'),
-                  (jp('契約の条件と、|版ごとの承認を残す'), 'ttxo'),
-                  (jp('条件が変わると、|承認を無効にする'), 'xxxo'),
-                  (jp('利用期限と、|停止の確認まで追う'), 'xtxo'),
-                  (jp('決定ごとの記録を、|持ち出せる'), 'xxxo'),
-              ]) + '\n'
-    '            <p class="mx-key"><span><i class="m on"></i>できる</span><span><i class="m half"></i>一部</span><span><i class="m off"></i>対象外</span></p>\n'
-    '            <p class="vs-note">' + jp('各社の公開情報から、|道具の種類ごとの一般的な範囲を|整理しています（2026年11月）。|製品により異なります。') + '</p>\n'
-    '          </div>')
+GUARD = """<div class="cycle reveal" data-cycle data-state="brief">
+  <div class="cycle-top"><div><span class="cycle-kicker">ONE PROJECT / FULL CYCLE</span><p class="cycle-id">ブランドの紹介動画 <small>体験用の案件</small></p></div><span class="cycle-status" id="cycleStatus" role="status">企画を整理</span></div>
+  <p class="cycle-note">操作の見本です。この画面から公開・契約・支払いは実行されません。</p>
+  <div class="cycle-track" role="group" aria-label="案件の工程">
+    <button type="button" data-cycle-step="0" aria-pressed="true"><span>01</span>企画</button>
+    <button type="button" data-cycle-step="1" aria-pressed="false"><span>02</span>制作・確認</button>
+    <button type="button" data-cycle-step="2" aria-pressed="false"><span>03</span>公開</button>
+    <button type="button" data-cycle-step="3" aria-pressed="false"><span>04</span>結果</button>
+    <button type="button" data-cycle-step="4" aria-pressed="false"><span>05</span>明細</button>
+  </div>
+  <div class="cycle-body">
+    <div class="cycle-art has-media" aria-hidden="true"><span class="cycle-art-label">FROM A STORY TO A BUSINESS</span><div class="cycle-device"><img id="cyclePreview" src="assets/editorial/creator-film.webp" alt="" width="1280" height="674" loading="lazy" decoding="async"><span class="cycle-screen-tag">BRAND STORY</span><span class="cycle-screen-state" id="cycleScreenVersion">v1</span></div><span class="cycle-art-caption">素材イメージ / 版と条件が、仕事をつなぐ。</span></div>
+    <div class="cycle-detail" aria-live="polite" aria-atomic="true">
+      <p class="cycle-kicker" id="cycleKicker">01 / PLAN</p><h3 class="cycle-title" id="cycleTitle">やることと、決めることを。</h3>
+      <p class="cycle-copy" id="cycleCopy">目的、制作物、担当、使う場所。最初の地図で、仕事の全体をそろえます。</p>
+      <dl class="cycle-facts"><div><dt>制作物</dt><dd>ブランドの縦動画 1本</dd></div><div><dt>素材の版</dt><dd id="cycleVersion">v1</dd></div><div><dt>利用条件</dt><dd id="cycleTerms">30日・合意前</dd></div><div><dt>承認</dt><dd id="cycleApproval">未承認</dd></div><div><dt>公開</dt><dd id="cyclePublication">未実行</dd></div><div><dt>結果・明細</dt><dd id="cycleOutcome">未取得・未確定</dd></div></dl>
+      <p class="cycle-owner" id="cycleOwner">REYZ：進め方と判断の材料を整理 ／ お客様：目的と条件を決める</p>
+      <div class="cycle-actions"><button type="button" class="btn primary" data-cycle-action="next" id="cycleNext">制作・確認へ</button><button type="button" class="btn" data-cycle-action="reset">最初から</button></div>
+    </div>
+  </div>
+  <div class="cycle-events"><p>途中で、変わったら。</p><div class="cycle-actions" role="group" aria-label="条件の変化を試す"><button type="button" data-cycle-action="asset">動画を差し替える</button><button type="button" data-cycle-action="terms">利用条件を変える</button><button type="button" data-cycle-action="expire">利用期限を迎える</button><button type="button" data-cycle-action="network">通信が途切れる</button></div></div>
+  <p class="cycle-result" id="cycleResult" role="status">工程を選ぶと、その段階で任せることと、決めることが見えます。</p>
+  <details class="cycle-history"><summary>この案件の記録を見る</summary><ol id="cycleHistory"><li>企画の整理から開始（見本）</li></ol></details>
+  <p class="cycle-note">対象業務、連携先、REYZとお客様の担当範囲を、導入時に確認します。</p>
+</div>"""
+
+MATRIX = ('<div class="offer-scope reveal">'
+    '<article><span class="scope-n">01 / CHECK</span><h3>確認から、任せる。</h3><p>公開前の表現、利用条件、承認と記録。いまある仕事の流れに組み込む。</p><dl><div><dt>最初にそろえること</dt><dd>対象素材・確認基準・承認者・連携先</dd></div></dl><a class="go" href="#decide" data-open-check>確認の見本へ</a></article>'
+    '<article><span class="scope-n">02 / CREATE</span><h3>つくるところから。</h3><p>目的の整理、企画・撮影・編集、SNS運用。届けるものと、その後の動きまで。</p><dl><div><dt>最初にそろえること</dt><dd>制作物・納期・予算・運用の担当範囲</dd></div></dl><a class="go" href="#show">映像の型を見る</a></article>'
+    '<article><span class="scope-n">03 / CONNECT</span><h3>自社の仕組みへ。</h3><p>自社ブランドでの提供、既存業務への組み込み。使う人に合う形へ。</p><dl><div><dt>最初にそろえること</dt><dd>接続先・必要な機能・導入と運用の範囲</dd></div></dl><a class="go" href="consensus.html">組み込みについて</a></article>'
+    '</div>')
 creative = title_chapter('Creative', 'For Enterprise', '「伝わる」を設計する。',
                          jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。')) + \
+section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('つくる。確かめる。届けた結果を見る。|途中で変わっても、同じ案件の続きから。'), GUARD) + \
 section('pain', 'For you', 'こんな困りごとに', '',
         asks([(jp('映像制作やSNSの運用を始めたい、見直したい。|でも、いつ、何を、どう進めれば|目的につながるのか、迷っている。'), jp('目的から逆算して、|映像とSNSをつくります。'), '#show', '映像の型を見る'),
               (jp('人を増やさずに、利益を増やしたい。|でも、制作、確認、運用に時間を取られ、|本来の仕事に集中できていない。'), '', '', '', SHIFT),   # 答えは「今 → REYZと」の図そのもの（図の中に同じ文がある）
               (jp('提案や選択肢が多すぎて、|会議のたびに「結局どちらに進むか」を|決めきれず、速度が落ちている。'), jp('判断の材料を地図にして、|「はい」か「いいえ」で決められる形に。'), '#decide', '地図を見る'),
               (jp('案件の表現チェック|（ステマ規制・景表法）を|人手でやっていて、|量に追いつかない。'), jp('公開前に複数のAIが確かめ、|人が決め、記録が残ります。'), '#decide', '確認を試す')])) + \
 section('gain', 'Your margin', jp('人を増やさずに、|利益を残す。'), '', GAIN) + \
-section('show', 'Video × SNS', '映像とSNSの、かたち。', '', SHOWCASE) + \
+section('show', 'Video × SNS', '映像とSNSの、かたち。', '', editorial_film('production', '伝わる瞬間を、<br>設計する。', '誰に届けるか。何を感じてほしいか。<br>その目的から、映像のかたちを選ぶ。') + SHOWCASE) + \
 section('services', 'Services', 'REYZがすること', '',
         # 企業正本 §5 の提供パッケージ（EP1 確認して出す／EP5 つくる・入れる／EP2 クリエイターで売る／EP3・EP4 組み込み・自社ブランド）で 11 項目を束ねる。
         # 束の見出しと 1 行が常に見え、項目（既決 8 項目の本文は不変）は押すと開く
@@ -813,9 +830,8 @@ section('services', 'Services', 'REYZがすること', '',
                  [('クリエイターとの販売設計', jp('クリエイターと連動した|販売の設計と運用。|国内からアジアへの越境販売まで。'))]),
                 ('仕組みに組み込む・自社ブランドで', jp('事務所、代理店、制作会社へ。'),
                  [('事務所・代理店の方へ', jp('3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。'), 'consensus.html', 'REYZ CONSENSUSについて')])])) + \
-section('decide', 'Decide', '判断を、地図で。', '', SCREENS_ENT) + \
-section('guard', 'Autopilot', jp('起きたことに、|自動で応える。'), '', GUARD) + \
-section('compare', 'Compare', jp('ほかの道具と、|くらべる。'), '', MATRIX + more('contact.html', '導入を相談する')) + \
+section('decide', 'A closer look', jp('出す前に、|確かめる。'), '', SCREENS_ENT) + \
+section('compare', 'Your scope', jp('任せたいところから、|つなぐ。'), '', MATRIX + more('contact.html', '任せたい範囲を相談する')) + \
 section('how', 'How to start', '任せ方', jp('いきなり大きな契約を結ぶ必要はありません。\n合わなければ、そこで終えて構いません。'),
         steps([('01', '相談する', jp('今の状況と、やりたいことを。|言葉になっていなくても、構いません。')),
                ('02', '地図を受け取る', ''),
