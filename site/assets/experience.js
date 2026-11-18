@@ -424,7 +424,9 @@
       const even = Math.ceil(fee * 60 / (count * wage));
       $('gainNo').textContent = count + '本'; $('gainMo').textContent = minutes + '分'; $('gainWo').textContent = yen(wage) + '円';
       $('gainNow').textContent = '月' + (Number.isInteger(hours) ? hours : hours.toFixed(1)) + '時間・' + yen(cost) + '円';
-      $('gainFee').textContent = '月' + yen(fee) + '円';
+      $('gainFee').textContent = '月' + yen(fee) + '円' + (fee < cost ? '（いまの' + Math.round(fee / cost * 100) + '%）' : '');
+      root.style.setProperty('--fee', Math.min(100, fee / cost * 100) + '%');
+      root.style.setProperty('--even', Math.min(100, even / minutes * 100) + '%');
       $('gainEven').textContent = even < minutes
         ? '1本あたり' + even + '分、短くなったとき'
         : '時間の短縮だけでは届きません。まずは、無料の確認から';

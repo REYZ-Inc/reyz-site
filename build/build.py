@@ -737,8 +737,8 @@ GAIN = ('<div class="gain reveal" data-gain>\n'
     '              <div class="gain-f"><label for="gainW">担当者の1時間あたりの費用</label><output id="gainWo" for="gainW">5,000円</output><input type="range" id="gainW" min="2000" max="10000" step="500" value="5000"></div>\n'
     '            </div>\n'
     '            <dl class="gain-out" aria-live="polite">\n'
-    '              <div><dt>いま、確認と管理に</dt><dd id="gainNow">月30時間・150,000円</dd></div>\n'
-    '              <div><dt>REYZの利用料</dt><dd id="gainFee">月62,500円</dd></div>\n'
+    '              <div class="now"><dt>いま、確認と管理に</dt><dd id="gainNow">月30時間・150,000円</dd></div>\n'
+    '              <div class="fee"><dt>REYZの利用料</dt><dd id="gainFee">月62,500円（いまの42%）</dd></div>\n'
     '              <div class="even"><dt>元が取れるのは</dt><dd id="gainEven">' + jp('1本あたり25分、|短くなったとき') + '</dd></div>\n'
     '            </dl>\n'
     '            <p class="gain-cap">' + jp('月額50,000円で、20本まで。|21本目からは、1本1,250円。\n公開前の確認は、|月30件まで無料です。') + '</p>\n'
@@ -769,9 +769,10 @@ GUARD = ('<div class="guard reveal" data-guard>\n'
 def marks(v):
     return {'o': '<i class="m on"></i><span class="sr-only">できる</span>', 't': '<i class="m half"></i><span class="sr-only">一部</span>', 'x': '<i class="m off"></i><span class="sr-only">対象外</span>'}[v]
 MATRIX_HEAD = [jp('起用・|管理の道具'), jp('投稿活用の|道具'), jp('表現チェックの|道具'), 'REYZ']
+MATRIX_SHORT = ['起用・管理', '投稿活用', '表現チェック', 'REYZ']
 MATRIX = ('<div class="matrix reveal">\n'
     '            <div class="mx-head" aria-hidden="true">' + ''.join(f'<span{" class=\"rz\"" if i == 3 else ""}>{h}</span>' for i, h in enumerate(MATRIX_HEAD)) + '</div>\n' +
-    '\n'.join('            <div class="mx-row"><b class="k">' + k + '</b><div class="mx-cells">' + ''.join(f'<span{" class=\"rz\"" if i == 3 else ""}>{marks(v)}</span>' for i, v in enumerate(vs_)) + '</div></div>'
+    '\n'.join('            <div class="mx-row"><b class="k">' + k + '</b><div class="mx-cells">' + ''.join(f'<span{" class=\"rz\"" if i == 3 else ""} data-c="{MATRIX_SHORT[i]}">{marks(v)}</span>' for i, v in enumerate(vs_)) + '</div></div>'
               for k, vs_ in [
                   (jp('クリエイターを探す・分析する'), 'oxxx'),
                   (jp('投稿を集めて、活用する'), 'ooxx'),
