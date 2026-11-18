@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap">
-  <link rel="stylesheet" href="assets/site.f2891eb99b45b681.css">
+  <link rel="stylesheet" href="assets/site.0fd115ec1f2aba62.css">
   <link rel="stylesheet" href="assets/manual.6fb7db69009be2a7.css">
 </head>
 <body data-page="creator">
@@ -60,7 +60,20 @@
     <section class="section" id="income">
       <div class="wrap"><div class="section-text">
           <div class="head reveal"><p class="eyebrow">Your income</p><h2><span class="ph">6つの収益を、</span><span class="ph">ひとつの入口に。</span></h2></div>
-          <div class="income-experience reveal" data-income-experience><ol class="incomes">
+          <figure class="editorial-visual is-creator reveal">
+      <div class="editorial-film" data-editorial>
+        <img class="editorial-background" src="assets/editorial/creator-film.webp" width="1280" height="674" alt="" loading="lazy" decoding="async">
+        <div class="editorial-film-shade" aria-hidden="true"></div>
+        <div class="editorial-film-copy"><span class="tag">CREATOR / YOUR OWN WAY</span><h3>あなたらしさが、<br>仕事になっていく。</h3><p>配信も、映像も、作品も。<br>自分に合う入口から、次の可能性へ。</p></div>
+        <div class="editorial-device">
+          <div class="device-top" aria-hidden="true"><span>REY<span class="z">Z</span></span><span>YOUR STORY</span></div>
+          <div class="device-screen"><video id="creatorFilm" data-editorial-video data-src="assets/editorial/creator-film.mp4" poster="assets/editorial/creator-film.webp" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video></div>
+          <div class="device-foot" aria-hidden="true"><span>IMAGE FILM</span><span class="device-progress"></span><span>08 SEC</span></div>
+        </div>
+        <button class="video-toggle" type="button" data-editorial-toggle aria-controls="creatorFilm" aria-pressed="false" hidden>映像を再生</button>
+      </div>
+      <figcaption id="creatorCaption" class="editorial-caption"><span>イメージ映像</span><span>Footage: cottonbro studio / Pexels</span></figcaption>
+    </figure><div class="income-experience reveal" data-income-experience><ol class="incomes">
             <li><button type="button" class="income-choice" data-income="live" aria-pressed="true"><span class="n">01</span><b>ライブ配信</b><span class="v"><span class="ph">費用ゼロで、</span><span class="ph">立ち上げから。</span><span class="ph">報酬から引かない。</span></span></button></li>
             <li><button type="button" class="income-choice" data-income="product" aria-pressed="false"><span class="n">02</span><b>商品の紹介・販売</b><span class="v"><span class="ph">確認を通ったブランド商品の紹介と、</span><span class="ph">LIVEでの販売。</span></span></button></li>
             <li><button type="button" class="income-choice" data-income="campaign" aria-pressed="false"><span class="n">03</span><b>企業の案件</b><span class="v"><span class="ph">確認を通った案件だけが、</span><span class="ph">入口に届く。</span></span></button></li>
@@ -119,6 +132,7 @@
             </details>
           </div><div class="screens3 reveal">
             <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><p class="echo" aria-hidden="true">地図から、始める。</p></div>
+            <p class="sample-disclosure">操作の見本です。受注・契約・支払いは行われません。</p>
             <div class="demo" id="demoC" data-demo="creator">
               <div class="tabs" role="tablist" aria-label="3つの画面"><button class="tab" role="tab" type="button" id="dcT1" aria-controls="dcP1" aria-selected="true" data-t="map"><span class="tl">地図<i class="n" hidden></i></span></button><button class="tab" role="tab" type="button" id="dcT2" aria-controls="dcP2" aria-selected="false" tabindex="-1" data-t="gate"><span class="tl">入口<i class="n" hidden></i></span></button><button class="tab" role="tab" type="button" id="dcT3" aria-controls="dcP3" aria-selected="false" tabindex="-1" data-t="stmt"><span class="tl">明細<i class="n" hidden></i></span></button></div>
               <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>
@@ -131,7 +145,7 @@
                 </div>
                 <div class="pane" id="dcP2" role="tabpanel" aria-labelledby="dcT2" data-p="gate" tabindex="-1" hidden>
                   <p class="pane-cap">確認を通ったものだけが、届く。</p>
-                  <ul class="offers"><li class="offer"><b>案件</b><button class="take" type="button" aria-pressed="false" data-k="案件" data-v="full">受ける</button></li><li class="offer"><b>商品の紹介</b><button class="take" type="button" aria-pressed="false" data-k="商品の紹介" data-v="full">受ける</button></li><li class="offer"><b>LIVE支援</b><button class="take" type="button" aria-pressed="false" data-k="LIVE支援" data-v="zero">受ける</button></li></ul>
+                  <ul class="offers"><li class="offer"><div><b>案件</b><details class="offer-terms"><summary>確認する項目を見る</summary><dl><div><dt>制作物</dt><dd>新商品の紹介動画</dd></div><div><dt>利用範囲</dt><dd>媒体と期間を確認して合意</dd></div><div><dt>報酬</dt><dd>金額・支払日を確認して合意</dd></div><div><dt>REYZ手数料</dt><dd>報酬からの控除なし</dd></div></dl></details></div><button class="take" type="button" aria-pressed="false" data-k="案件" data-v="full">受ける</button></li><li class="offer"><b>商品の紹介</b><button class="take" type="button" aria-pressed="false" data-k="商品の紹介" data-v="full">受ける</button></li><li class="offer"><b>LIVE支援</b><button class="take" type="button" aria-pressed="false" data-k="LIVE支援" data-v="zero">受ける</button></li></ul>
                   <button class="go-btn" type="button" data-next="stmt">明細を見る</button>
                 </div>
                 <div class="pane" id="dcP3" role="tabpanel" aria-labelledby="dcT3" data-p="stmt" tabindex="-1" hidden>
@@ -168,17 +182,8 @@
     </section>
     <section class="section" id="compare">
       <div class="wrap"><div class="section-text">
-          <div class="head reveal"><p class="eyebrow">Compare</p><h2><span class="ph">ほかの進め方と、</span><span class="ph">くらべる。</span></h2></div>
-          <div class="vs reveal">
-            <div class="vs-head" aria-hidden="true"><span></span><span>ひとりで</span><span>ライブ配信の事務所で</span><span class="rz">REYZで</span></div>
-            <div class="vs-row"><b class="k">収益の入口</b><span class="c" data-c="ひとりで"><span class="t"><span class="ph">自分で、</span><span class="ph">ひとつずつ開く</span></span></span><span class="c" data-c="ライブ配信の事務所で"><span class="t"><span class="ph">ライブ配信が中心</span></span></span><span class="c rz" data-c="REYZで"><span class="t"><span class="ph">6つを、</span><span class="ph">ひとつの入口で</span></span></span></div>
-            <div class="vs-row"><b class="k">進め方</b><span class="c" data-c="ひとりで"><span class="t"><span class="ph">自分で調べて、</span><span class="ph">決める</span></span></span><span class="c" data-c="ライブ配信の事務所で"><span class="t"><span class="ph">配信を、</span><span class="ph">担当者と伸ばす</span></span></span><span class="c rz" data-c="REYZで"><span class="t"><span class="ph">目的から地図に。</span><span class="ph">変われば、</span><span class="ph">引き直す</span></span></span></div>
-            <div class="vs-row"><b class="k">出す前の確認</b><span class="c" data-c="ひとりで"><span class="t"><span class="ph">自分で確かめる</span></span></span><span class="c" data-c="ライブ配信の事務所で"><span class="t"><span class="ph">事務所による</span></span></span><span class="c rz" data-c="REYZで"><span class="t"><span class="ph">4つの法令に照らして、</span><span class="ph">確かめる</span></span></span></div>
-            <div class="vs-row"><b class="k">報酬からの手数料</b><span class="c" data-c="ひとりで"><span class="t"><span class="ph">なし</span></span></span><span class="c" data-c="ライブ配信の事務所で"><span class="t"><span class="ph">事務所による</span></span></span><span class="c rz" data-c="REYZで"><span class="t"><span class="ph">0</span></span></span></div>
-            <div class="vs-row"><b class="k">やめた後</b><span class="c" data-c="ひとりで"><span class="t"><span class="ph">—</span></span></span><span class="c" data-c="ライブ配信の事務所で"><span class="t"><span class="ph">契約による※</span></span></span><span class="c rz" data-c="REYZで"><span class="t"><span class="ph">制限なし</span></span></span></div>
-            <div class="vs-row"><b class="k">記録</b><span class="c" data-c="ひとりで"><span class="t"><span class="ph">サービスごとに、</span><span class="ph">分かれる</span></span></span><span class="c" data-c="ライブ配信の事務所で"><span class="t"><span class="ph">事務所による</span></span></span><span class="c rz" data-c="REYZで"><span class="t"><span class="ph">全部の収益をひとつに。</span><span class="ph">持ち出せる</span></span></span></div>
-            <p class="vs-note"><span class="ph">※ 公正取引委員会は2025年12月9日、</span><span class="ph">契約終了後の活動を制限していた</span><span class="ph">ライバー事務所4社に注意を行っています。</span></p>
-          </div>
+          <div class="head reveal"><p class="eyebrow">Your choice</p><h2><span class="ph">自分の未来を、</span><span class="ph">自分で選ぶ。</span></h2></div>
+          <div class="choice-grid reveal"><article><span class="choice-n">01 / CHOOSE</span><h3>入口を、選べる。</h3><p>配信、投稿、販売、企業の案件。<br>目的に合わせて、始める順番を決める。</p><a class="go" href="#path">自分の道を見る</a></article><article><span class="choice-n">02 / DECIDE</span><h3>条件を見て、決める。</h3><p>使われる場所、期間、報酬。<br>納得した仕事を、自分で選ぶ。</p><a class="go" href="#model">案件の入口を体験する</a></article><article><span class="choice-n">03 / KEEP</span><h3>続ける。変える。選べる。</h3><p>報酬からの手数料はゼロ。<br>やめた後も、配信を制限しない。<br>記録は、あなたのもの。</p><a class="go" href="#model">条件を確かめる</a></article></div>
       </div></div>
     </section>
     <section class="section" id="how">
@@ -210,7 +215,7 @@
   </footer>
 
   <script src="assets/field-renderer.f8196e8b303aaea5.js"></script>
-  <script src="assets/site.d509d6c0a53ed069.js"></script>
-  <script src="assets/experience.98e057d460184037.js"></script>
+  <script src="assets/site.e487f123bfd1cc61.js"></script>
+  <script src="assets/experience.1d9dc2592a8b1269.js"></script>
 </body>
 </html>
