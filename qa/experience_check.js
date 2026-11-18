@@ -28,7 +28,7 @@ function serve(req, res) {
   if (!fs.existsSync(file) && fs.existsSync(file + '.html')) file += '.html';
   if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end(); }
   const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
-    '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.woff': 'font/woff', '.woff2': 'font/woff2' };
+    '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.mp4': 'video/mp4', '.woff': 'font/woff', '.woff2': 'font/woff2' };
   res.writeHead(200, { 'Content-Type': mime[path.extname(file)] || 'application/octet-stream' });
   fs.createReadStream(file).pipe(res);
 }
@@ -80,24 +80,6 @@ async function controlsFit(page, selector, label) {
   }));
   check(label + ': controls at least 44px', sizes.length > 0 && sizes.every(r => r.width >= 44 && r.height >= 44), sizes);
   check(label + ': no horizontal overflow', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-}
-
-async function readablePhrase(page, phrase, label) {
-  const othersHidden = await page.locator('.cinematic .words b').evaluateAll((words, expected) =>
-    words.length === 3 && words.filter(word => word.textContent !== expected)
-      .every(word => getComputedStyle(word).visibility === 'hidden'), phrase);
-  check(label + ': outgoing words are hidden during the new fade-in', othersHidden);
-  await page.waitForFunction(expected => {
-    const words = [...document.querySelectorAll('.cinematic .words b')];
-    return words.length === 3 && words.every(word => {
-      const css = getComputedStyle(word);
-      return word.textContent === expected ? css.visibility === 'visible' && Number(css.opacity) >= 0.99 : css.visibility === 'hidden';
-    });
-  }, phrase);
-  const visible = await page.locator('.cinematic .words b').evaluateAll(words => words.filter(word => {
-    const css = getComputedStyle(word); return css.visibility === 'visible' && Number(css.opacity) > 0.01;
-  }).map(word => word.textContent));
-  check(label + ': one readable phrase without overlapping words', visible.length === 1 && visible[0] === phrase, visible);
 }
 
 // Layout evidence, separate from the behavioral assertions below. Capture this
@@ -176,65 +158,52 @@ async function creatorChoices(page, label) {
   await page.locator('[data-income-experience]').screenshot({ path: path.join(OUT, label + '-creator.png') });
 }
 
-async function cinematicChoices(page, label) {
+async function creativeContent(page, label) {
   await open(page, 'creative');
-  await click(page.locator('.hero-action[href="#show"]'));
-  const figure = page.locator('[data-cinematic]'), canvas = page.locator('.cinematic-canvas');
-  const scrub = page.locator('.cinematic-scrub'), toggle = page.locator('.cinematic-toggle');
-  await page.waitForFunction(() => document.querySelector('[data-cinematic]').dataset.material === 'ribbon');
-  const signatures = [];
-  for (const id of ['awareness', 'trust', 'action']) {
-    await click(page.locator('.type-choice[data-scene="' + id + '"]'));
-    await canvas.scrollIntoViewIfNeeded();
-    await page.waitForFunction(() => Number(document.querySelector('.cinematic-scrub').value) > 2);
-    check(label + ': ' + id + ' is the single selected composition',
-      await page.locator('.type-choice[aria-pressed="true"]').count() === 1
-      && await page.locator('.type-choice[data-scene="' + id + '"]').getAttribute('aria-pressed') === 'true');
-    check(label + ': ' + id + ' sequence is playing', await toggle.textContent() === '一時停止');
-    await click(toggle);
-    const stopped = await scrub.inputValue(); await page.waitForTimeout(180);
-    check(label + ': ' + id + ' stops at the chosen time', await toggle.textContent() === '再生する' && await scrub.inputValue() === stopped);
-    await scrub.focus(); await scrub.press('Home');
-    const beginning = await canvasState(canvas);
-    check(label + ': ' + id + ' keyboard seek reaches the start', await scrub.inputValue() === '0' && await figure.getAttribute('data-phase') === '1');
-    await readablePhrase(page, '誰に。', label + ': ' + id + ' beginning');
-    const track = await scrub.boundingBox();
-    await scrub.click({ position: { x: track.width * 0.5, y: track.height * 0.5 } });
-    const middle = Number(await scrub.inputValue());
-    check(label + ': ' + id + ' pointer seek changes the timeline', middle >= 40 && middle <= 60 && await figure.getAttribute('data-phase') === '2', middle);
-    await readablePhrase(page, '何を。', label + ': ' + id + ' middle');
-    await scrub.press('End');
-    const end = await canvasState(canvas); signatures.push(end.hash);
-    check(label + ': ' + id + ' end differs from its first composition', end.hash !== beginning.hash, { beginning: beginning.hash, end: end.hash });
-    check(label + ': ' + id + ' visibly contains the rendered ribbon', end.pink / end.samples > 0.01, end);
-    check(label + ': ' + id + ' final phrase and replay control are available',
-      await figure.getAttribute('data-phase') === '3' && await toggle.textContent() === 'もう一度再生');
-    await readablePhrase(page, 'どう動いてもらうか。', label + ': ' + id + ' end');
-    await page.locator('.showcase').screenshot({ path: path.join(OUT, label + '-' + id + '.png') });
-    report.scenes.push({ browser: label, id, ...end });
-    await click(toggle);
-    await page.waitForFunction(() => {
-      const value = Number(document.querySelector('.cinematic-scrub').value); return value > 2 && value < 95;
-    });
-    check(label + ': ' + id + ' can replay after reaching the end', await toggle.textContent() === '一時停止');
-  }
-  check(label + ': the three purposes have distinct visible compositions', new Set(signatures).size === 3, signatures);
-  await controlsFit(page, '.type-choice, .cinematic-toggle, .cinematic-scrub', label + ' creative');
+  const sections = await page.locator('main > section[id]').evaluateAll(nodes => nodes.map(node => node.id));
+  check(label + ': offers precede workflow and pricing', sections.indexOf('services') < sections.indexOf('guard') && sections.indexOf('guard') < sections.indexOf('gain'), sections);
+  check(label + ': duplicate pitch sections removed', !sections.includes('pain') && !sections.includes('compare'), sections);
+  await click(page.locator('.hero-action[href="#services"]'));
+  check(label + ': hero reaches actual offers', new URL(page.url()).hash === '#services' && await page.locator('#services .group').count() === 4);
+  const offers = page.locator('#services details');
+  check(label + ': all eleven concrete services remain available', await offers.count() === 11);
+  await click(offers.first().locator('summary'));
+  check(label + ': offer details open on request', await offers.first().getAttribute('open') !== null && /法律の鑑定ではありません/.test(await offers.first().innerText()));
+  await controlsFit(page, '#services details > summary', label + ' services');
+  await page.locator('#show').scrollIntoViewIfNeeded();
+  const film = page.locator('#show [data-editorial]');
+  check(label + ': production shown once without duplicated device mockup', await film.locator('video').count() === 1 && await page.locator('#show .editorial-device, #show [data-cinematic]').count() === 0);
+  check(label + ': footage is identified as illustrative', /イメージ映像/.test(await film.innerText()) && /Pexels/.test(await film.innerText()));
+  await film.screenshot({ path: path.join(OUT, label + '-production-film.png') });
 }
 
 async function panelDestinations(page, label) {
-  // The primary CTA now introduces the complete job. The scope CTA retains the
-  // focused expression-review journey; changing anchors must still select it.
+  const detail = page.locator('details.workflow-detail');
+  check(label + ': detailed expression review initially optional', await detail.count() === 1 && await detail.getAttribute('open') === null);
   await click(page.locator('.hero-action[href="#guard"]'));
-  check(label + ': hero action opens the full-cycle example', await page.locator('[data-cycle]').isVisible() && new URL(page.url()).hash === '#guard');
-  await click(page.locator('.offer-scope a[data-open-check]'));
-  check(label + ': scope check action opens the check panel', await page.locator('#deP2').isVisible() && new URL(page.url()).hash === '#decide');
-  const mapAsk = page.locator('.ask').filter({ has: page.locator('a[data-open-map]') });
-  await click(mapAsk.locator('summary')); await click(mapAsk.locator('a[data-open-map]'));
-  check(label + ': map action returns from check to the map panel', await page.locator('#deP1').isVisible() && await page.locator('#deT1').getAttribute('aria-selected') === 'true');
-  const checkAsk = page.locator('.ask').filter({ has: page.locator('a[data-open-check]') });
-  await click(checkAsk.locator('summary')); await click(checkAsk.locator('a[data-open-check]'));
-  check(label + ': issue-specific check action returns to check', await page.locator('#deP2').isVisible() && await page.locator('#deT2').getAttribute('aria-selected') === 'true');
+  check(label + ': workflow action reaches the complete case', await page.locator('[data-cycle]').isVisible() && new URL(page.url()).hash === '#guard');
+  await click(detail.locator(':scope > summary'));
+  check(label + ': detailed review opens with an actual map', await page.locator('#deP1').isVisible());
+  await click(page.locator('#demoE [data-next="check"]').first());
+  check(label + ': explicit check action selects check', await page.locator('#deP2').isVisible() && await page.locator('#deT2').getAttribute('aria-selected') === 'true');
+  await click(detail.locator(':scope > summary'));
+  check(label + ': detailed review can be folded again', await detail.getAttribute('open') === null && !await page.locator('#deP2').isVisible());
+  await page.goto(base + '/creative#decide', { waitUntil: 'load' });
+  await page.waitForFunction(() => document.querySelector('details.workflow-detail')?.open === true);
+  check(label + ': a direct link opens its folded destination', await page.locator('#demoE').isVisible());
+  // The opening handler schedules the anchor scroll for the next frame. Observe
+  // that result, without scrolling the destination into place from the test.
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const destination = await detail.locator(':scope > summary').evaluate(summary => {
+    const r = summary.getBoundingClientRect();
+    const header = document.querySelector('#siteHeader')?.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom, left: r.left, right: r.right,
+      headerBottom: Math.max(0, header?.bottom || 0), viewportWidth: innerWidth, viewportHeight: innerHeight };
+  });
+  check(label + ': direct-link summary is in the viewport below the fixed header',
+    destination.top >= destination.headerBottom - 1 && destination.bottom <= destination.viewportHeight + 1
+      && destination.left >= -1 && destination.right <= destination.viewportWidth + 1, destination);
+  check(label + ': a direct link does not approve the cycle', /未承認/.test(await page.locator('#cycleApproval').innerText()));
 }
 
 async function createMap(page, who) {
@@ -290,35 +259,59 @@ async function contactJourneys(page) {
 async function motionAndFailure(browser) {
   const context = await contextFor(browser, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
   const page = await context.newPage(); const errors = []; page.on('pageerror', error => errors.push(String(error)));
-  await open(page, 'creative'); await click(page.locator('.hero-action[href="#show"]'));
-  await page.waitForFunction(() => document.querySelector('[data-cinematic]').dataset.material === 'ribbon');
-  const scrub = page.locator('.cinematic-scrub');
-  check('reduce: begins at a complete still', await scrub.inputValue() === '100' && await page.locator('.cinematic-toggle').textContent() === '全体を見る');
-  const before = await canvasState(page.locator('.cinematic-canvas')); await page.waitForTimeout(250);
-  check('reduce: no autonomous canvas motion', (await canvasState(page.locator('.cinematic-canvas'))).hash === before.hash);
-  check('reduce: all three phrases remain readable', await page.locator('.cinematic .words b').evaluateAll(elements => elements.length === 3 && elements.every(el => {
-    const css = getComputedStyle(el); return Number(css.opacity) >= 0.99 && css.visibility === 'visible';
-  })));
-  await scrub.focus(); await scrub.press('Home');
-  check('reduce: explicit keyboard seeking still works', await scrub.inputValue() === '0');
-  await click(page.locator('.cinematic-toggle'));
-  check('reduce: full view restores the final composition', await scrub.inputValue() === '100');
-  await page.locator('.showcase').screenshot({ path: path.join(OUT, 'reduced-motion.png') });
-  check('reduce: no JavaScript errors', errors.length === 0, errors);
+  const mp4Requests = [];
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.toLowerCase().endsWith('.mp4')) {
+      mp4Requests.push({ method: request.method(), url: request.url() });
+    }
+  });
+  await open(page, 'index');
+  const film = page.locator('[data-brand-film]'), video = film.locator('video'), toggle = film.locator('button');
+  check('brand/reduce: one original brand film replaces the former infinity field', await film.count() === 1 && await page.locator('#infinity [data-word]').count() === 0);
+  const before = await video.evaluate(v => ({ paused: v.paused, time: v.currentTime, source: v.getAttribute('src'), poster: v.poster }));
+  await page.waitForTimeout(250);
+  const after = await video.evaluate(v => ({ paused: v.paused, time: v.currentTime, source: v.getAttribute('src') }));
+  check('brand/reduce: no automatic media download or playback', before.paused && after.paused && before.time === after.time && !after.source, { before, after });
+  check('brand/reduce: zero MP4 requests before explicit play', mp4Requests.length === 0, mp4Requests.slice());
+  const expectedRoutes = [
+    { path: 'creator', text: 'クリエイターの創造性を、続く収入に。' },
+    { path: 'creative', text: '企業の発信を、設計から確認まで。' },
+    { path: 'ai', text: 'AIを、安心して仕事に使える形に。' },
+  ];
+  const links = page.locator('#infinity .hero-route'), routeStates = [];
+  for (let i = 0; i < await links.count(); i++) {
+    const link = links.nth(i);
+    routeStates.push({ visible: await link.isVisible(), text: (await link.innerText()).replace(/\s+/g, ''),
+      path: new URL(await link.getAttribute('href'), page.url()).pathname.split('/').pop() });
+  }
+  check('brand/reduce: brand and all three business routes remain readable',
+    await page.locator('#infinity h1').isVisible() && routeStates.length === 3
+      && expectedRoutes.every((expected, i) => routeStates[i]?.visible
+        && routeStates[i].text === expected.text && routeStates[i].path === expected.path), routeStates);
+  await click(toggle);
+  await page.waitForFunction(() => { const v = document.querySelector('[data-brand-video]'); return !v.paused && v.readyState >= 2 && v.currentTime > 0; });
+  check('brand/reduce: explicit play decodes real 3D video', await video.evaluate(v => v.videoWidth >= 960 && v.videoHeight > 0 && v.muted && v.playsInline));
+  await click(toggle); const stopped = await video.evaluate(v => ({ paused: v.paused, time: v.currentTime }));
+  await page.waitForTimeout(250);
+  check('brand/reduce: explicit pause holds native video time', stopped.paused && await video.evaluate((v, time) => v.paused && Math.abs(v.currentTime - time) < 0.04, stopped.time));
+  await controlsFit(page, '[data-brand-toggle]', 'brand control');
+  await page.screenshot({ path: path.join(OUT, 'brand-reduced-motion.png') });
+  check('brand/reduce: no JavaScript errors', errors.length === 0, errors);
   await context.close();
 
   const fallback = await contextFor(browser, { viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
-  await fallback.route('**/brand/infinity-ribbon.webp', route => route.fulfill({ status: 200, contentType: 'image/webp', body: 'invalid-image-for-decoding-test' }));
+  await fallback.route('**/brand/infinity-motion.mp4', route => route.fulfill({ status: 200, contentType: 'video/mp4', body: 'invalid-video-for-decoding-test' }));
   const p = await fallback.newPage(), failures = []; p.on('pageerror', error => failures.push(String(error)));
-  await open(p, 'creative'); await click(p.locator('.hero-action[href="#show"]'));
-  const signatures = [];
-  for (const id of ['awareness', 'trust', 'action']) {
-    await click(p.locator('.type-choice[data-scene="' + id + '"]'));
-    const pixels = await canvasState(p.locator('.cinematic-canvas')); signatures.push(pixels.hash);
-    check('decode failure: ' + id + ' still renders', pixels.samples > 100 && pixels.range > 50);
-  }
-  check('decode failure: all compositions and controls remain usable', new Set(signatures).size === 3 && await p.locator('.cinematic-toggle').isVisible());
-  check('decode failure: no JavaScript errors', failures.length === 0, failures);
+  await open(p, 'index'); await click(p.locator('[data-brand-toggle]'));
+  await p.waitForFunction(() => document.querySelector('[data-brand-video]').error !== null);
+  check('brand/decode failure: failed playback exposes an honest still state', await p.locator('[data-brand-toggle]').isDisabled() && /静止画/.test(await p.locator('[data-brand-toggle]').innerText()));
+  check('brand/decode failure: poster actually decodes', await p.locator('[data-brand-video]').evaluate(async v => {
+    const image = new Image(); image.src = v.poster; try { await image.decode(); return image.naturalWidth >= 960; } catch { return false; }
+  }));
+  check('brand/decode failure: business navigation still works', await p.locator('#infinity .hero-route').first().isVisible());
+  await click(p.locator('#infinity .hero-route').first());
+  check('brand/decode failure: visitor reaches creator offer', /\/creator(?:\.html)?$/.test(new URL(p.url()).pathname));
+  check('brand/decode failure: no JavaScript errors', failures.length === 0, failures);
   await fallback.close();
 }
 
@@ -340,7 +333,7 @@ async function motionAndFailure(browser) {
     ]) {
       const context = await contextFor(browser, options), page = await context.newPage(), errors = [];
       page.on('pageerror', error => errors.push(String(error)));
-      await creatorChoices(page, label); await cinematicChoices(page, label); await panelDestinations(page, label);
+      await creatorChoices(page, label); await creativeContent(page, label); await panelDestinations(page, label);
       if (label === 'chromium-1440') await contactJourneys(page);
       check(label + ': no JavaScript errors', errors.length === 0, errors);
       report.browsers.push(label); await context.close();

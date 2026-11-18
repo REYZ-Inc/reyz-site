@@ -1,4 +1,5 @@
-// Real-browser FIELD acceptance. No renderer, shader, pixel, RAF or clock mocks.
+// Real-browser FIELD acceptance.
+// The home hero is native 3D video; /ai exercises the remaining particle renderer. No renderer, shader, pixel, RAF or clock mocks.
 // The fault cases only deny context creation; surviving contexts remain native.
 // Usage: node qa/field_check.js [SITE] [OUT]
 // Optional: BASE_URL=https://preview.example/ OUT_DIR=qa/out/field
@@ -243,7 +244,7 @@ async function runCase(browser, id, options, denied, action) {
     report.browsers.push({ engine: 'chromium', version: chrome.version() });
 
     await runCase(chrome, 'chromium-desktop', { viewport: { width: 1440, height: 900 } }, '', async (page, result) => {
-      await open(page, './');
+      await open(page, 'ai');
       const first = await measure(page, result, 'gpu'); visible(result, 'gpu', first);
       check(result, 'normal CI browser selects WebGL2 without fallback', first.state.renderer === 'webgl2' && !first.state.fallbackReason, first.state);
       await capture(page, result, 'gpu');
@@ -273,7 +274,7 @@ async function runCase(browser, id, options, denied, action) {
 
     const mobile = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
     await runCase(chrome, 'chromium-mobile', { ...mobile, reducedMotion: 'reduce' }, '', async (page, result) => {
-      await open(page, './');
+      await open(page, 'ai');
       const first = await measure(page, result, 'initial-reduced'); visible(result, 'initial-reduced', first);
       check(result, 'initial reduced preference is honored on a high-DPI canvas', first.state.reducedMotion && first.width === 780 && first.height === 1688, first);
       await stopped(page, result, 'initial-reduced'); await capture(page, result, 'initial-reduced');
@@ -295,13 +296,13 @@ async function runCase(browser, id, options, denied, action) {
     });
 
     await runCase(chrome, 'chromium-webgl1', { viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' }, 'webgl2', async (page, result) => {
-      await open(page, './');
+      await open(page, 'ai');
       const pixels = await measure(page, result, 'webgl1'); visible(result, 'webgl1', pixels);
       check(result, 'denying WebGL2 exercises actual WebGL1 shaders', pixels.state.renderer === 'webgl' && !pixels.state.fallbackReason, pixels.state);
       await stopped(page, result, 'webgl1-reduced');
     });
     await runCase(chrome, 'chromium-no-gpu', { ...mobile, reducedMotion: 'reduce' }, 'gpu', async (page, result) => {
-      await open(page, './');
+      await open(page, 'ai');
       const pixels = await measure(page, result, 'native-2d'); visible(result, 'native-2d', pixels);
       check(result, 'denying GPU contexts selects a real Canvas2D fallback', pixels.state.renderer === 'canvas2d' && pixels.state.fallbackReason === 'webgl-unavailable', pixels.state);
       await stopped(page, result, 'canvas2d-reduced'); await capture(page, result, 'native-2d');
@@ -313,7 +314,7 @@ async function runCase(browser, id, options, denied, action) {
 
     const wk = await webkit.launch(); browsers.push(wk); report.browsers.push({ engine: 'webkit', version: wk.version() });
     await runCase(wk, 'webkit-mobile', mobile, '', async (page, result) => {
-      await open(page, './');
+      await open(page, 'ai');
       const pixels = await measure(page, result, 'webkit'); visible(result, 'webkit', pixels);
       await capture(page, result, 'initial-normal');
       // Linux WebKit may expose no GPU context. Its native 2D fallback must still
