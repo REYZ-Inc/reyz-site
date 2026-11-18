@@ -70,7 +70,8 @@ node qa/typo_check.js > "$QA_OUT/typo.json"; rm -f site/__viewer_sim.html
 node -e 'const r = require(process.argv[1]); const n = Object.values(r).reduce((a, d) => a + d.darkTextElements.length, 0); console.log("dark text elements:", n); if (n) { console.log(JSON.stringify(r, null, 1)); process.exit(1); }' "$(pwd)/$QA_OUT/typo.json"
 
 echo "== secret / 除外文言スキャン"
-if grep -rEn "ghp_|github_pat_|sk-[A-Za-z0-9]{8}|AKIA[0-9A-Z]{12}|PRIVATE KEY" site build tools qa --include=*.html --include=*.js --include=*.css --include=*.py --include=*.sh | grep -v "qa/run_all.sh"; then echo "FAIL: secret らしき文字列"; exit 1; fi
+# A key prefix begins a token; CSS `mask-composite` is not an API key.
+if grep -rEn "ghp_|github_pat_|(^|[^A-Za-z0-9_])sk-[A-Za-z0-9]{8}|AKIA[0-9A-Z]{12}|PRIVATE KEY" site build tools qa --include=*.html --include=*.js --include=*.css --include=*.py --include=*.sh | grep -v "qa/run_all.sh"; then echo "FAIL: secret らしき文字列"; exit 1; fi
 if grep -rn "所属\|話してみる\|© 2026 REYZ\|人とAIの共生を前提に\|REYZの人とAIが共に" site/*.html; then echo "FAIL: 除外文言"; exit 1; fi
 # DEC-20261023-01: 状態語を書かない（本文・JS の文面とも）。2026-10-24 CEO: 「一枚」→「地図」、「ご担当者様」→「ご担当者」
 if grep -rn "開発中\|準備中\|先行導入\|順次\|予定\|一枚\|ご担当者様" site/*.html site/assets/site.js; then echo "FAIL: 状態語・却下語"; exit 1; fi

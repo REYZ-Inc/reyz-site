@@ -18,3 +18,4 @@
 | [0012](0012-browser-manual-download.md) | 配信マニュアルの名称・配色をブラウザ内でカスタマイズして保存する | 採用（2026-11-16 ユーザー実装指示） |
 | [0013](0013-authored-site-experience.md) | 独自のWebGL描画・CG素材・実原稿の閲覧を既存サイトの構造へ統合する | 採用（2026-11-16 ユーザー実装指示） |
 | [0014](0014-content-versioned-site-assets.md) | CSS・JavaScriptの6入口を内容hash付きURLで配信する | 採用（公開後に観測した版の不一致の是正） |
+| [0015](0015-customer-led-site-structure.md) | 顧客の判断順に全体構造を整理し、3D動画・実写・操作見本の役割を集約する | 採用（2026-11-18 ユーザー実装指示。公開はPRのマージ時） |

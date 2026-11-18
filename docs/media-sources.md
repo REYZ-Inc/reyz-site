@@ -1,10 +1,10 @@
 # Editorial media sources
 
-Verified: 2026-11-18 (JST session date).
+Stock footage sources verified: 2026-11-18 (JST session date).
 
-These files are licensed stock footage used as editorial imagery for the REYZ website. They are not REYZ client work, affiliated creators, employees, testimonials, or endorsements. The visible media caption must say `イメージ映像` or equivalent. Do not describe the people as REYZ members or infer their individual identities or nationalities.
+The first two entries are licensed stock footage used as editorial imagery for the REYZ website. They are not REYZ client work, affiliated creators, employees, testimonials, or endorsements. Their visible media captions must say `イメージ映像` or equivalent. Do not describe the people as REYZ members or infer their individual identities or nationalities. Original brand graphics are documented separately below.
 
-## License
+## Stock footage license
 
 - Primary license: https://www.pexels.com/license/
 - Pexels explicitly permits free use on websites and in promotion, and permits modification. Attribution is optional.
@@ -50,11 +50,70 @@ These files are licensed stock footage used as editorial imagery for the REYZ we
 | Video SHA-256 | `23e3b609c35828b964d3c4fdfdedeaec104293ad128504da8f93beedb88f88cb` |
 | Poster SHA-256 | `e27f0dcf33853a2e5e667981853b1cb1d5d1e8cc3e13b6b4d31ec3c806e62b8e` |
 
-## Delivery checks
+## Delivery checks for stock footage
 
 - Both MP4 files contain one H.264 video stream, 1280 × 674, 24 fps, 8.000 seconds, and no audio stream.
 - Posters were visually inspected and match the first frames of their videos.
 - Total delivered media: 1,179,491 bytes (approximately 1.18 MB).
 - Playback should use `muted playsinline loop` and a visible play/pause control. Prefer poster-first / lazy source loading, and do not autoplay when reduced motion is requested.
 - Source files are documentary stock-camera footage published in 2020 and 2021. They were not generated with an AI image or video model for this project.
+
+## Original 3D brand loop
+
+Created: 2026-11-18 UTC.
+
+| Field | Value |
+| --- | --- |
+| Local video | `site/assets/brand/infinity-motion.mp4` |
+| Local poster | `site/assets/brand/infinity-motion.webp` |
+| Scene source | `tools/render_brand.py` |
+| Reproduction helper | `tools/render_brand_motion.sh` |
+| Geometry and materials | Procedural continuous infinity ribbon, separate dark machined edge, satin pink metal based on `#F715AC`, black floor, white and pink area lighting |
+| Motion | A periodic five-second sequence of ribbon rotation and vertical movement, camera movement, and rim-light intensity changes |
+| Rendering | Blender 4.3.2, EEVEE Next, 16 render samples per frame, 120 independently rendered native frames |
+| Delivered video | 1280 × 720, 24 fps, 5.000 seconds, H.264 High, yuv420p, BT.709 color matrix, no audio, fast-start MP4 |
+| Poster | Encoded first video frame, WebP quality 90; same composition and color conversion as the video |
+| Video size | 441,582 bytes |
+| Poster size | 30,206 bytes |
+| Video SHA-256 | `c19abb3ba39a51c1e2fdf2df1c139f2ac24f0c0fb902c9c270f4856da91c0871` |
+| Poster SHA-256 | `51cdd3b22e2204ddac91819667ca522de37e1f0aa3bb1ddefdc400b2d7c6ee82` |
+
+This is an original procedural brand animation made from the repository's existing infinity scene. It uses no external 3D model, texture, stock footage, or generated human likeness. The established `infinity-ribbon.webp` still is preserved. Motion comes from the actual 3D scene; no still-image pan, synthesized in-between frames, or optical-flow interpolation is used. Its purpose is to give the established REYZ infinity mark a continuous, dimensional presence in the homepage hero.
+
+To reproduce it, install Blender 4.3.2, FFmpeg with libx264/libwebp, Python 3, and Pillow, then run from the repository root:
+
+```sh
+bash tools/render_brand_motion.sh /tmp/reyz-brand-motion
+```
+
+The helper renders sequentially to limit memory use. Interrupted renders can resume with `render_brand.py --start N --end M` while retaining `--frames 120 --width 1280 --samples 16`, then encode the completed sequence with:
+
+```sh
+bash tools/render_brand_motion.sh /tmp/reyz-brand-motion --encode-only
+```
+
+Delivery verification:
+
+- All 120 PNG sources passed image-integrity and 1280 × 720 dimension checks.
+- FFmpeg decoded the complete delivered video without errors; ffprobe counted exactly 120 video frames and no audio stream.
+- The MP4 `moov` atom precedes `mdat`, so playback does not require downloading the whole file first.
+- Native frames 0, 30, 60, and 90, and the final poster, were visually inspected for clean edges, material detail, composition, and cropping.
+- The native sequence's mean absolute 8-bit channel change at the loop join (119 → 0) was 0.7797, within the range of ordinary adjacent frames (0.6526–1.0342). All three resumed-render boundaries were also within that range.
+- The delivered video is approximately 0.44 MB, below the 2 MB delivery budget. Temporary outputs are fully decoded before replacing the final video and poster.
+
+## Original social-sharing brand cover
+
+| Field | Value |
+| --- | --- |
+| Local image | `site/assets/og-editorial.png` |
+| Input reference | Existing public REYZ cover, `site/assets/og-image.png` |
+| Creation | Imagegen edit using the existing cover as the image reference; exported with FFmpeg to exactly 1200 × 630, RGB PNG |
+| Prompt | `tools/prompts/og-editorial.txt` |
+| Visual | REYZ typography and a continuous pink sculptural infinity ribbon on a black studio background |
+| Use | Website Open Graph / social-sharing image only |
+| Dimensions | 1200 × 630 |
+| File size | 858,142 bytes |
+| SHA-256 | `66883f7eda0eec880e89cbc4ef5b8932cb41ca468a426b9ec6bfb0f4aecf48e6` |
+
+This is a generated brand illustration derived from the established public cover. It does not depict a client project, a person, product performance, an award, or a real photograph. The prompt explicitly excludes invented award marks, statistics, and people. It is separate from the procedurally rendered 3D website loop.
 

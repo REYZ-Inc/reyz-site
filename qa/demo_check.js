@@ -52,12 +52,12 @@ const EXPECT = {
     await Promise.all([p.waitForNavigation({ waitUntil: 'load' }), p.click('#demoC a.consult', { force: true })]); await p.waitForTimeout(300);
     out.consultC = await p.evaluate(() => ({ url: location.pathname, type: document.getElementById('cType').value, msg: document.getElementById('cMsg').value }));
     F(`${name}: creator demo → contact carries the map`, /contact/.test(out.consultC.url) && out.consultC.type === '活動・収益化の相談' && out.consultC.msg.includes('今いる場所: ' + EXPECT.creator.place));
-    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
+    await p.goto(base + 'creative.html#decide', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     F(`${name}: creator map does not leak into company demo`, await p.evaluate(() => !document.getElementById('demoE').classList.contains('has-map') && document.getElementById('dnFrom').hidden && !document.getElementById('dnHome').hidden));
     await p.goto(base + 'index.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     await pick('who', 'all', 'company'); await pick('goal', 'company', 'no'); await pick('focus', 'company', 'ops'); await pick('first', 'company', 'speed');
     F(`${name}: map → company screens link`, await p.evaluate(() => /^creative(\.html)?#decide$/.test(document.getElementById('mapScreens').getAttribute('href'))));
-    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
+    await p.goto(base + 'creative.html#decide', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     out.companyMap = await p.evaluate(() => ({ place: document.getElementById('dnPlace').innerText, step: document.getElementById('dnStep').innerText, goal: document.getElementById('dnGoal').innerText, from: document.getElementById('dnFrom').innerText }));
     F(`${name}: company map carried`, t(out.companyMap.place) === EXPECT.company.place && t(out.companyMap.step) === EXPECT.company.step && t(out.companyMap.goal) === EXPECT.company.goal && t(out.companyMap.from) === 'ホームで作った、あなたの地図。');
     F(`${name}: all visible controls >= 44px (company)`, await p.evaluate(() => Array.from(document.querySelectorAll('#demoE button')).filter(el => !el.closest('[hidden]')).every(el => { const r = el.getBoundingClientRect(); return r.height >= 44 && r.width >= 44; })));
@@ -84,14 +84,14 @@ const EXPECT = {
     await Promise.all([p.waitForNavigation({ waitUntil: 'load' }), p.click('#demoE a.consult', { force: true })]); await p.waitForTimeout(300);
     out.consultE = await p.evaluate(() => ({ url: location.pathname, type: document.getElementById('cType').value, msg: document.getElementById('cMsg').value }));
     F(`${name}: company demo → contact carries the map`, /contact/.test(out.consultE.url) && out.consultE.type === '目的の整理と進め方の相談' && out.consultE.msg.includes('最初の一歩: ' + EXPECT.company.step));
-    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
+    await p.goto(base + 'creative.html#decide', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     F(`${name}: no horizontal overflow`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     F(`${name}: no page errors`, errs.length === 0);
     await ctx.close();
   }
   // 5) motion 抑制: 待たずに結果が出る
   { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' }); const p = await ctx.newPage();
-    await p.goto(base + 'creative.html', { waitUntil: 'load' }); await p.waitForTimeout(2000);
+    await p.goto(base + 'creative.html#decide', { waitUntil: 'load' }); await p.waitForTimeout(2000);
     await p.evaluate(() => { document.querySelector('#demoE [data-next="check"]').click(); document.querySelector('#demoE .sample[data-s="no1"]').click(); });
     F('reduce: immediate stop', await p.evaluate(() => document.getElementById('demoE').dataset.run === 'stop' && !document.getElementById('deFix').hidden));
     await ctx.close(); }

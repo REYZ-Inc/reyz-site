@@ -2,8 +2,8 @@
 
 Website asset: blender -b --python tools/render_brand.py -- --out /tmp/reyz-frames --single 0
 The geometry, lighting and motion are original scene code, not stock footage.
-The published asset is a WebP still used in an interactive Canvas composition.
-Optional sequences are intermediate renders, not a claim of published video.
+The original WebP still and the native-frame MP4 loop share this scene.
+Use render_brand_motion.sh to render and encode the five-second website loop.
 """
 import argparse
 import math
@@ -29,13 +29,22 @@ parser.add_argument('--out', type=Path, required=True)
 parser.add_argument('--frames', type=int, default=120)
 parser.add_argument('--width', type=int, default=1440)
 parser.add_argument('--single', type=int)
+parser.add_argument('--samples', type=int, default=64,
+                    help='EEVEE samples per frame; the established still keeps 64 by default.')
+parser.add_argument('--start', type=int, default=0, help='First sequence frame, for resumable renders.')
+parser.add_argument('--end', type=int, help='Exclusive final sequence frame; defaults to --frames.')
 opt = parser.parse_args(args)
+if not 1 <= opt.samples <= 256:
+    parser.error('--samples must be between 1 and 256')
+if not 0 <= opt.start < opt.frames or (opt.end is not None and not opt.start < opt.end <= opt.frames):
+    parser.error('frame range must fit within --frames')
 opt.out.mkdir(parents=True, exist_ok=True)
 
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 scene = bpy.context.scene
 scene.render.engine = 'BLENDER_EEVEE_NEXT'
+scene.eevee.taa_render_samples = opt.samples
 scene.render.resolution_x = opt.width
 scene.render.resolution_y = round(opt.width * 9 / 16)
 scene.render.resolution_percentage = 100
@@ -146,7 +155,7 @@ camera_data.type = 'ORTHO'
 camera_data.ortho_scale = 8.7
 scene.camera = camera
 
-frames = [opt.single] if opt.single is not None else range(opt.frames)
+frames = [opt.single] if opt.single is not None else range(opt.start, opt.end or opt.frames)
 for frame in frames:
     phase = math.tau * frame / opt.frames
     ribbon.rotation_euler = (.07 * math.sin(phase), .075 * math.cos(phase), -.075)

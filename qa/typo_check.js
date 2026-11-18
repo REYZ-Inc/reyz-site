@@ -5,14 +5,6 @@ const { chromium } = require('playwright'); const path = require('path'); const 
   const shots = path.join(process.env.QA_OUT || 'qa/out', 'typography'); fs.mkdirSync(shots, { recursive: true });
   for (const f of ['__viewer_sim.html', 'index.html', 'creator.html', 'creative.html', 'ai.html', 'consensus.html', 'contact.html', 'manual.html', 'legal.html']) {
     const p = await b.newPage({ viewport: { width: 390, height: 844 } }); await p.goto('file://' + path.resolve('site/' + f), { waitUntil: 'load' }); await p.waitForTimeout(1200);
-    if (f === 'creative.html') {
-      // Inspect the observed dark-on-pink pair in its real expanded state.
-      const human = p.locator('.shift .bar.human');
-      await p.locator('details').filter({ has: human }).locator('summary').click();
-      await p.locator('.shift').scrollIntoViewIfNeeded();
-      await p.waitForFunction(() => Number(getComputedStyle(document.querySelector('.shift')).opacity) >= 0.99);
-      await p.locator('.shift').screenshot({ path: path.join(shots, 'creative-human-contrast.png'), animations: 'disabled' });
-    }
     out[f] = await p.evaluate(() => {
       const lum = c => { const m = c.match(/[\d.]+/g).map(Number); const a = m[3] === undefined ? 1 : m[3]; const [r, g, b] = m; return Math.round((0.2126 * r + 0.7152 * g + 0.0722 * b) * a); };
       // Resolve an opaque CSS background and measure actual text contrast.

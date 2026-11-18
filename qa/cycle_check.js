@@ -285,7 +285,7 @@ async function priceJourney(page, label) {
 }
 
 async function layoutChecks(page, label) {
-  for (const selector of ['[data-cycle]', '[data-gain]', '.offer-scope']) {
+  for (const selector of ['[data-cycle]', '[data-gain]', '#services']) {
     await page.locator(selector).scrollIntoViewIfNeeded();
     check(label + ': no horizontal overflow at ' + selector,
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -335,6 +335,48 @@ async function mediaJourney(page, name, label, reducedMotion = false) {
     await playing();
     check(label + '/' + name + ': initial visible playback decodes actual video',
       await video.evaluate(el => !el.paused && el.videoWidth > 0 && el.currentTime > 0));
+    // The film itself can leave the viewport while its large copy section is
+    // still visible. This must stop an active decoder without a pause click.
+    await video.evaluate(el => {
+      window.scrollTo({ top: scrollY + el.getBoundingClientRect().bottom + 12, behavior: 'instant' });
+    });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const outside = await region.evaluate(root => {
+      const v = root.querySelector('video[data-editorial-video]');
+      const film = v.getBoundingClientRect(), section = root.getBoundingClientRect();
+      return { videoTop: film.top, videoBottom: film.bottom, sectionTop: section.top,
+        sectionBottom: section.bottom, viewport: innerHeight, paused: v.paused, time: v.currentTime };
+    });
+    check(label + '/' + name + ': video is outside while its copy section remains visible',
+      outside.videoBottom <= 0 && outside.sectionBottom > 0 && outside.sectionTop < outside.viewport, outside);
+    await page.waitForFunction(index => document.querySelectorAll('video[data-editorial-video]')[index].paused,
+      i, { timeout: 5000 });
+    check(label + '/' + name + ': leaving the video viewport automatically pauses playback',
+      await video.evaluate(el => el.paused));
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const stoppedAt = await video.evaluate(el => el.currentTime);
+    await page.waitForTimeout(250);
+    const stopped = await video.evaluate(el => ({ paused: el.paused, time: el.currentTime }));
+    check(label + '/' + name + ': offscreen playback time remains stopped',
+      stopped.paused && Math.abs(stopped.time - stoppedAt) <= 0.01, { stoppedAt, stopped });
+    report.cases.push({ id: label + '/' + name + '/video-visibility', outside, stoppedAt, stopped });
+    await region.scrollIntoViewIfNeeded();
+    if (reducedMotion) {
+      // Re-entry is not another user play request when reduced motion is set.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      await page.waitForTimeout(250);
+      check(label + '/' + name + ': reduced motion does not restart on re-entry',
+        await video.evaluate(el => el.paused));
+      await region.getByRole('button', { name: '映像を再生', exact: true }).click();
+      await playing();
+    } else {
+      await page.waitForFunction(({ index, time }) => {
+        const v = document.querySelectorAll('video[data-editorial-video]')[index];
+        return !v.paused && v.readyState >= 2 && Math.abs(v.currentTime - time) > 0.02;
+      }, { index: i, time: stopped.time }, { timeout: 15000 });
+      check(label + '/' + name + ': normal re-entry automatically resumes decoded playback',
+        await video.evaluate((el, time) => !el.paused && Math.abs(el.currentTime - time) > 0.02, stopped.time));
+    }
     await region.getByRole('button', { name: '一時停止', exact: true }).click();
     await page.waitForFunction(index => document.querySelectorAll('video[data-editorial-video]')[index].paused, i);
     check(label + '/' + name + ': explicit pause is real', await video.evaluate(el => el.paused));
