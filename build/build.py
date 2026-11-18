@@ -230,7 +230,7 @@ def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     action_html = '<div class="hero-actions">' + ''.join(
         f'<a class="hero-action{" secondary" if n else ""}" href="{href}"'
         + (' data-consult-page' if href == 'contact.html' else ' data-open-check' if href == '#decide' else '')
-        + f'>{label}<span aria-hidden="true">↗</span></a>' for n, (href, label) in enumerate(actions)
+        + f'>{label}<span aria-hidden="true"></span></a>' for n, (href, label) in enumerate(actions)
     ) + '</div>' if actions else ''
     return f'''    <section class="chapter page-head" id="top">
       <div class="wrap chapter-stack">
