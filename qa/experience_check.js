@@ -223,9 +223,12 @@ async function cinematicChoices(page, label) {
 }
 
 async function panelDestinations(page, label) {
-  // Stay on the same page: changing the anchor must also change a previous tab.
-  await click(page.locator('.hero-action[data-open-check]'));
-  check(label + ': hero check action opens the check panel', await page.locator('#deP2').isVisible() && new URL(page.url()).hash === '#decide');
+  // The primary CTA now introduces the complete job. The scope CTA retains the
+  // focused expression-review journey; changing anchors must still select it.
+  await click(page.locator('.hero-action[href="#guard"]'));
+  check(label + ': hero action opens the full-cycle example', await page.locator('[data-cycle]').isVisible() && new URL(page.url()).hash === '#guard');
+  await click(page.locator('.offer-scope a[data-open-check]'));
+  check(label + ': scope check action opens the check panel', await page.locator('#deP2').isVisible() && new URL(page.url()).hash === '#decide');
   const mapAsk = page.locator('.ask').filter({ has: page.locator('a[data-open-map]') });
   await click(mapAsk.locator('summary')); await click(mapAsk.locator('a[data-open-map]'));
   check(label + ': map action returns from check to the map panel', await page.locator('#deP1').isVisible() && await page.locator('#deT1').getAttribute('aria-selected') === 'true');
