@@ -580,7 +580,7 @@
     const video = root.querySelector('video[data-editorial-video]');
     const button = root.querySelector('[data-editorial-toggle]');
     if (!video || !button) continue;
-    let visible = false, manuallyPaused = false, loading = false, failed = false;
+    let visible = false, manuallyPaused = false, failed = false;
     video.muted = true;
     const sync = () => {
       button.textContent = failed ? '静止画を表示' : video.paused ? '映像を再生' : '一時停止';
@@ -588,11 +588,10 @@
       root.classList.toggle('is-playing', !video.paused);
     };
     const play = async () => {
-      if (loading || failed) return;
-      loading = true;
+      if (failed) return;
       if (!video.getAttribute('src')) { video.src = video.dataset.src; video.load(); }
       try { await video.play(); } catch (_) { /* A browser may require a gesture; the button remains. */ }
-      loading = false; sync();
+      sync();
     };
     const automatic = () => {
       if (!visible || document.hidden || motion.matches || manuallyPaused || navigator.connection?.saveData) video.pause();

@@ -308,8 +308,9 @@ async function mediaJourney(page, name, label, reducedMotion = false) {
   const videos = page.locator('video[data-editorial-video]');
   check(label + '/' + name + ': editorial media exists', await videos.count() > 0);
   for (let i = 0; i < await videos.count(); i++) {
-    const video = videos.nth(i), toggle = page.locator('[data-editorial-toggle]').nth(i);
-    await video.scrollIntoViewIfNeeded();
+    const video = videos.nth(i), region = page.locator('[data-editorial]').nth(i);
+    const toggle = region.locator('[data-editorial-toggle]');
+    await region.scrollIntoViewIfNeeded();
     const initial = await video.evaluate(el => ({ poster: el.poster, muted: el.muted, inline: el.playsInline, autoplay: el.autoplay,
       paused: el.paused, width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height }));
     check(label + '/' + name + ': useful still and silent inline media', !!initial.poster && initial.muted && initial.inline && initial.width > 0 && initial.height > 0, initial);
@@ -324,18 +325,29 @@ async function mediaJourney(page, name, label, reducedMotion = false) {
     }
     const size = await toggle.boundingBox();
     check(label + '/' + name + ': media control is visible and touchable', await toggle.isVisible() && !!size && size.width >= 44 && size.height >= 44, size);
-    if (!(await video.evaluate(el => el.paused))) {
-      await toggle.click();
-      await page.waitForFunction(index => document.querySelectorAll('video[data-editorial-video]')[index].paused, i);
-    }
-    check(label + '/' + name + ': explicit pause is real', await video.evaluate(el => el.paused));
-    await toggle.click();
-    await page.waitForFunction(index => {
+    const playing = () => page.waitForFunction(index => {
       const v = document.querySelectorAll('video[data-editorial-video]')[index];
       return !v.paused && v.readyState >= 2 && v.currentTime > 0;
     }, i, { timeout: 15000 });
+    // Wait for a real initial state before issuing an action by its visible label.
+    // Reading paused and later blindly toggling races with IntersectionObserver.
+    if (reducedMotion) await region.getByRole('button', { name: '映像を再生', exact: true }).click();
+    await playing();
+    check(label + '/' + name + ': initial visible playback decodes actual video',
+      await video.evaluate(el => !el.paused && el.videoWidth > 0 && el.currentTime > 0));
+    await region.getByRole('button', { name: '一時停止', exact: true }).click();
+    await page.waitForFunction(index => document.querySelectorAll('video[data-editorial-video]')[index].paused, i);
+    check(label + '/' + name + ': explicit pause is real', await video.evaluate(el => el.paused));
+    // A deliberate stop must survive viewport exit and re-entry.
+    await page.locator('h1').scrollIntoViewIfNeeded();
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await region.scrollIntoViewIfNeeded();
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    check(label + '/' + name + ': manual pause survives re-entry', await video.evaluate(el => el.paused));
+    await region.getByRole('button', { name: '映像を再生', exact: true }).click();
+    await playing();
     check(label + '/' + name + ': user play decodes actual video', await video.evaluate(el => !el.paused && el.videoWidth > 0 && el.currentTime > 0));
-    await toggle.click();
+    await region.getByRole('button', { name: '一時停止', exact: true }).click();
     await page.waitForFunction(index => document.querySelectorAll('video[data-editorial-video]')[index].paused, i);
     check(label + '/' + name + ': pause after playback works', await video.evaluate(el => el.paused));
     check(label + '/' + name + ': media caption does not claim client work', /イメージ映像/.test(await page.locator('body').innerText()));
@@ -344,6 +356,73 @@ async function mediaJourney(page, name, label, reducedMotion = false) {
     await page.screenshot({ path: path.join(OUT, label + '-' + name + '-media.png') });
     report.screenshots.push(label + '-' + name + '-media.png');
   }
+}
+
+async function slowMediaReplay(browser) {
+  // Real Chromium, decoder and user clicks. Only the MP4 transport is delayed.
+  // Reduced motion keeps automatic playback out of this rapid-input regression.
+  const context = await contextFor(browser, { viewport: { width: 390, height: 844 },
+    isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+  await context.route('**/assets/editorial/*.mp4', async route => {
+    if (route.request().method() !== 'GET') {
+      report.mutationRequests.push({ url: route.request().url(), method: route.request().method() });
+      return route.abort();
+    }
+    await new Promise(resolve => setTimeout(resolve, 1800));
+    await route.continue();
+  });
+  const page = await context.newPage(), states = [];
+  try {
+    await open(page, 'creative');
+    const video = page.locator('video[data-editorial-video]').first();
+    const button = page.locator('[data-editorial-toggle]').first();
+    await button.scrollIntoViewIfNeeded();
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const state = async stage => {
+      const value = await video.evaluate(v => ({ paused: v.paused, readyState: v.readyState, time: v.currentTime }));
+      states.push({ stage, ...value }); return value;
+    };
+    check('slow mobile media: starts paused without an autoplay request',
+      (await state('before input')).paused && !(await video.getAttribute('src')));
+    const box = await button.boundingBox();
+    if (!box) throw new Error('Slow media control is not visible');
+    const press = () => page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await press();
+    check('slow mobile media: first request starts before decoding',
+      !(await state('play')).paused && states.at(-1).readyState < 2);
+    await press();
+    check('slow mobile media: stop interrupts the pending request', (await state('pause')).paused);
+    await press();
+    await state('replay');
+    await page.waitForFunction(() => {
+      const v = document.querySelector('video[data-editorial-video]');
+      return !v.paused && v.readyState >= 2 && v.currentTime > 0;
+    }, null, { timeout: 15000 });
+    const final = await state('decoded');
+    check('slow mobile media: latest replay is not lost', !final.paused && final.time > 0);
+    await page.getByRole('button', { name: '一時停止', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('video[data-editorial-video]').paused);
+    check('slow mobile media: final explicit stop wins', (await state('final stop')).paused);
+  } catch (error) {
+    await recordFailure(page, 'chromium-390', 'slow-media-replay', error);
+  } finally {
+    report.cases.push({ id: 'chromium-390/slow-media-replay', states });
+    await context.close();
+  }
+}
+
+async function recordFailure(page, label, name, error) {
+  report.fails.push(label + '/' + name + ': journey interrupted: ' + String(error.stack || error));
+  const file = (label + '-' + name).replace(/[^a-zA-Z0-9_-]/g, '-') + '-failure.png';
+  try { await page.screenshot({ path: path.join(OUT, file) }); report.screenshots.push(file); } catch (_) { /* Keep the original failure. */ }
+  try {
+    const media = await page.locator('[data-editorial]').evaluateAll(regions => regions.map(root => {
+      const v = root.querySelector('video'), b = root.querySelector('button');
+      return { paused: v?.paused, readyState: v?.readyState, currentTime: v?.currentTime,
+        error: v?.error?.message || null, button: b?.textContent, pressed: b?.getAttribute('aria-pressed') };
+    }));
+    report.cases.push({ id: label + '/' + name, mediaAtFailure: media });
+  } catch (_) { /* Keep the original failure even if its page has closed. */ }
 }
 
 (async () => {
@@ -366,7 +445,7 @@ async function mediaJourney(page, name, label, reducedMotion = false) {
       page.on('pageerror', error => errors.push(String(error)));
       const run = async (name, action) => {
         try { await action(); }
-        catch (error) { report.fails.push(label + '/' + name + ': journey interrupted: ' + String(error.stack || error)); }
+        catch (error) { await recordFailure(page, label, name, error); }
       };
       try {
         await open(page, 'creative');
@@ -384,7 +463,7 @@ async function mediaJourney(page, name, label, reducedMotion = false) {
     const page = await context.newPage();
     const reduced = async (name, action) => {
       try { await action(); }
-      catch (error) { report.fails.push('reduced-390/' + name + ': journey interrupted: ' + String(error.stack || error)); }
+      catch (error) { await recordFailure(page, 'reduced-390', name, error); }
     };
     try {
       await open(page, 'creative');
@@ -393,6 +472,7 @@ async function mediaJourney(page, name, label, reducedMotion = false) {
       await reduced('creator media', () => mediaJourney(page, 'creator', 'reduced-390', true));
     } catch (error) { report.fails.push('reduced-390: journey interrupted: ' + String(error.stack || error)); }
     finally { await context.close(); }
+    await slowMediaReplay(chrome);
     check('all sample journeys attempted no external mutation', report.mutationRequests.length === 0, report.mutationRequests);
   } catch (error) { report.fails.push('acceptance did not finish: ' + String(error.stack || error)); }
   finally {
