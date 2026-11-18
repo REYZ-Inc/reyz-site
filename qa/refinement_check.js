@@ -38,24 +38,35 @@ const server = http.createServer((req, res) => {
 });
 
 const browsers = [];
+const report = { sourceOverride, quick, checks: [], fails: [], cases: {} };
+const saveReport = () => fs.writeFileSync(path.join(OUTPUT, 'refinement.json'), JSON.stringify(report, null, 2));
+async function click(locator) {
+  await locator.scrollIntoViewIfNeeded();
+  // Keep normal actionability checks: initial scroll restoration, moving targets,
+  // overlays and hidden controls must settle or fail instead of being bypassed.
+  await locator.click({ timeout: 15000 });
+}
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
-  const report = { sourceOverride, quick, checks: [], fails: [], cases: {} };
   const check = (name, result, details) => { report.checks.push({ name, passed: !!result }); if (!result) report.fails.push({ name, details }); };
   const configurations = quick ? [['chromium-desktop', chromium, { width: 1440, height: 900 }]] : [['chromium-desktop', chromium, { width: 1440, height: 900 }], ['webkit-mobile', webkit, { width: 390, height: 844 }]];
   for (const [label, engine, viewport] of configurations) {
-    const browser = await engine.launch(); browsers.push(browser); const context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
-    const page = await context.newPage(), errors = [], mutations = [];
+    let browser, context, page;
+    const errors = [], mutations = [];
+    report.cases[label] = { completed: false, errors, mutations };
+    try {
+    browser = await engine.launch(); browsers.push(browser); context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
+    page = await context.newPage();
     page.on('pageerror', error => errors.push(String(error)));
     await context.route('**/*', route => { const request = route.request(); if (new URL(request.url()).origin === origin) return route.continue(); if (!['GET', 'HEAD'].includes(request.method())) mutations.push(request.url()); return route.abort(); });
     const open = async p => { release(); api.mode = 'ok'; api.turns.length = 0; api.contacts.length = 0; await page.goto(origin + p, { waitUntil: 'load' }); };
-    const pick = async (q, aud, value) => page.locator(`.mq[data-q="${q}"][data-for="${aud}"] .opt[data-v="${value}"]`).click({ force: true });
+    const pick = async (q, aud, value) => click(page.locator(`.mq[data-q="${q}"][data-for="${aud}"] .opt[data-v="${value}"]`));
     const creator = async () => { await pick('who', 'all', 'creator'); for (const [q,v] of [['goal','yes'],['place','yes'],['style','live'],['make','share'],['value','last']]) await pick(q,'creator',v); await page.waitForFunction(() => !document.getElementById('mapTalk').hidden); };
     const company = async () => { await pick('who','all','company'); for (const [q,v] of [['goal','yes'],['focus','ops'],['first','speed']]) await pick(q,'company',v); };
     const waitCount = async (key, n) => { const until = Date.now() + 3000; while (api[key].length < n && Date.now() < until) await page.waitForTimeout(20); if (api[key].length < n) throw new Error(`${key}: request not received`); };
-    const sendTalk = async text => { await page.fill('#talkInput', text); await page.click('#talkSend', { force: true }); await waitCount('turns', 1); };
-    const fillContact = async text => { await page.fill('#cName','検証'); await page.fill('#cEmail','review@example.test'); await page.selectOption('#cType',{ label:'活動・収益化の相談' }); await page.fill('#cMsg',text); await page.click('#confirmBtn',{ force:true }); };
+    const sendTalk = async text => { await page.fill('#talkInput', text); await click(page.locator('#talkSend')); await waitCount('turns', 1); };
+    const fillContact = async text => { await page.fill('#cName','検証'); await page.fill('#cEmail','review@example.test'); await page.selectOption('#cType',{ label:'活動・収益化の相談' }); await page.fill('#cMsg',text); await click(page.locator('#confirmBtn')); };
 
     // An old request must not change the new audience's map or conversation.
     await open('/index.html'); await creator(); api.mode = 'hold'; await sendTalk('クリエイターとして配信したい');
@@ -69,25 +80,25 @@ const browsers = [];
     await open('/index.html'); await creator(); api.mode = 'fail'; const question = '週末だけ活動する場合の進め方を相談したい'; await sendTalk(question);
     await page.waitForFunction(() => !document.getElementById('mapTalk').classList.contains('is-busy'));
     check(label + '/failed question restored to input', await page.inputValue('#talkInput') === question);
-    await Promise.all([page.waitForURL('**/contact'), page.click('#mapGo', { force: true })]);
+    await Promise.all([page.waitForURL('**/contact'), click(page.locator('#mapGo'))]);
     check(label + '/unanswered question included in consultation', (await page.inputValue('#cMsg')).includes(question));
     await open('/index.html'); await creator(); const draft = 'この条件も相談に含めてください'; await page.fill('#talkInput',draft);
-    await Promise.all([page.waitForURL('**/contact'), page.click('#mapGo',{ force:true })]);
+    await Promise.all([page.waitForURL('**/contact'), click(page.locator('#mapGo'))]);
     check(label + '/unsent draft included in consultation', (await page.inputValue('#cMsg')).includes(draft));
     check(label + '/consultation does not send draft to model', api.turns.length === 0);
 
     // Moving through a service page must preserve the person's own words too.
     await open('/index.html'); await creator(); const viaPage = 'サービスを見た後もこの相談文を残してほしい'; await page.fill('#talkInput',viaPage);
-    await Promise.all([page.waitForURL('**/creator#model'), page.click('#mapScreens',{ force:true })]);
-    await Promise.all([page.waitForURL('**/contact'), page.locator('[data-consult-page]').last().click({ force:true })]);
+    await Promise.all([page.waitForURL('**/creator#model'), click(page.locator('#mapScreens'))]);
+    await Promise.all([page.waitForURL('**/contact'), click(page.locator('[data-consult-page]').last())]);
     check(label + '/service page preserves the Home conversation', (await page.inputValue('#cMsg')).includes(viaPage));
 
     // The normal header / mobile menu is an equally valid route to the service page.
     await open('/index.html'); await creator(); const viaHeader = '通常メニューから移動しても残す相談文'; await page.fill('#talkInput',viaHeader);
-    if (viewport.width < 760) await page.locator('#menuBtn').click();
+    if (viewport.width < 760) await click(page.locator('#menuBtn'));
     const headerCreator = page.locator(viewport.width < 760 ? '#sheet a[href="creator"]' : '#siteHeader .nav a[href="creator"]');
-    await Promise.all([page.waitForURL('**/creator'), headerCreator.click()]);
-    await Promise.all([page.waitForURL('**/contact'), page.locator('[data-consult-page]').last().click({ force:true })]);
+    await Promise.all([page.waitForURL('**/creator'), click(headerCreator)]);
+    await Promise.all([page.waitForURL('**/contact'), click(page.locator('[data-consult-page]').last())]);
     check(label + '/normal navigation preserves the Home draft', (await page.inputValue('#cMsg')).includes(viaHeader));
     check(label + '/normal navigation never submits the Home draft', api.turns.length === 0);
 
@@ -95,18 +106,18 @@ const browsers = [];
     await open('/contact.html'); const longBody = '相談したいこと。'.repeat(800);
     await page.evaluate(body => sessionStorage.setItem('reyz.map',JSON.stringify({ type:'活動・収益化の相談',body })),longBody);
     await page.reload({ waitUntil:'load' }); await page.fill('#cName','検証'); await page.fill('#cEmail','review@example.test');
-    await page.click('#confirmBtn',{ force:true });
+    await click(page.locator('#confirmBtn'));
     check(label + '/long handoff is not silently truncated', (await page.inputValue('#cMsg')).trim() === longBody);
     check(label + '/long handoff requires correction before sending', await page.evaluate(() => document.getElementById('stepConfirm').hidden && /5,000/.test(document.getElementById('cMsg').validationMessage)));
 
     // The visitor's explicit route is intent; simulated deals and verdicts are not.
-    await open('/creator.html'); await page.locator('.path-goal').last().click({ force: true });
+    await open('/creator.html'); await click(page.locator('.path-goal').last());
     const selectedGoal = (await page.locator('.path-goal[aria-pressed="true"]').textContent()).trim();
-    await Promise.all([page.waitForURL('**/contact'), page.locator('#path [data-consult-page]').click({ force: true })]);
+    await Promise.all([page.waitForURL('**/contact'), click(page.locator('#path [data-consult-page]'))]);
     check(label + '/chosen path reaches consultation', (await page.inputValue('#cMsg')).includes(selectedGoal), { selectedGoal, message: await page.inputValue('#cMsg') });
 
     // Confirmation and sending are one in-flight operation, even if Back / Enter arrives.
-    await open('/contact.html'); await fillContact('二重操作の検証'); api.mode = 'hold'; await page.click('#sendBtn',{ force:true }); await waitCount('contacts',1);
+    await open('/contact.html'); await fillContact('二重操作の検証'); api.mode = 'hold'; await click(page.locator('#sendBtn')); await waitCount('contacts',1);
     const backLocked = await page.locator('#backBtn').isDisabled();
     await page.evaluate(() => { document.getElementById('contactForm').requestSubmit(); document.getElementById('sendBtn').dispatchEvent(new MouseEvent('click',{ bubbles:true })); });
     await page.waitForTimeout(100); check(label + '/send cannot be re-entered', api.contacts.length === 1 && backLocked, { requests: api.contacts.length, backLocked });
@@ -116,7 +127,7 @@ const browsers = [];
     check(label + '/successful response completes once', api.contacts.length === 1);
 
     // A lost response may follow acceptance. Do not automatically send the message again.
-    await open('/contact.html'); await fillContact('通信切断の検証'); api.mode = 'network'; await page.click('#sendBtn',{ force:true }); await waitCount('contacts',1); await page.waitForTimeout(1800);
+    await open('/contact.html'); await fillContact('通信切断の検証'); api.mode = 'network'; await click(page.locator('#sendBtn')); await waitCount('contacts',1); await page.waitForTimeout(1800);
     const delivery = await page.evaluate(() => ({ status: document.getElementById('sendStatus').textContent, fallback: !document.getElementById('copyLabel').hidden, done: !document.getElementById('stepDone').hidden, disabled: document.getElementById('sendBtn').disabled }));
     check(label + '/lost response is not resent automatically', api.contacts.length === 1, { requests: api.contacts.length });
     check(label + '/ambiguous delivery is stated honestly with recovery', /結果|確認でき/.test(delivery.status) && delivery.fallback && !delivery.done && !delivery.disabled, delivery);
@@ -128,13 +139,13 @@ const browsers = [];
       release(); await page.waitForTimeout(100);
       check(label + '/late AI reply after deadline cannot change map', !(await page.locator('#mapGoal').textContent()).includes('古い応答'));
       // Native wall time: a server that never finishes must not freeze the form indefinitely.
-      await open('/contact.html'); await fillContact('応答期限の検証'); api.mode = 'hold'; const started = Date.now(); await page.click('#sendBtn',{ force:true }); await waitCount('contacts',1);
+      await open('/contact.html'); await fillContact('応答期限の検証'); api.mode = 'hold'; const started = Date.now(); await click(page.locator('#sendBtn')); await waitCount('contacts',1);
       await page.waitForFunction(() => !document.getElementById('copyLabel').hidden && !document.getElementById('sendBtn').disabled, null, { timeout: 25000 }).catch(() => {});
       const timeout = await page.evaluate(() => ({ note: document.getElementById('sendStatus').textContent, waiting: document.getElementById('sendBtn').disabled, done: !document.getElementById('stepDone').hidden, preserved: document.getElementById('cMsg').value }));
       check(label + '/bounded wait retains message and recovery', !timeout.waiting && !timeout.done && timeout.preserved === '応答期限の検証' && /結果|確認でき/.test(timeout.note), timeout);
       check(label + '/timeout does not claim receipt was cancelled', !/取り消しました|キャンセルしました/.test(timeout.note));
       check(label + '/timeout never retries automatically', api.contacts.length === 1);
-      report.cases[label] = { timeoutMilliseconds: Date.now() - started, errors, mutations };
+      report.cases[label].timeoutMilliseconds = Date.now() - started;
       release(); await page.waitForTimeout(100);
       check(label + '/late timeout response cannot show success', await page.locator('#stepDone').isHidden());
     }
@@ -144,7 +155,7 @@ const browsers = [];
     await open('/contact.html');
     await page.screenshot({ path: path.join(OUTPUT, label + '-contact-initial.png') });
     if (viewport.width < 760) {
-      await page.locator('#menuBtn').click();
+      await click(page.locator('#menuBtn'));
       await page.screenshot({ path: path.join(OUTPUT, label + '-mobile-menu.png') });
       await page.keyboard.press('Escape');
     }
@@ -155,13 +166,33 @@ const browsers = [];
     const layout = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth }));
     check(label + '/404 has no horizontal overflow', layout.scroll <= layout.width + 1, layout);
     await page.screenshot({ path: path.join(OUTPUT, label + '-404.png') });
-    await Promise.all([page.waitForURL(origin + '/'), home.click()]);
+    await Promise.all([page.waitForURL(origin + '/'), click(home)]);
     check(label + '/404 Home return opens the homepage', await page.locator('#mapper').count() === 1 && new URL(page.url()).pathname === '/');
 
     check(label + '/no external mutation requests', mutations.length === 0, mutations);
     check(label + '/no browser errors', errors.length === 0, errors);
-    await context.close(); await browser.close();
+    report.cases[label].completed = true;
+    } catch (error) {
+      check(label + '/journey completed', false, String(error.stack || error));
+      report.cases[label].error = String(error.stack || error);
+    } finally {
+      if (page && !page.isClosed()) {
+        report.cases[label].lastUrl = page.url();
+        if (!report.cases[label].completed) {
+          const file = label + '-failure.png';
+          try { await page.screenshot({ path: path.join(OUTPUT, file), timeout: 10000 }); report.cases[label].failureScreenshot = file; }
+          catch (error) { report.cases[label].screenshotError = String(error); }
+          try { report.cases[label].failureViewport = await page.evaluate(() => ({ scrollX, scrollY, width: innerWidth, height: innerHeight, activeElement: document.activeElement?.id || '', page: document.body.dataset.page })); }
+          catch (error) { report.cases[label].snapshotError = String(error); }
+        }
+      }
+      saveReport();
+      release();
+      if (context) await context.close();
+      if (browser) await browser.close();
+    }
   }
-  fs.writeFileSync(path.join(OUTPUT, 'refinement.json'), JSON.stringify(report, null, 2));
-  console.log(JSON.stringify(report, null, 2)); if (report.fails.length) process.exitCode = 1;
-})().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { release(); server.closeAllConnections(); server.close(); await Promise.allSettled(browsers.map(browser => browser.close())); });
+})().catch(error => { report.fails.push({ name: 'test harness', details: String(error.stack || error) }); process.exitCode = 1; }).finally(async () => {
+  saveReport(); console.log(JSON.stringify(report, null, 2)); if (report.fails.length) process.exitCode = 1;
+  release(); server.closeAllConnections(); server.close(); await Promise.allSettled(browsers.map(browser => browser.close()));
+});

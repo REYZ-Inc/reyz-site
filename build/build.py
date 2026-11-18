@@ -945,7 +945,7 @@ with open(os.path.join(ROOT, 'works.html'), 'w', encoding='utf-8') as f:
 ''')
 
 # ------------------------------------------------------------------ 公開用の付属ファイル
-not_found = title_chapter('loop', 'Not found', 'ページが見つかりません。', jp('URL が変わったか、|存在しないページです。')) + \
+not_found = title_chapter('loop', 'Not found', 'ページが<br>見つかりません。', jp('URL が変わったか、|存在しないページです。')) + \
     '    <section class="section" id="back"><div class="wrap"><div class="section-text"><h2 class="sr-only">戻る</h2><p class="more reveal"><a class="go" href="index.html">ホームへ</a></p></div></div></section>\n'
 page('404.html', 'Not found — REYZ Inc.', 'ページが見つかりません。', not_found)
 PAGES.remove('404.html')

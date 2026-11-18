@@ -1298,6 +1298,7 @@ body[data-page="contact"] #form, body[data-page="legal"] #notices {
   padding-top: 3rem;
 }
 body[data-page="contact"] #form .head h2 { font-size: clamp(1.6rem, 2.8vw, 2.2rem); }
+body[data-page="404"] .page-head h1 { font-size: clamp(1.5rem, 3.4vw, 2.5rem); }
 body[data-page="404"] #back { border-top: 0; padding-top: 0; }
 body[data-page="404"] #back .section-text { max-width: 44rem; }
 body[data-page="404"] #back .more { margin-top: 0; }
