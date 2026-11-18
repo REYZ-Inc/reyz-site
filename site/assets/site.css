@@ -1382,9 +1382,13 @@ body[data-page="creative"] #guard .head h2 { font-size: clamp(2.1rem, 4.5vw, 4.2
   .editorial-device { right: 8%; width: 25%; }
   .is-creator .editorial-film-copy { max-width: 55%; padding-left: 1.6rem; }
   .is-production .editorial-film-copy { max-width: 42%; padding-left: 1.6rem; }
-  .is-creator .editorial-film-copy h3 { font-size: 2.4rem; }
-  .is-production .editorial-film-copy h3 { font-size: 2rem; }
+  .is-creator .editorial-film-copy h3 { font-size: clamp(1.75rem, 4.6vw, 2.4rem); }
+  .is-production .editorial-film-copy h3 { font-size: clamp(1.6rem, 3.8vw, 2rem); }
   .cycle-device { width: min(74%, 205px); }
+}
+@media (min-width: 601px) and (max-width: 820px) {
+  .is-production .editorial-film-copy p { text-wrap: balance; }
+  .is-production .editorial-film-copy p br { display: none; }
 }
 @media (max-width: 600px) {
   .editorial-visual.is-creator .editorial-film, .editorial-film.is-creator { min-height: 760px; aspect-ratio: auto; }
