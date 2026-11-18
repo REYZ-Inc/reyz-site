@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap">
-  <link rel="stylesheet" href="assets/site.69f279bcd3001caf.css">
+  <link rel="stylesheet" href="assets/site.1ec96786cc2b0c20.css">
 </head>
 <body data-page="creative">
   <a class="skip" href="#main">本文へ移動</a>
@@ -67,6 +67,28 @@
           </div></div></details>
             <details class="ask"><summary><span class="n">03</span><span class="q"><span class="ph">提案や選択肢が多すぎて、</span><span class="ph">会議のたびに「結局どちらに進むか」を</span><span class="ph">決めきれず、</span><span class="ph">速度が落ちている。</span></span></summary><div class="ask-body"><p><span class="ph">判断の材料を地図にして、</span><span class="ph">「はい」か「いいえ」で決められる形に。</span></p><a class="go" href="#decide" data-open-map>地図を見る</a></div></details>
             <details class="ask"><summary><span class="n">04</span><span class="q"><span class="ph">案件の表現チェック</span><span class="ph">（ステマ規制・景表法）を</span><span class="ph">人手でやっていて、</span><span class="ph">量に追いつかない。</span></span></summary><div class="ask-body"><p><span class="ph">公開前に複数のAIが確かめ、</span><span class="ph">人が決め、</span><span class="ph">記録が残ります。</span></p><a class="go" href="#decide" data-open-check>確認を試す</a></div></details>
+          </div>
+      </div></div>
+    </section>
+    <section class="section" id="gain">
+      <div class="wrap"><div class="section-text">
+          <div class="head reveal"><p class="eyebrow">Your margin</p><h2><span class="ph">人を増やさずに、</span><span class="ph">利益を残す。</span></h2></div>
+          <div class="gain reveal" data-gain>
+            <div class="gain-in">
+              <div class="gain-f"><label for="gainN">月に出す本数</label><output id="gainNo" for="gainN">30本</output><input type="range" id="gainN" min="5" max="100" step="5" value="30"></div>
+              <div class="gain-f"><label for="gainM">1本あたりの確認と管理</label><output id="gainMo" for="gainM">60分</output><input type="range" id="gainM" min="10" max="120" step="5" value="60"></div>
+              <div class="gain-f"><label for="gainW">担当者の1時間あたりの費用</label><output id="gainWo" for="gainW">5,000円</output><input type="range" id="gainW" min="2000" max="10000" step="500" value="5000"></div>
+            </div>
+            <dl class="gain-out" aria-live="polite">
+              <div><dt>いま、確認と管理に</dt><dd id="gainNow">月30時間・150,000円</dd></div>
+              <div><dt>REYZの利用料</dt><dd id="gainFee">月62,500円</dd></div>
+              <div class="even"><dt>元が取れるのは</dt><dd id="gainEven"><span class="ph">1本あたり25分、</span><span class="ph">短くなったとき</span></dd></div>
+            </dl>
+            <p class="gain-cap"><span class="ph">月額50,000円で、</span><span class="ph">20本まで。</span><span class="ph">21本目からは、</span><span class="ph">1本1,250円。</span><br><span class="ph">公開前の確認は、</span><span class="ph">月30件まで無料です。</span></p>
+            <div class="gain-split">
+              <div class="gs gs-auto"><p class="gs-h">人の手を離れること</p><ul><li><span class="ph">4つの法令への照合</span></li><li><span class="ph">複数のAIによる確認</span></li><li><span class="ph">条件が変わったときの、</span><span class="ph">承認の取り消し</span></li><li><span class="ph">利用期限と、</span><span class="ph">停止の追跡</span></li><li><span class="ph">決定ごとの記録</span></li><li><span class="ph">報酬の明細</span></li></ul></div>
+              <div class="gs gs-human"><p class="gs-h">人が決めること</p><ul><li><span class="ph">条件への合意</span></li><li><span class="ph">最後の「はい」か「いいえ」</span></li><li><span class="ph">支払い</span></li></ul></div>
+            </div>
           </div>
       </div></div>
     </section>
@@ -154,6 +176,41 @@
           </div>
       </div></div>
     </section>
+    <section class="section" id="guard">
+      <div class="wrap"><div class="section-text">
+          <div class="head reveal"><p class="eyebrow">Autopilot</p><h2><span class="ph">起きたことに、</span><span class="ph">自動で応える。</span></h2></div>
+          <div class="guard reveal" data-guard>
+            <div class="sheet-head"><p class="eyebrow">Autopilot · 設計上の見本（例）</p></div>
+            <div class="guard-ev" role="group" aria-label="起きること"><button type="button" class="guard-b" data-ev="expire" aria-pressed="true">利用期限が来る</button><button type="button" class="guard-b" data-ev="terms" aria-pressed="false">契約の条件が変わる</button><button type="button" class="guard-b" data-ev="asset" aria-pressed="false">動画が差し替わる</button><button type="button" class="guard-b" data-ev="net" aria-pressed="false">通信が途切れる</button></div>
+            <div class="guard-card">
+              <ol class="guard-line" aria-hidden="true"><li data-s="約束">約束</li><li data-s="承認">承認</li><li data-s="広告">広告</li><li data-s="期限">期限</li><li data-s="停止">停止</li></ol>
+              <div class="guard-res is-on" data-ev="expire" data-at="停止"><p class="ev">利用期限が来る</p><p class="do"><span class="ph">止まったと確認できるまで、</span><span class="ph">追い続ける。</span></p><p class="why"><span class="ph">確認できない間は「停止未確認」と表示し、</span><span class="ph">済んだことにしません。</span></p></div>
+              <div class="guard-res" data-ev="terms" data-at="承認"><p class="ev">契約の条件が変わる</p><p class="do"><span class="ph">関係する承認を、</span><span class="ph">無効にする。</span></p><p class="why"><span class="ph">全員の合意がそろうまで、</span><span class="ph">新しい条件では進めません。</span></p></div>
+              <div class="guard-res" data-ev="asset" data-at="承認"><p class="ev">動画が差し替わる</p><p class="do"><span class="ph">前の版への承認は、</span><span class="ph">使えない。</span></p><p class="why"><span class="ph">確認からやり直し、</span><span class="ph">承認を取り直します。</span></p></div>
+              <div class="guard-res" data-ev="net" data-at="広告"><p class="ev">通信が途切れる</p><p class="do"><span class="ph">結果が分かるまで、</span><span class="ph">送り直さない。</span></p><p class="why"><span class="ph">同じ広告を、</span><span class="ph">二重に出しません。</span></p></div>
+            </div>
+          </div>
+      </div></div>
+    </section>
+    <section class="section" id="compare">
+      <div class="wrap"><div class="section-text">
+          <div class="head reveal"><p class="eyebrow">Compare</p><h2><span class="ph">ほかの道具と、</span><span class="ph">くらべる。</span></h2></div>
+          <div class="matrix reveal">
+            <div class="mx-head" aria-hidden="true"><span><span class="ph">起用・</span><span class="ph">管理の道具</span></span><span><span class="ph">投稿活用の</span><span class="ph">道具</span></span><span><span class="ph">表現チェックの</span><span class="ph">道具</span></span><span class="rz">REYZ</span></div>
+            <div class="mx-row"><b class="k"><span class="ph">クリエイターを探す・分析する</span></b><div class="mx-cells"><span><i class="m on"></i><span class="sr-only">できる</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span class="rz"><i class="m off"></i><span class="sr-only">対象外</span></span></div></div>
+            <div class="mx-row"><b class="k"><span class="ph">投稿を集めて、</span><span class="ph">活用する</span></b><div class="mx-cells"><span><i class="m on"></i><span class="sr-only">できる</span></span><span><i class="m on"></i><span class="sr-only">できる</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span class="rz"><i class="m off"></i><span class="sr-only">対象外</span></span></div></div>
+            <div class="mx-row"><b class="k"><span class="ph">公開前に、</span><span class="ph">表現を確かめる</span></b><div class="mx-cells"><span><i class="m half"></i><span class="sr-only">一部</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span><i class="m on"></i><span class="sr-only">できる</span></span><span class="rz"><i class="m on"></i><span class="sr-only">できる</span></span></div></div>
+            <div class="mx-row"><b class="k"><span class="ph">提供元の異なる複数のAIで確かめ、</span><span class="ph">人が決める</span></b><div class="mx-cells"><span><i class="m off"></i><span class="sr-only">対象外</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span class="rz"><i class="m on"></i><span class="sr-only">できる</span></span></div></div>
+            <div class="mx-row"><b class="k"><span class="ph">契約の条件と、</span><span class="ph">版ごとの承認を残す</span></b><div class="mx-cells"><span><i class="m half"></i><span class="sr-only">一部</span></span><span><i class="m half"></i><span class="sr-only">一部</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span class="rz"><i class="m on"></i><span class="sr-only">できる</span></span></div></div>
+            <div class="mx-row"><b class="k"><span class="ph">条件が変わると、</span><span class="ph">承認を無効にする</span></b><div class="mx-cells"><span><i class="m off"></i><span class="sr-only">対象外</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span class="rz"><i class="m on"></i><span class="sr-only">できる</span></span></div></div>
+            <div class="mx-row"><b class="k"><span class="ph">利用期限と、</span><span class="ph">停止の確認まで追う</span></b><div class="mx-cells"><span><i class="m off"></i><span class="sr-only">対象外</span></span><span><i class="m half"></i><span class="sr-only">一部</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span class="rz"><i class="m on"></i><span class="sr-only">できる</span></span></div></div>
+            <div class="mx-row"><b class="k"><span class="ph">決定ごとの記録を、</span><span class="ph">持ち出せる</span></b><div class="mx-cells"><span><i class="m off"></i><span class="sr-only">対象外</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span><i class="m off"></i><span class="sr-only">対象外</span></span><span class="rz"><i class="m on"></i><span class="sr-only">できる</span></span></div></div>
+            <p class="mx-key"><span><i class="m on"></i>できる</span><span><i class="m half"></i>一部</span><span><i class="m off"></i>対象外</span></p>
+            <p class="vs-note"><span class="ph">各社の公開情報から、</span><span class="ph">道具の種類ごとの一般的な範囲を</span><span class="ph">整理しています（2026年11月）。</span><span class="ph">製品により異なります。</span></p>
+          </div>
+          <p class="more reveal"><a class="go" href="contact" data-consult-page>導入を相談する</a></p>
+      </div></div>
+    </section>
     <section class="section" id="how">
       <div class="wrap"><div class="section-text">
           <div class="head reveal"><p class="eyebrow">How to start</p><h2>任せ方</h2><p class="lead"><span class="ph">いきなり大きな契約を結ぶ必要はありません。</span><br><span class="ph">合わなければ、</span><span class="ph">そこで終えて構いません。</span></p></div>
@@ -184,6 +241,6 @@
 
   <script src="assets/field-renderer.f8196e8b303aaea5.js"></script>
   <script src="assets/site.d509d6c0a53ed069.js"></script>
-  <script src="assets/experience.52e5037dd5edfacc.js"></script>
+  <script src="assets/experience.f3c4edb29161c397.js"></script>
 </body>
 </html>

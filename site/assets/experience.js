@@ -383,3 +383,53 @@
     } catch (_) { /* The contact form remains usable when browser storage is unavailable. */ }
   });
 })();
+
+/* 2026-11-18 — 目的から道を選ぶ / 利益を残す（損益分岐） / 起きたことに自動で応える。
+   押す・動かすで次が出るだけの小さな切替。通信しない。保存しない。数字は読み手の入力と公開している利用料だけから計算する。 */
+(() => {
+  'use strict';
+  const pick = (root, buttonSelector, panelSelector, key, after) => {
+    const buttons = Array.from(root.querySelectorAll(buttonSelector));
+    const panels = Array.from(root.querySelectorAll(panelSelector));
+    const show = value => {
+      for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset[key] === value));
+      for (const p of panels) p.classList.toggle('is-on', p.dataset[key] === value);
+      if (after) after(panels.find(p => p.dataset[key] === value));
+    };
+    for (const b of buttons) b.addEventListener('click', () => show(b.dataset[key]));
+    const first = buttons.find(b => b.getAttribute('aria-pressed') === 'true') || buttons[0];
+    if (first) show(first.dataset[key]);
+  };
+
+  for (const root of document.querySelectorAll('[data-paths]')) pick(root, '.path-goal', '.path-card', 'goal');
+
+  for (const root of document.querySelectorAll('[data-guard]')) {
+    const dots = Array.from(root.querySelectorAll('.guard-line li'));
+    pick(root, '.guard-b', '.guard-res', 'ev', panel => {
+      for (const d of dots) d.classList.toggle('is-at', !!panel && d.dataset.s === panel.dataset.at);
+    });
+  }
+
+  // 利用料: 月額 50,000 円（20 本まで）＋ 21 本目から 1 本 1,250 円
+  const FEE_BASE = 50000, FEE_INCLUDED = 20, FEE_OVER = 1250;
+  const yen = n => Math.round(n).toLocaleString('ja-JP');
+  for (const root of document.querySelectorAll('[data-gain]')) {
+    const $ = id => root.querySelector('#' + id);
+    const n = $('gainN'), m = $('gainM'), w = $('gainW');
+    if (!n || !m || !w) continue;
+    const update = () => {
+      const count = Number(n.value), minutes = Number(m.value), wage = Number(w.value);
+      const hours = count * minutes / 60, cost = hours * wage;
+      const fee = FEE_BASE + FEE_OVER * Math.max(0, count - FEE_INCLUDED);
+      const even = Math.ceil(fee * 60 / (count * wage));
+      $('gainNo').textContent = count + '本'; $('gainMo').textContent = minutes + '分'; $('gainWo').textContent = yen(wage) + '円';
+      $('gainNow').textContent = '月' + (Number.isInteger(hours) ? hours : hours.toFixed(1)) + '時間・' + yen(cost) + '円';
+      $('gainFee').textContent = '月' + yen(fee) + '円';
+      $('gainEven').textContent = even < minutes
+        ? '1本あたり' + even + '分、短くなったとき'
+        : '時間の短縮だけでは届きません。まずは、無料の確認から';
+    };
+    for (const input of [n, m, w]) input.addEventListener('input', update);
+    update();
+  }
+})();
