@@ -33,9 +33,8 @@ node qa/field_check.js "$SITE" "$QA_OUT/field" > "$QA_OUT/field-summary.json" ||
 node qa/experience_check.js "$SITE" "$QA_OUT/experience" > "$QA_OUT/experience-summary.json" || experience_status=1
 node qa/manual_experience_check.js "$SITE" "$QA_OUT/manual-experience" > "$QA_OUT/manual-experience-summary.json" || experience_status=1
 node qa/cycle_check.js "$SITE" "$QA_OUT/cycle" > "$QA_OUT/cycle-summary.json" || experience_status=1
-node qa/refinement_check.js "$SITE" "$QA_OUT/refinement" > "$QA_OUT/refinement-summary.json" || experience_status=1
 if [ "$experience_status" -ne 0 ]; then
-  echo "FAIL: 独自描画・操作・実原稿の閲覧・案件と映像・相談の継続（詳細: 各 report.json / refinement.json）"; exit 1
+  echo "FAIL: 独自描画・操作・実原稿の閲覧・案件と映像（詳細: 各 report.json）"; exit 1
 fi
 
 echo "== 5/8 chapters / thread / copy sync / links（全ページ × 3 画面）"
@@ -61,6 +60,9 @@ node qa/map_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).o
 node qa/decisions_check.js | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("decisions(決定台帳の写し) fails:",r.fails.length, "rows:", r.rows, "linked:", r.linked, "manual:", r.manual);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/demo_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("demo(3 つの画面) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 node qa/talk_check.js site | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("talk(地図を、あなたの言葉で / 入口なしは非表示) fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
+# Contact/AI failure journeys follow the all-page captures, so their detailed
+# report cannot prevent collection of otherwise independent layout evidence.
+node qa/refinement_check.js "$SITE" "$QA_OUT/refinement" > "$QA_OUT/refinement-summary.json"
 node --experimental-vm-modules qa/manual_timeout_check.js site
 node qa/manual_check.js site "$QA_OUT/manual" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("manual(名称・配色・PDF保存) checks:",r.checks,"fails:",r.fails.length);if(r.fails.length){console.log(r.fails);process.exit(1)}})'
 

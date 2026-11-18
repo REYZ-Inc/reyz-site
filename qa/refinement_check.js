@@ -10,9 +10,10 @@ fs.mkdirSync(OUTPUT, { recursive: true });
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.webp': 'image/webp', '.png': 'image/png', '.svg': 'image/svg+xml', '.mp4': 'video/mp4' };
 const script = /^\/assets\/site(?:\.[a-f0-9]{16})?\.js$/;
 const experience = /^\/assets\/experience(?:\.[a-f0-9]{16})?\.js$/;
-const api = { mode: 'ok', turns: [], contacts: [], pending: [] };
+const api = { mode: 'ok', turns: [], contacts: [], pending: [], partial: [] };
 const json = (res, body, status = 200) => { if (res.destroyed) return; res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
-const release = () => { for (const done of api.pending.splice(0)) done(); };
+const cutPartial = () => { for (const res of api.partial.splice(0)) res.destroy(); };
+const release = () => { for (const done of api.pending.splice(0)) done(); cutPartial(); };
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://local');
   if (url.pathname === '/api/consensus/health') return json(res, { ok: true, ready: true });
@@ -23,6 +24,14 @@ const server = http.createServer((req, res) => {
       const done = () => json(res, talk ? { ok: true, reply: '以前の選択への返事です。', map: { goal: '古い応答で上書きされる目的', place: '古い場所', step: '古い一歩' }, chain: 'a'.repeat(64), consult: true } : { ok: true, verified: true });
       if (api.mode === 'hold') api.pending.push(done);
       else if (api.mode === 'network') res.destroy();
+      else if (api.mode === 'partial') {
+        // The complete request has been received. Keep the response open until
+        // Playwright observes its headers, then interrupt the incomplete body.
+        api.partial.push(res);
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength('{"ok":true,"verified":true}'), 'Cache-Control': 'no-store' });
+        res.flushHeaders(); res.write('{"ok":');
+      }
+      else if (api.mode === 'server-error') json(res, { ok: false, error: 'send', stage: 'after-acceptance' }, 502);
       else if (api.mode === 'fail') json(res, { ok: false, error: 'model' }, 502);
       else done();
     }); return;
@@ -57,6 +66,21 @@ async function click(locator) {
     report.cases[label] = { completed: false, errors, mutations };
     try {
     browser = await engine.launch(); browsers.push(browser); context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
+    await context.addInitScript(() => {
+      // Observe application invocations without replacing native networking,
+      // changing arguments/signals, or wrapping the returned promise.
+      window.__reyzContactFetchCalls = [];
+      window.fetch = new Proxy(window.fetch, {
+        apply(target, receiver, args) {
+          try {
+            const [input, init] = args;
+            const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, location.href);
+            if (url.pathname === '/api/contact') window.__reyzContactFetchCalls.push({ method: (init?.method || input?.method || 'GET').toUpperCase(), at: performance.now() });
+          } catch (_) {} // Observation must not change native fetch behavior.
+          return Reflect.apply(target, receiver, args);
+        }
+      });
+    });
     page = await context.newPage();
     page.on('pageerror', error => errors.push(String(error)));
     await context.route('**/*', route => { const request = route.request(); if (new URL(request.url()).origin === origin) return route.continue(); if (!['GET', 'HEAD'].includes(request.method())) mutations.push(request.url()); return route.abort(); });
@@ -67,6 +91,9 @@ async function click(locator) {
     const waitCount = async (key, n) => { const until = Date.now() + 3000; while (api[key].length < n && Date.now() < until) await page.waitForTimeout(20); if (api[key].length < n) throw new Error(`${key}: request not received`); };
     const sendTalk = async text => { await page.fill('#talkInput', text); await click(page.locator('#talkSend')); await waitCount('turns', 1); };
     const fillContact = async text => { await page.fill('#cName','検証'); await page.fill('#cEmail','review@example.test'); await page.selectOption('#cType',{ label:'活動・収益化の相談' }); await page.fill('#cMsg',text); await click(page.locator('#confirmBtn')); };
+    const deliveryState = () => page.evaluate(() => ({ status: document.getElementById('sendStatus').textContent, fallback: !document.getElementById('copyLabel').hidden, done: !document.getElementById('stepDone').hidden, disabled: document.getElementById('sendBtn').disabled, message: document.getElementById('cMsg').value }));
+    const contactCounts = async () => ({ applicationFetchCalls: await page.evaluate(() => window.__reyzContactFetchCalls.length), serverRequests: api.contacts.length });
+    const unknownDelivery = delivery => /結果|確認でき/.test(delivery.status) && delivery.fallback && !delivery.done && !delivery.disabled;
 
     // An old request must not change the new audience's map or conversation.
     await open('/index.html'); await creator(); api.mode = 'hold'; await sendTalk('クリエイターとして配信したい');
@@ -126,11 +153,40 @@ async function click(locator) {
     release(); await page.waitForFunction(() => !document.getElementById('stepDone').hidden);
     check(label + '/successful response completes once', api.contacts.length === 1);
 
-    // A lost response may follow acceptance. Do not automatically send the message again.
+    // Preserve the original pre-header disconnect. A browser may retry a reused
+    // connection internally, so record server receipts separately from app calls.
     await open('/contact.html'); await fillContact('通信切断の検証'); api.mode = 'network'; await click(page.locator('#sendBtn')); await waitCount('contacts',1); await page.waitForTimeout(1800);
-    const delivery = await page.evaluate(() => ({ status: document.getElementById('sendStatus').textContent, fallback: !document.getElementById('copyLabel').hidden, done: !document.getElementById('stepDone').hidden, disabled: document.getElementById('sendBtn').disabled }));
-    check(label + '/lost response is not resent automatically', api.contacts.length === 1, { requests: api.contacts.length });
-    check(label + '/ambiguous delivery is stated honestly with recovery', /結果|確認でき/.test(delivery.status) && delivery.fallback && !delivery.done && !delivery.disabled, delivery);
+    const delivery = await deliveryState(), beforeHeaders = await contactCounts();
+    report.cases[label].beforeHeadersDisconnect = { ...beforeHeaders, delivery };
+    check(label + '/pre-header disconnect has no application resend', beforeHeaders.applicationFetchCalls === 1 && beforeHeaders.serverRequests >= 1, beforeHeaders);
+    check(label + '/ambiguous delivery is stated honestly with recovery', unknownDelivery(delivery) && delivery.message === '通信切断の検証', delivery);
+
+    // Simulate acceptance followed by a lost response body. Observed headers
+    // distinguish this from the native transport retry case above.
+    await open('/contact.html'); await fillContact('応答途中切断の検証'); api.mode = 'partial';
+    const [partialResponse] = await Promise.all([
+      page.waitForResponse(response => new URL(response.url()).pathname === '/api/contact' && response.request().method() === 'POST' && response.status() === 200),
+      click(page.locator('#sendBtn'))
+    ]);
+    cutPartial();
+    await waitCount('contacts',1); await page.waitForTimeout(1800);
+    const partialDelivery = await deliveryState(), afterHeaders = await contactCounts();
+    report.cases[label].afterHeadersDisconnect = { ...afterHeaders, observedStatus: partialResponse.status(), delivery: partialDelivery };
+    check(label + '/body interruption has one application call and one server receipt', afterHeaders.applicationFetchCalls === 1 && afterHeaders.serverRequests === 1, afterHeaders);
+    check(label + '/body interruption retains intent with unknown receipt', unknownDelivery(partialDelivery) && partialDelivery.message === '応答途中切断の検証', partialDelivery);
+
+    // A server error after simulated acceptance must not trigger an application
+    // retry either. The observation window includes the former 1.5 s retry delay.
+    await open('/contact.html'); await fillContact('受付後502応答の検証'); api.mode = 'server-error';
+    const [errorResponse] = await Promise.all([
+      page.waitForResponse(response => new URL(response.url()).pathname === '/api/contact' && response.request().method() === 'POST' && response.status() === 502),
+      click(page.locator('#sendBtn'))
+    ]);
+    await waitCount('contacts',1); await page.waitForTimeout(1800);
+    const serverErrorDelivery = await deliveryState(), serverError = await contactCounts();
+    report.cases[label].serverErrorAfterAcceptance = { ...serverError, observedStatus: errorResponse.status(), delivery: serverErrorDelivery };
+    check(label + '/502 has one application call and one server receipt', serverError.applicationFetchCalls === 1 && serverError.serverRequests === 1, serverError);
+    check(label + '/502 retains intent with unknown receipt', unknownDelivery(serverErrorDelivery) && serverErrorDelivery.message === '受付後502応答の検証', serverErrorDelivery);
 
     if (!quick) {
       await open('/index.html'); await creator(); api.mode = 'hold'; const question = '返事がなくても相談に進めるかを確認'; await sendTalk(question);
