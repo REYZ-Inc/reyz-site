@@ -357,11 +357,11 @@ def structure():
                 f'<span class="what">{what}</span><span class="go">{go}</span></a>\n')
     link = '            <span class="link" aria-hidden="true"><i class="pulse up"></i><i class="pulse down"></i></span>\n'
     return ('          <div class="structure reveal">\n'
-            + node('creator', 'creator.html', 'クリエイター', '地図 ・ 入口 ・ 明細', jp('活動と収入を、|3つの画面で。'), 'クリエイターの方へ')
+            + node('creator', 'creator.html', 'クリエイター', '地図 ・ 入口 ・ 明細', jp('受ける仕事を選び、|報酬の内訳を明細で見る。'), 'クリエイターの方へ')
             + link
             + node('reyz', 'ai.html', 'REYZ PLATFORM', 'AI ・ 人が決める ・ 記録', jp('複数のAIが確かめ、|人が決め、記録が残る。'), 'AIについて')
             + link
-            + node('company', 'creative.html', '企業', '地図 ・ 確認 ・ 記録', jp('発信と判断を、|3つの画面で。'), '企業の方へ')
+            + node('company', 'creative.html', '企業', '地図 ・ 確認 ・ 記録', jp('公開する表現と利用条件を確かめ、|判断の根拠を残す。'), '企業の方へ')
             + '          </div>\n'
             '          <p class="structure-cap reveal">' + jp('確認を通った案件と商品だけが、|企業からクリエイターへ届く。') + '</p>')
 STRUCTURE = structure()
@@ -391,7 +391,7 @@ home = f'''    <section class="chapter" id="infinity">
       <div class="wrap chapter-stack">
         {slot('map')}
         <div class="copy wide">
-          <div class="head"><p class="eyebrow">Your map</p><h2>あなたの地図を、<br>ここで。</h2><p class="lead">{jp('いくつかの問いに答えると、|あなたの地図ができます。')}</p></div>
+          <div class="head"><p class="eyebrow">Your map</p><h2>あなたの地図を、<br>ここで。</h2><p class="lead">{jp('今の状況と、やりたいことを選んでください。|目的に向けた最初の一歩を示します。')}</p></div>
 {MAPPER}
           <noscript><p class="lead">{jp('この体験はJavaScriptが有効な環境で動きます。')}<br><a href="creator.html">クリエイターの方へ</a>　<a href="creative.html">企業の方へ</a></p></noscript>
         </div>
@@ -420,13 +420,12 @@ def editorial_film(kind, headline, line):
     asset = 'creator-film' if is_creator else 'creative-study-v1'
     disclosure = 'イメージ映像' if is_creator else '構図と光のイメージ映像（CG）'
     credit = 'Footage: cottonbro studio / Pexels' if is_creator else 'REYZ / Motion study'
-    label = 'CREATOR / YOUR OWN WAY' if is_creator else 'CREATIVE / FROM INTENT TO IMPACT'
     return f'''<figure class="editorial-visual is-{prefix} reveal" data-editorial>
       <div class="editorial-film">
         <video id="{prefix}Film" data-editorial-video data-src="assets/editorial/{asset}.mp4" poster="assets/editorial/{asset}.webp" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video>
         <button class="video-toggle" type="button" data-editorial-toggle aria-controls="{prefix}Film" aria-pressed="false" hidden>映像を再生</button>
       </div>
-      <div class="editorial-film-copy"><span class="tag">{label}</span><h3>{headline}</h3><p>{line}</p></div>
+      <div class="editorial-film-copy"><h3>{headline}</h3><p>{line}</p></div>
       <figcaption id="{prefix}Caption" class="editorial-caption"><span>{disclosure}</span><span>{credit}</span></figcaption>
     </figure>'''
 
@@ -545,7 +544,7 @@ PATHS = ('<div class="paths reveal" data-paths>\n'
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
                         lead2='あなたの収益の、全部の入口に。') + \
 section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'), '',
-        editorial_film('creator', 'あなたらしさが、<br>仕事になっていく。', '配信も、映像も、作品も。<br>自分に合う入口から、次の可能性へ。') + INCOMES +
+        editorial_film('creator', '活動によって、<br>収入の仕組みは変わる。', jp('ライブ配信では、視聴者からギフトを受け取る。|作品の直販では、自分で価格を決めてファンに届ける。\n六つの入口から、今の活動に合うものを選べます。')) + INCOMES +
         '<div class="income-path" id="path"><div class="head reveal"><p class="eyebrow">Your path</p><h3>' + jp('目的から、|道を選ぶ。') + '</h3>' +
         more('contact.html', 'この道で、はじめる') + '</div>' + PATHS + '</div>') + \
 section('model', 'Terms &amp; screens', '条件を、先に。', '', MODEL + SCREENS_CREATOR) + \
@@ -707,7 +706,7 @@ GAIN = ('<div class="gain reveal" data-gain>\n'
     '            </dl>\n'
     '            <p class="gain-cap">' + jp('月額50,000円で、20本まで。|21本目からは、1本1,250円。\n公開前の確認は、|月30件まで無料です。') + '</p>\n'
     '            <p class="gain-disclosure">入力した時間・費用と上記の利用料を比べる試算です。実際の削減効果を示すものではありません。</p>\n'
-    '            <details class="terms gain-terms"><summary class="terms-head">料金に含まれる範囲を、確認する</summary><div class="fold-body"><p>公開前の確認は月30件まで無料。継続利用の料金は月額50,000円・20本までです。</p><p>対象素材、無料確認と有料利用の範囲、1本・1件の数え方、修正や再確認、連携先を、契約前の見積もりに明記します。</p><p>制作・出演・広告・導入にかかる費用、税、契約期間・解約条件も、同じ見積もりで確認できます。この試算には、それらの費用とお客様に残る作業の費用を加えていません。</p><a class="go" href="contact.html" data-consult-page>対象と費用を相談する</a></div></details>\n'
+    '            <details class="terms gain-terms"><summary class="terms-head">料金に含まれる範囲を、確認する</summary><div class="fold-body"><p>公開前の確認は月30件まで無料。継続利用の料金は月額50,000円・20本までです。</p><p>対象素材、無料確認と有料利用の範囲、1本・1件の数え方、修正や再確認、連携先を、契約前の見積もりに明記します。</p><p>制作・出演・広告・導入にかかる費用、税、契約期間・解約条件も、同じ見積もりで確認できます。この試算には、それらの費用とお客様に残る作業の費用を加えていません。</p><a class="go" href="contact.html" data-consult-page data-consult-cost>対象と費用を相談する</a></div></details>\n'
     '            <div class="gain-split">\n'
     '              <div class="gs gs-auto"><p class="gs-h">仕組みに任せること</p><ul>' + ''.join(f'<li>{t}</li>' for t in (jp('広告表現のルールへの照合'), jp('複数のAIによる確認'), jp('条件が変わったときの、|承認の取り消し'), jp('利用期限と、|停止の追跡'), jp('決定ごとの記録'), jp('報酬の明細'))) + '</ul></div>\n'
     '              <div class="gs gs-human"><p class="gs-h">人が決めること</p><ul>' + ''.join(f'<li>{t}</li>' for t in (jp('条件への合意'), jp('最後の「はい」か「いいえ」'), jp('支払い'))) + '</ul></div>\n'
@@ -761,14 +760,20 @@ section('services', 'Services', 'REYZがすること', '',
                  [('クリエイターとの販売設計', jp('クリエイターと連動した|販売の設計と運用。|国内からアジアへの越境販売まで。'))]),
                 ('仕組みに組み込む・自社ブランドで', jp('事務所、代理店、制作会社へ。'),
                  [('事務所・代理店の方へ', jp('3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。'), 'consensus.html', 'REYZ CONSENSUSについて')])])) + \
-section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('つくる。確かめる。届けた結果を見る。|途中で変わっても、同じ案件の続きから。'),
+section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('ブランドの紹介動画を例に、|企画から公開後の明細までをたどれます。\n素材を差し替えると、|どの承認を取り直すのか試せます。'),
         GUARD + '<details class="workflow-detail" id="decide"><summary>表現確認の補足体験を見る</summary><div class="workflow-detail-body">' + SCREENS_ENT + '</div></details>') + \
-section('show', 'Video × SNS', '映像とSNSの、かたち。', '', editorial_film('production', '伝わる瞬間を、<br>設計する。', '誰に届けるか。何を感じてほしいか。<br>その目的から、映像のかたちを選ぶ。')) + \
+section('show', 'Video × SNS', '映像の設計', '',
+        editorial_film('production', '紙と光の習作', jp('折った紙の立体感を、四秒でどう見せるか。|白い扇、黒いアーチ、マゼンタの帯を同じ画面に置き、|輪郭と影で奥行きを描きました。')) +
+        '<dl class="study-notes">'
+        '<div><dt>構図</dt><dd>手前を横切る帯は低く、奥の扇は高く。形の高さをずらし、それぞれの輪郭が読めるようにしました。</dd></div>'
+        '<div><dt>光</dt><dd>扇のひだには細い影が並び、アーチには明るさがなだらかに広がります。同じ光でも、折り目と曲面で表情が変わります。</dd></div>'
+        '<div><dt>動き</dt><dd>扇の開きに合わせて、カメラをわずかに移動。カットを割らずに、三つの形の重なりを変えています。</dd></div>'
+        '</dl>') + \
 section('gain', 'Cost &amp; scope', jp('確認と管理の費用を、|確かめる。'), jp('依頼する範囲と、|仕事の量から。'), GAIN) + \
 section('how', 'How to start', '任せ方', jp('いきなり大きな契約を結ぶ必要はありません。\n合わなければ、そこで終えて構いません。'),
         steps([('01', '相談する', jp('今の状況と、やりたいことを。|言葉になっていなくても、構いません。')),
-               ('02', '地図を受け取る', ''),
-               ('03', '「はい」か「いいえ」を決める', '')], cls='list') +
+               ('02', '地図を受け取る', jp('何のために、何をつくり、どこで使うのか。|担当と進め方を地図で確認します。')),
+               ('03', '「はい」か「いいえ」を決める', jp('提案の根拠とリスクを読み、|その案で進むかを決めます。'))], cls='list') +
         more('contact.html', '相談する'))
 page('creative.html', 'Creative — REYZ Inc.', 'REYZの企業向けサービス。目的を言葉にして進め方を決め、動画・映像制作、SNSアカウントの運用支援、最小の人数で最大の利益を生む仕組みづくり、「はい」か「いいえ」で決められる判断の支えまで。目的が変わっても、続きます。', creative)
 
@@ -785,9 +790,9 @@ ai_products = items_fold([('つなぐ — AI Orchestration', jp('複数のAIを�
 AI_REUSE = ('<div class="reuse-ledger reveal">' + ''.join(
     f'<div class="reuse-row"><span class="reuse-n">{n:02d}</span><h3>{title}</h3><p>{body}</p></div>'
     for n, (title, body) in enumerate([
-        (jp('次の仕事でも、|使える形に。'), jp('仕事に合わせて作った機能を、|次の案件でも使える形に整えます。\n対象業務と連携先に合わせ、|必要な部分を組み合わせます。')),
-        (jp('完了を、|確かめる。'), jp('何ができれば完了かを、|先に決めます。\n成果物と実行結果を確かめる手順を、|実行する機能と一緒に残します。')),
-        (jp('変わったら、|必要なところから。'), jp('目的や条件の変更が、|どの成果物・承認・公開先に影響するかを追います。\n影響がある範囲を、|やり直して確かめます。')),
+        ('確認手順を残す', jp('たとえば紹介動画なら、公開前に素材の版と利用条件を照合します。|この手順を実行する機能と一緒に残せば、次の動画でも使えます。')),
+        ('公開の判断を残す', jp('何を確認できれば公開に進めるか、先に決めます。|複数のAIによる確認を経て、責任者がその版の公開を承認します。')),
+        ('変更の影響をたどる', jp('承認後に動画を差し替えると、元の版への承認は失効します。|新しい版を確かめ直し、どの版を承認したか記録します。')),
     ], 1)) + '</div>'
     '<details class="core-rules"><summary>判断と情報の扱い</summary><div class="core-rules-body">' +
     items([('確認と、人の承認', jp('確認が取れないとき、|AIの判定が一致しないときは止まります。\n重要な変更は、|責任者の承認を経てから実行します。')),
@@ -797,7 +802,8 @@ AI_REUSE = ('<div class="reuse-ledger reveal">' + ''.join(
 ai = title_chapter('AI', 'REYZ PLATFORM · AI Infrastructure', 'AIが支える。',
                    jp('複数のAIエージェントを統合運用する|AI基盤「REYZ PLATFORM」。')) + \
 section('products', 'Products', 'REYZ PLATFORM', '', ai_products) + \
-section('enterprise', 'Built to continue', jp('つくった仕組みを、|次の仕事へ。'), jp('機能と確かめ方を、一緒に残す。|仕事を重ねるたびに、使える部分を活かして進めます。'), AI_REUSE) + \
+section('enterprise', 'Built to continue', jp('つくった仕組みを、|次の仕事へ。'), jp('公開直前に、紹介動画の差し替えが決まったら。|別の案件にも使える確認手順と、版ごとに必要な承認を見てみましょう。'),
+        AI_REUSE + more('creative.html#guard', '動画の差し替えを試す')) + \
 section('enterprise-how', 'How it works', '進め方', '',
         steps([('01', '現状の確認', jp('どの業務で、|AIが何を判断しているか。\n判断の重さと、|現在の確認方法を整理します。')),
                ('02', '統制の設計と導入', jp('検証の規則、|人が承認する範囲、|記録の形式を決め、\n既存の業務に組み込みます。')),

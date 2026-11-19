@@ -190,7 +190,8 @@
   };
   for (const link of document.querySelectorAll('[data-consult-page], a.consult')) link.addEventListener('click', () => {
     const page = document.body.dataset.page;
-    const type = contactTypes[page];
+    const costStudy = link.hasAttribute('data-consult-cost') && link.closest('[data-gain]');
+    const type = costStudy ? contactTypes.consensus : contactTypes[page];
     if (!type) return;
     let body = '', map = null;
     try {
@@ -199,6 +200,25 @@
     const who = page === 'creator' ? 'creator' : page === 'creative' ? 'company' : '';
     if (who && map?.who === who && [map.goal, map.place, map.step].every(value => typeof value === 'string' && value.length > 0)) {
       body = '【あなたの地図（ホームで選んだ内容）】\n目的: ' + map.goal + '\n今いる場所: ' + map.place + '\n最初の一歩: ' + map.step + (typeof map.conversation === 'string' ? map.conversation : '');
+    }
+    if (costStudy) {
+      const fields = Array.from(costStudy.querySelectorAll('.gain-f'));
+      const initial = fields.every(field => {
+        const input = field.querySelector('input');
+        return input.value === input.defaultValue;
+      });
+      const lines = [
+        '公開前の確認について、対象素材の範囲と料金を相談したいです。',
+        initial ? '【確認と管理の費用試算（画面の初期値による例）】' : '【確認と管理の費用試算（画面で設定した条件）】',
+      ];
+      for (const field of fields) {
+        lines.push(field.querySelector('label').textContent + '：' + field.querySelector('output').textContent);
+      }
+      for (const row of costStudy.querySelectorAll('.gain-out > div')) {
+        const values = Array.from(row.querySelector('dd').childNodes, node => node.textContent.trim()).filter(Boolean);
+        lines.push(row.querySelector('dt').textContent + '：' + values.join(' '));
+      }
+      body += (body ? '\n\n' : '') + lines.join('\n');
     }
     if (page === 'creator') {
       const choices = [], paths = document.querySelector('[data-paths]'), income = document.querySelector('[data-income-experience]');

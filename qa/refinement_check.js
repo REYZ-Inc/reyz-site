@@ -152,6 +152,30 @@ async function click(locator) {
     await Promise.all([page.waitForURL('**/contact'), click(page.locator('#path [data-consult-page]'))]);
     check(label + '/chosen path reaches consultation', (await page.inputValue('#cMsg')).includes(selectedGoal), { selectedGoal, message: await page.inputValue('#cMsg') });
 
+    // The fees link carries the displayed study, including its assumptions. Other consultation links stay general.
+    const openCostConsultation = async () => {
+      await click(page.locator('.gain-terms summary'));
+      await Promise.all([page.waitForURL('**/contact'), click(page.locator('[data-consult-cost]'))]);
+    };
+    await open('/creative.html'); await openCostConsultation();
+    const sample = await page.inputValue('#cMsg');
+    check(label + '/initial cost study is identified as an example', sample.includes('初期値による例') && sample.includes('30本') && sample.includes('月62,500円'));
+    await open('/index.html'); await company();
+    const companyGoal = await page.locator('#mapGoal').textContent();
+    await Promise.all([page.waitForURL('**/creative#decide'), click(page.locator('#mapScreens'))]);
+    for (const slider of ['gainN', 'gainM', 'gainW']) await page.locator('#' + slider).press('ArrowRight');
+    await openCostConsultation();
+    const study = await page.inputValue('#cMsg');
+    check(label + '/cost consultation retains current inputs and results with units',
+      ['画面で設定した条件', '35本', '65分', '5,500円', '月37.9時間・208,542円', '月68,750円', '約22分／本'].every(text => study.includes(text)));
+    check(label + '/cost scope and Home map reach the editable form only',
+      study.includes(companyGoal) && study.includes('対象素材の範囲と料金') && await page.inputValue('#cType') === '公開前の確認と記録（REYZ CONSENSUS）'
+      && page.url() === origin + '/contact' && api.contacts.length === 0);
+    await open('/creative.html');
+    await Promise.all([page.waitForURL('**/contact'), click(page.locator('#how [data-consult-page]'))]);
+    check(label + '/ordinary Creative consultation carries no cost assumptions',
+      await page.inputValue('#cType') === '目的の整理と進め方の相談' && !(await page.inputValue('#cMsg')).includes('費用試算'));
+
     // Confirmation and sending are one in-flight operation, even if Back / Enter arrives.
     await open('/contact.html'); await fillContact('二重操作の検証'); api.mode = 'hold'; await click(page.locator('#sendBtn')); await waitCount('contacts',1);
     const backLocked = await page.locator('#backBtn').isDisabled();

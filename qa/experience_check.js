@@ -178,7 +178,28 @@ async function creativeContent(page, label) {
   check(label + ': original CG study and matching poster are credited', credit.includes('構図と光のイメージ映像（CG）') && credit.includes('REYZ / Motion study')
     && await productionVideo.getAttribute('data-src') === 'assets/editorial/creative-study-v1.mp4'
     && await productionVideo.getAttribute('poster') === 'assets/editorial/creative-study-v1.webp');
-  await film.screenshot({ path: path.join(OUT, label + '-production-film.png') });
+  const notes = page.locator('#show .study-notes');
+  await notes.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  const captions = await notes.locator(':scope > div').evaluateAll(rows => rows.map(row => {
+    const title = row.querySelector('dt'), body = row.querySelector('dd');
+    const rowBounds = row.getBoundingClientRect();
+    const headerBottom = document.querySelector('#siteHeader').getBoundingClientRect().bottom;
+    const fits = [title, body].every(part => {
+      if (!part?.textContent.trim()) return false;
+      const range = document.createRange();
+      range.selectNodeContents(part);
+      const lines = Array.from(range.getClientRects());
+      return lines.length > 0 && lines.every(line => line.width > 0 && line.height > 0
+        && line.left >= Math.max(0, rowBounds.left) - 1 && line.right <= Math.min(innerWidth, rowBounds.right) + 1
+        && line.top >= headerBottom - 1 && line.bottom <= innerHeight + 1);
+    });
+    return { title: title?.textContent.trim(), fits };
+  }));
+  check(label + ': composition, light and motion notes are readable without clipping',
+    captions.map(item => item.title).join('/') === '構図/光/動き' && captions.every(item => item.fits), captions);
+  const file = label + '-production-film.png';
+  await page.locator('#show .section-text').screenshot({ path: path.join(OUT, file) });
+  report.screenshots.push(file);
 }
 
 async function panelDestinations(page, label) {
