@@ -19,8 +19,11 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   site-verify:
-    # Match a supported Playwright WebKit build and OS dependency set.
     runs-on: ubuntu-24.04
+    # Official Playwright v1.64.1-noble, matching package-lock.json.
+    container:
+      image: mcr.microsoft.com/playwright@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+      options: --user 1001 --shm-size=1g
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -31,7 +34,6 @@ jobs:
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with: { distribution: temurin, java-version: "21" }
       - run: npm ci
-      - run: npx playwright install --with-deps chromium webkit
       - name: verify (build reproducibility, validators, browser checks)
         run: bash qa/run_all.sh
       - name: keep screenshots and reports
