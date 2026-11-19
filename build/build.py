@@ -369,7 +369,7 @@ STRUCTURE = structure()
 # 初画面の一言: 事業内容 3 本柱（既決）を、クリエイター／企業／AI の順に同じ形で 1 行ずつ（2026-10-27 CEO「同じ形・同じ分量」「決定した事業構造を把握した上で」）
 home = f'''    <section class="chapter" id="infinity">
       <div class="wrap chapter-stack">
-        <div class="brand-film" data-brand-film><video id="brandFilm" data-brand-video data-src="assets/brand/infinity-motion.mp4" poster="assets/brand/infinity-motion.webp" width="1280" height="720" muted loop playsinline preload="none" aria-hidden="true"></video><button class="video-toggle" data-brand-toggle aria-controls="brandFilm" aria-pressed="false" hidden type="button">映像を再生</button></div>
+        <div class="brand-film" data-brand-film><video id="brandFilm" data-brand-video data-src="assets/brand/brand-contour-v1.mp4" poster="assets/brand/brand-contour-v1.webp" width="1280" height="720" muted loop playsinline preload="none" aria-hidden="true"></video><button class="video-toggle" data-brand-toggle aria-controls="brandFilm" aria-pressed="false" hidden type="button">映像を再生</button></div>
         <div class="head copy">
           <h1><span>無限の可能性を</span><span>かたちに</span></h1>
           <p class="hero-sub">From Japan, <em>beyond.</em></p>
@@ -417,9 +417,9 @@ def editorial_film(kind, headline, line):
     """One actual film, with its editorial copy and visible source beside it."""
     is_creator = kind == 'creator'
     prefix = 'creator' if is_creator else 'production'
-    asset = 'creator-film' if is_creator else 'production-editorial-20261119'
-    disclosure = 'イメージ映像' if is_creator else '制作のイメージ映像（AI生成）'
-    credit = 'Footage: cottonbro studio / Pexels' if is_creator else 'REYZ / Original visual'
+    asset = 'creator-film' if is_creator else 'creative-study-v1'
+    disclosure = 'イメージ映像' if is_creator else '構図と光のイメージ映像（CG）'
+    credit = 'Footage: cottonbro studio / Pexels' if is_creator else 'REYZ / Motion study'
     label = 'CREATOR / YOUR OWN WAY' if is_creator else 'CREATIVE / FROM INTENT TO IMPACT'
     return f'''<figure class="editorial-visual is-{prefix} reveal" data-editorial>
       <div class="editorial-film">

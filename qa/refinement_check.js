@@ -28,8 +28,17 @@ const server = http.createServer((req, res) => {
         // The complete request has been received. Keep the response open until
         // Playwright observes its headers, then interrupt the incomplete body.
         api.partial.push(res);
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength('{"ok":true,"verified":true}'), 'Cache-Control': 'no-store' });
-        res.flushHeaders(); res.write('{"ok":');
+        // Supply a full initial chunk so a browser can expose the response
+        // even when it buffers the start of a very short payload.
+        const prefix = ' '.repeat(4096) + '{"ok":';
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(prefix + 'true,"verified":true}'),
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff'
+        });
+        res.flushHeaders();
+        res.write(prefix);
       }
       else if (api.mode === 'server-error') json(res, { ok: false, error: 'send', stage: 'after-acceptance' }, 502);
       else if (api.mode === 'fail') json(res, { ok: false, error: 'model' }, 502);

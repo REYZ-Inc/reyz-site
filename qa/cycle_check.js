@@ -184,7 +184,13 @@ async function cycleJourney(page, label) {
     check(label + ': ' + action + ' confirms stop before any fresh publication',
       stoppedConfirmed(stopped) && publicRequests(stopped) === oldRequests, stopped);
     check(label + ': stopping does not restore old approval', !approvalValid(stopped), stopped);
-    if (action === 'asset') await capture(page, '[data-cycle]', label + '-changed');
+    if (action === 'asset') {
+      const preview = page.locator('#cyclePreview');
+      check(label + ': asset change uses the new CG poster and its description',
+        await preview.getAttribute('src') === 'assets/editorial/creative-study-v1.webp'
+        && await page.locator('#cycleMediaCaption').innerText() === '構図と光のCG');
+      await capture(page, '[data-cycle]', label + '-changed');
+    }
   }
 
   await reachPublication(page, label + '/expiry');

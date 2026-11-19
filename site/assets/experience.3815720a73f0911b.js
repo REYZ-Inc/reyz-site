@@ -342,10 +342,10 @@
       for (const text of state.history) { const li = document.createElement('li'); li.textContent = text; history.append(li); }
       const preview = $('cyclePreview');
       if (preview) {
-        const src = state.asset % 2 ? 'assets/editorial/creator-film.webp' : 'assets/editorial/production-editorial-20261119.webp';
+        const src = state.asset % 2 ? 'assets/editorial/creator-film.webp' : 'assets/editorial/creative-study-v1.webp';
         if (preview.getAttribute('src') !== src) preview.src = src;
       }
-      const caption = $('cycleMediaCaption'); if (caption) caption.textContent = state.asset % 2 ? '素材イメージ' : 'AI生成イメージ';
+      const caption = $('cycleMediaCaption'); if (caption) caption.textContent = state.asset % 2 ? '素材イメージ' : '構図と光のCG';
       const badge = $('cycleScreenVersion'); if (badge) badge.textContent = 'v' + state.asset;
     }
     function advance() {
