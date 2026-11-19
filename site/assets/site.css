@@ -140,6 +140,9 @@ p { hanging-punctuation: allow-end; }
 
 /* ---------- sections ---------- */
 .section { position: relative; z-index: 2; padding-block: var(--space-section); border-top: 1px solid var(--line); scroll-margin-top: 5rem; }
+/* On service pages the fixed particle canvas belongs to the hero and footer.
+   Paint the intervening reading surfaces above it even during native scrolling. */
+body:not([data-page="index"]) main > .section { z-index: 5; background-color: var(--bg); }
 .head { display: grid; gap: 1.2rem; max-width: 40rem; }
 .head .eyebrow { color: var(--text-3); }
 .head h2 { font-size: clamp(1.9rem, 3.5vw, 3.3rem); letter-spacing: -0.035em; }
@@ -1219,7 +1222,7 @@ body[data-page="contact"] .section-text, body[data-page="legal"] .section-text {
 .section .head > .eyebrow { color: var(--accent); font-size: 0.67rem; letter-spacing: 0.19em; }
 .section .head > .lead { max-width: 42em; font-size: 0.98rem; }
 body[data-page="creative"] #guard .head h2 { font-size: clamp(2rem, 4.3vw, 4rem); letter-spacing: -0.045em; }
-body[data-page="creative"] #show, body[data-page="creator"] #income, body[data-page="ai"] #products { background: rgba(250, 250, 250, 0.018); }
+body[data-page="creative"] #show, body[data-page="creator"] #income, body[data-page="ai"] #products { background-color: color-mix(in srgb, var(--text) 1.8%, var(--bg)); }
 body[data-page="creator"] .model { max-width: none; }
 body[data-page="creator"] .vows { max-width: none; }
 @media (min-width: 900px) {

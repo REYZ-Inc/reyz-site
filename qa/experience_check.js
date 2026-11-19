@@ -170,7 +170,18 @@ async function creativeContent(page, label) {
   await click(offers.first().locator('summary'));
   check(label + ': offer details open on request', await offers.first().getAttribute('open') !== null && /法律の鑑定ではありません/.test(await offers.first().innerText()));
   await controlsFit(page, '#services details > summary', label + ' services');
-  await page.locator('#show').scrollIntoViewIfNeeded();
+  const sampleLink = page.locator('#services a[href="#show"]');
+  const sampleOffer = page.locator('#services details').filter({ has: page.locator('a[href="#show"]') });
+  if (await sampleOffer.getAttribute('open') === null) await click(sampleOffer.locator('summary'));
+  await click(sampleLink);
+  await page.waitForFunction(() => {
+    const heading = document.querySelector('#show h2').getBoundingClientRect();
+    const header = document.querySelector('#siteHeader').getBoundingClientRect();
+    return location.hash === '#show' && heading.top >= header.bottom && heading.bottom < innerHeight * .45;
+  });
+  const overviewFile = label + '-production-film.png';
+  await page.screenshot({ path: path.join(OUT, overviewFile) });
+  report.screenshots.push(overviewFile);
   const film = page.locator('#show [data-editorial]');
   check(label + ': production shown once without duplicated device mockup', await film.locator('video').count() === 1 && await page.locator('#show .editorial-device, #show [data-cinematic]').count() === 0);
   const credit = await film.locator('figcaption').innerText();
@@ -197,9 +208,9 @@ async function creativeContent(page, label) {
   }));
   check(label + ': composition, light and motion notes are readable without clipping',
     captions.map(item => item.title).join('/') === '構図/光/動き' && captions.every(item => item.fits), captions);
-  const file = label + '-production-film.png';
-  await page.locator('#show .section-text').screenshot({ path: path.join(OUT, file) });
-  report.screenshots.push(file);
+  const notesFile = label + '-production-notes.png';
+  await page.screenshot({ path: path.join(OUT, notesFile) });
+  report.screenshots.push(notesFile);
 }
 
 async function panelDestinations(page, label) {
