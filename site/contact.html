@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap">
-  <link rel="stylesheet" href="assets/site.fdca354e432d05c5.css">
+  <link rel="stylesheet" href="assets/site.b7ca13a1aebaa64a.css">
 </head>
 <body data-page="contact">
   <a class="skip" href="#main">本文へ移動</a>
@@ -61,9 +61,9 @@
           <div class="head reveal"><p class="eyebrow">Message</p><h2>お問い合わせ</h2><p class="lead">担当者より直接ご返信します。</p></div>
           <form class="panel reveal" id="contactForm" novalidate>
             <div class="step" id="stepForm">
-              <label>お名前（個人名または会社名）<input id="cName" name="name" type="text" autocomplete="name" required></label>
+              <label>お名前（個人名または会社名）<input id="cName" name="name" type="text" autocomplete="name" maxlength="100" required></label>
               <!-- メールは 1 欄（DEC-20261027-18。@ 以降の選択式は模擬ユーザー 4/4 が指摘） -->
-              <label>メールアドレス<input id="cEmail" name="email" type="email" spellcheck="false" autocomplete="email" inputmode="email" required></label>
+              <label>メールアドレス<input id="cEmail" name="email" type="email" spellcheck="false" autocomplete="email" inputmode="email" maxlength="254" required></label>
               <label>ご用件
                 <select id="cType" name="type" required>
                   <option value="">選択してください</option>
@@ -89,8 +89,8 @@
                 </select>
               </label>
               <!-- ご担当者は企業の用件のときだけ表示（DEC-20261027-18） -->
-              <label id="personLabel" hidden>ご担当者<input id="cPerson" name="person" type="text" autocomplete="off"></label>
-              <label>内容<textarea id="cMsg" name="message" required></textarea></label>
+              <label id="personLabel" hidden>ご担当者<input id="cPerson" name="person" type="text" autocomplete="off" maxlength="100"></label>
+              <label>内容<textarea id="cMsg" name="message" maxlength="5000" required></textarea></label>
               <input id="cWebsite" name="website" type="text" tabindex="-1" autocomplete="off" hidden>
               <div class="ctas tight">
                 <button class="btn primary" type="submit" id="confirmBtn">確認する</button>
@@ -136,7 +136,7 @@
   </footer>
 
   <script src="assets/field-renderer.f8196e8b303aaea5.js"></script>
-  <script src="assets/site.e487f123bfd1cc61.js"></script>
-  <script src="assets/experience.bb02b954660bd4cc.js"></script>
+  <script src="assets/site.55306d3294feb8d5.js"></script>
+  <script src="assets/experience.3815720a73f0911b.js"></script>
 </body>
 </html>

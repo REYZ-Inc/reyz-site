@@ -369,10 +369,14 @@
     // AI と深めた地図（TALK）。選択が変わると捨てる（選択の地図＝正本の文に戻る）
     let aiMap = null, ansKey = '';
     const effective = (r) => (r && aiMap) ? { ...r, goal: aiMap.goal, place: aiMap.place, step: aiMap.step } : r;
+    const rememberMap = (who, r) => {
+      try { sessionStorage.setItem('reyz.map.r', JSON.stringify({ who, goal: r.goal, place: r.place, step: r.step, conversation: talk.transcript() })); } catch (err) { /* 保持できないときは見本の地図のまま */ }
+    };
+    const saveCurrentMap = () => { const r = effective(compose()); if (r) rememberMap(ans.who, r); };
     const redraw = (who, r) => {
       phrase(out.goal, r.goal); phrase(out.place, r.place); phrase(out.step, r.step);
       drawRoute(); card.classList.remove('is-live'); void card.offsetWidth; card.classList.add('is-live');   // 地図を引き直す（線が点を結んでいく）
-      try { sessionStorage.setItem('reyz.map.r', JSON.stringify({ who, goal: r.goal, place: r.place, step: r.step })); } catch (err) { /* 保持できないときは見本の地図のまま */ }   // /creator・/creative の 1 画面目にそのまま入る
+      rememberMap(who, r);   // /creator・/creative の 1 画面目にそのまま入る
     };
     const render = () => {
       const who = ans.who;
@@ -380,7 +384,7 @@
       if (who) { const order = MAP_TEXT[who].order; let open = true;
         for (const q of order) { const g = groupOf(q, who); if (!g) continue; g.hidden = !open; if (open && !ans[q]) open = false; } }
       for (const g of groups) for (const b of g.querySelectorAll('.opt')) b.setAttribute('aria-pressed', String(ans[g.dataset.q] === b.dataset.v && (g.dataset.for === 'all' || g.dataset.for === who)));
-      const key = JSON.stringify(ans); if (key !== ansKey) { ansKey = key; aiMap = null; talk.reset(); }
+      const key = JSON.stringify(ans); if (key !== ansKey) { ansKey = key; aiMap = null; talk.reset(); try { sessionStorage.removeItem('reyz.map.r'); } catch (err) { /* no stale map to carry when storage is unavailable */ } }
       const r0 = compose(), r = effective(r0); mapper.dataset.done = r ? 'true' : 'false';
       if (r) { noteLive.hidden = !r.live; card.dataset.who = who; card.hidden = false;
         redraw(who, r);
@@ -422,6 +426,7 @@
       const body = '【あなたの地図（ホームで選んだ内容）】\n目的: ' + r.goal + '\n今いる場所: ' + r.place + '\n最初の一歩: ' + r.step + talk.transcript();
       try { sessionStorage.setItem('reyz.map', JSON.stringify({ type: r.type, body })); } catch (err) { /* 引き継げないときは空のフォームへ */ }
     });
+    if (screens) screens.addEventListener('click', saveCurrentMap);
 
     /* ---- TALK — 地図を、あなたの言葉で（REYZ CONSENSUS の入口。docs/consensus-entry.md）
          入口 Worker（CONFIG.consensusEndpoint）の GET /health が ready を返すときだけ表示する。返らなければ何も出ない（地図は選択だけで完結＝Fail-Closed）。
@@ -432,46 +437,60 @@
       const ep = CONFIG.consensusEndpoint;
       const api = { reset() {}, open() {}, transcript() { return ''; } };
       if (!box || !logEl || !form || !input || !send || !note || !ep) return api;
-      let ready = null, probing = null, who = '', map = null, messages = [], chain = '', busy = false, closed = false;
+      let ready = null, probing = null, who = '', map = null, messages = [], chain = '', busy = false, closed = false, generation = 0, activeRequest = null;
       const probe = () => {
         if (ready !== null) return Promise.resolve(ready);
-        if (!probing) probing = fetch(ep + '/health', { method: 'GET', headers: { Accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(j => { ready = !!(j && j.ok && j.ready); return ready; }).catch(() => { ready = false; return false; });
+        if (!probing) {
+          const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 5000);
+          probing = fetch(ep + '/health', { method: 'GET', headers: { Accept: 'application/json' }, signal: controller.signal }).then(r => r.ok ? r.json() : null).then(j => { ready = !!(j && j.ok && j.ready); return ready; }).catch(() => { ready = false; return false; }).finally(() => clearTimeout(timer));
+        }
         return probing;
       };
       const line = (role, text) => { const p = document.createElement('p'); p.className = 'talk-line ' + role; const b = document.createElement('span'); b.className = 'bubble'; b.textContent = text; p.append(b); logEl.append(p); logEl.scrollTop = logEl.scrollHeight; return p; };
       const setNote = (t) => { note.textContent = t || ''; note.hidden = !t; };
       const lock = (on) => { busy = on; send.disabled = on || closed; input.disabled = on || closed; box.classList.toggle('is-busy', on); };
       const close = (t) => { closed = true; lock(false); setNote(t); go && go.classList.add('is-next'); };
-      api.reset = () => { messages = []; chain = ''; closed = false; map = null; logEl.textContent = ''; setNote(''); input.value = ''; box.classList.remove('has-log'); lock(false); if (go) go.classList.remove('is-next'); };
-      api.open = (w, r) => { who = w; map = { goal: r.goal, place: r.place, step: r.step }; probe().then(ok => { box.hidden = !ok || card.hidden; }); };
+      api.reset = () => { generation++; if (activeRequest) activeRequest.abort(); activeRequest = null; messages = []; chain = ''; closed = false; map = null; logEl.textContent = ''; setNote(''); input.value = ''; box.hidden = true; box.classList.remove('has-log'); lock(false); if (go) go.classList.remove('is-next'); };
+      api.open = (w, r) => { who = w; map = { goal: r.goal, place: r.place, step: r.step }; const current = generation; probe().then(ok => { if (current === generation) box.hidden = !ok || card.hidden; }); };
       api.transcript = () => {
-        if (!messages.length) return '';
-        const lines = messages.map(m => (m.role === 'user' ? 'あなた: ' : 'AI: ') + m.content.replace(/\n+/g, ' '));
-        return '\n\n【地図について、やりとりした内容】\n' + lines.join('\n').slice(0, 3000);
+        const entries = Array.from(logEl.querySelectorAll('.talk-line:not(.pending)')).map(el => ({ role: el.classList.contains('user') ? 'user' : 'assistant', content: el.textContent }));
+        const draft = input.value.replace(/\s+/g, ' ').trim(), last = entries[entries.length - 1];
+        if (draft && !(last && last.role === 'user' && last.content === draft)) entries.push({ role: 'user', content: draft });
+        if (!entries.length) return '';
+        return '\n\n【地図について、やりとりした内容】\n' + entries.map(m => (m.role === 'user' ? 'あなた: ' : 'AI: ') + m.content.replace(/\n+/g, ' ')).join('\n');
       };
+      input.addEventListener('input', saveCurrentMap);
+      input.addEventListener('change', saveCurrentMap);
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = input.value.replace(/\s+/g, ' ').trim(); if (!text || busy || closed || !map) return;
         if (text.length > 400) { setNote('400文字以内で。'); return; }
         input.value = ''; setNote('');
         messages.push({ role: 'user', content: text }); line('user', text); box.classList.add('has-log');
+        saveCurrentMap();
         const pending = line('ai pending', '…'); lock(true);
+        const current = generation, controller = new AbortController(); activeRequest = controller;
+        const timer = setTimeout(() => controller.abort(), 20000);
         let res = null, j = null;
         try {
-          res = await fetch(ep + '/turn', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ who, map, messages, chain }) });
+          res = await fetch(ep + '/turn', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ who, map, messages, chain }), signal: controller.signal });
           j = await res.json().catch(() => null);
         } catch (err) { res = null; }
+        finally { clearTimeout(timer); if (activeRequest === controller) activeRequest = null; }
+        if (current !== generation) return;
         pending.remove();
-        if (!res || !j) { messages.pop(); lock(false); setNote('いま、返事が届きませんでした。そのまま「この内容で相談する」へ進めます。'); return; }
-        if (!j.ok) {
+        const failed = (note) => { input.value = text; lock(false); setNote(note); };
+        if (!res || !j) { messages.pop(); failed('いま、返事が届きませんでした。入力は残しています。そのまま「この内容で相談する」へ進めます。'); return; }
+        if (!res.ok || j.ok !== true || typeof j.reply !== 'string') {
           messages.pop();
           if (j.error === 'turn_limit') { close('ここからは、相談で。この内容で相談へ進めます。'); return; }
-          if (j.error === 'rate_limited') { lock(false); setNote('少し待ってから、もう一度。'); return; }
-          lock(false); setNote('いま、返事が届きませんでした。そのまま「この内容で相談する」へ進めます。'); return;
+          if (j.error === 'rate_limited') { failed('少し待ってから、もう一度。入力は残しています。'); return; }
+          failed('いま、返事が届きませんでした。入力は残しています。そのまま「この内容で相談する」へ進めます。'); return;
         }
         messages.push({ role: 'assistant', content: j.reply }); chain = typeof j.chain === 'string' ? j.chain : chain;
         line('ai', j.reply);
         if (j.map && j.map.goal && j.map.place && j.map.step) { map = { goal: j.map.goal, place: j.map.place, step: j.map.step }; aiMap = map; const r = effective(compose()); if (r) redraw(who, r); }
+        saveCurrentMap();
         if (j.consult && go) go.classList.add('is-next');
         lock(false); if (fine) input.focus({ preventScroll: true });
       });
@@ -538,7 +557,7 @@
     let carried = null;
     for (const a of demo.querySelectorAll('a.consult')) a.addEventListener('click', () => {
       const type = MAP_TEXT[who === 'creator' ? 'creator' : 'company'].type;   // ご用件は Home の地図と同じ
-      const body = carried ? '【あなたの地図（ホームで選んだ内容）】\n目的: ' + carried.goal + '\n今いる場所: ' + carried.place + '\n最初の一歩: ' + carried.step : '';
+      const body = carried ? '【あなたの地図（ホームで選んだ内容）】\n目的: ' + carried.goal + '\n今いる場所: ' + carried.place + '\n最初の一歩: ' + carried.step + (typeof carried.conversation === 'string' ? carried.conversation : '') : '';
       try { sessionStorage.setItem('reyz.map', JSON.stringify({ type, body })); } catch (err) { /* 引き継げないときは空のフォームへ */ }
     });
     // 1 画面目: Home で作った地図があれば、見本の地図と入れ替える
@@ -643,8 +662,8 @@
      送信者の環境に依存しない設計:
        - Turnstile は「読めたら使う」。読めない（拡張機能・企業ネットワーク）／描画失敗／時間切れでも送信を止めず、
          状態（client.turnstile）を添えて送る。Worker 側は未検証として受け付ける（控えに [未検証]、確認メールなし）
-       - トークン不受理は 1 回だけ取り直して再送、通信断は 1 回だけ再試行
-       - それでも送れなければ、文面のコピーとメールアプリ（CONFIG.contactEmail）の代替経路を必ず示す
+       - トークン不受理は処理前の拒否に限って取り直す。通信断・応答期限では受付済みか不明なので自動再送しない
+       - 結果が確認できなければ、入力と文面のコピー・メールアプリ（CONFIG.contactEmail）の代替経路を残す
      送信先未設定（formEndpoint 空）のときは「文面をコピー」の暫定挙動。
      ================================================================ */
   const form = document.getElementById('contactForm');
@@ -662,6 +681,10 @@
     const EMAIL_RE = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
     const email = () => emailInput.value.trim().toLowerCase();
     const validateEmail = () => { emailInput.setCustomValidity(''); if (email() && !EMAIL_RE.test(email())) emailInput.setCustomValidity('メールアドレスの形式を確認してください（例: name@example.co.jp）。'); };
+    const messageInput = $('cMsg');
+    const validateMessage = () => messageInput.setCustomValidity(messageInput.value.trim().length > 5000 ? '内容は5,000文字以内に調整してください。引き継いだ内容はそのまま残しています。' : '');
+    messageInput.addEventListener('input', validateMessage); validateMessage();
+    if (messageInput.validationMessage && messageInput.value) status.textContent = messageInput.validationMessage;
     // ご担当者は企業の用件を選んだときだけ（DEC-20261027-18）。クリエイター・その他では隠し、値も空にする
     const typeSel = $('cType'), personLabel = $('personLabel'), personInput = $('cPerson');
     const syncPerson = () => { const o = typeSel.selectedOptions[0]; const corp = !!(o && o.parentElement && o.parentElement.tagName === 'OPTGROUP' && o.parentElement.label === '企業の方'); personLabel.hidden = !corp; if (!corp) personInput.value = ''; };
@@ -692,6 +715,7 @@
     const tsRender = async () => {
       if (ts.state === 'off') return;
       if (!(await tsLoad())) { ts.state = 'blocked'; return; }
+      if (stepConfirm.hidden) return;
       if (ts.widget !== null) { tsReset(); return; }
       const api = tsApi();
       const render = () => {
@@ -717,7 +741,10 @@
     };
     form.addEventListener('focusin', () => { tsLoad(); }, { once: true });   // 入力開始時に先読み（確認ページで待たせない）
 
+    let sending = false, confirmed = null;
+    const lockSending = on => { sending = on; sendBtn.disabled = on || !stepDone.hidden; $('backBtn').disabled = on; $('confirmBtn').disabled = on; stepConfirm.setAttribute('aria-busy', String(on)); };
     const show = (step) => {
+      if (sending && step !== stepConfirm && step !== stepDone) return;
       for (const el of [stepForm, stepConfirm, stepDone]) el.hidden = el !== step;
       const sec = form.closest('.section') || form; const top = sec.getBoundingClientRect().top + window.scrollY + 8;   // 見出し「お問い合わせ」から見える位置へ
       window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'instant' : 'smooth' });
@@ -726,16 +753,20 @@
     };
     // 入力 → 確認（履歴に1段積む: 戻るボタンで入力へ）
     form.addEventListener('submit', e => {
-      e.preventDefault(); status.textContent = ''; validateEmail();
+      e.preventDefault(); if (sending || stepForm.hidden) return;
+      status.textContent = ''; validateEmail(); validateMessage();
       if (!form.reportValidity()) { status.textContent = '未入力または形式の誤りがある項目があります。'; return; }
-      const f = fields(); list.textContent = '';
+      const f = fields(); confirmed = Object.freeze({ ...f }); list.textContent = '';
       for (const k of ['name', 'person', 'email', 'type', 'msg']) { if (!f[k]) continue; const row = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = LABELS[k]; const dd = document.createElement('dd'); dd.textContent = f[k]; row.append(dt, dd); list.append(row); }
       sendStatus.textContent = ''; copyLabel.hidden = true; if (mailBtn) mailBtn.hidden = true; sendBtn.disabled = false;
       try { history.pushState({ step: 'confirm' }, '', '#confirm'); } catch (err) {}
       show(stepConfirm);
     });
-    $('backBtn').addEventListener('click', () => { if (history.state && history.state.step === 'confirm') history.back(); else show(stepForm); });
-    window.addEventListener('popstate', () => { if (stepForm.hidden && !(history.state && history.state.step)) show(stepForm); });
+    $('backBtn').addEventListener('click', () => { if (sending) return; if (history.state && history.state.step === 'confirm') history.back(); else show(stepForm); });
+    window.addEventListener('popstate', () => {
+      if (sending) { try { history.pushState({ step: 'confirm' }, '', '#confirm'); } catch (err) {} return; }
+      if (stepForm.hidden && !(history.state && history.state.step)) show(stepForm);
+    });
     if (location.hash === '#confirm' || location.hash === '#sent') { try { history.replaceState(null, '', location.pathname); } catch (err) {} }
 
     // 送れなかったとき: 文面をコピー ＋ メールアプリで送る（連絡経路を必ず残す）
@@ -747,15 +778,19 @@
     const post = async (f, token, state) => {
       const website = $('cWebsite');
       const payload = { name: f.name, person: f.person, email: f.email, type: f.type, message: f.msg, website: website ? website.value : '', turnstile: token, client: { turnstile: state }, _subject: 'REYZ お問い合わせ', _replyto: f.email };
+      const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
       try {
-        const res = await fetch(CONFIG.formEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) });
+        const res = await fetch(CONFIG.formEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
         let j = null; try { j = await res.json(); } catch (err) {}
         return { status: res.status, j: j || {} };
-      } catch (err) { return { status: 0, j: { error: 'network' } }; }
+      } catch (err) { return { status: 0, j: { error: controller.signal.aborted ? 'timeout' : 'network' } }; }
+      finally { clearTimeout(timer); }
     };
     // 送信
     sendBtn.addEventListener('click', async () => {
-      const f = fields(); const body = text(f); sendBtn.disabled = true; copyLabel.hidden = true; if (mailBtn) mailBtn.hidden = true;
+      if (sending || stepConfirm.hidden || !confirmed) return;
+      const f = confirmed; const body = text(f); lockSending(true); copyLabel.hidden = true; if (mailBtn) mailBtn.hidden = true;
+      try {
       if (!CONFIG.formEndpoint) {   // 送信先が未設定: 文面をコピーして案内（公開前の暫定挙動）
         const note = CONFIG.lineUrl ? 'メールまたはLINEでお送りください。' : 'メールでお送りください。';
         try { await navigator.clipboard.writeText(body); fallback('この環境からは送信できないため、文面をコピーしました。' + note, body); }
@@ -771,8 +806,6 @@
         tsReset(); token = await tsWait(6000);
         r = await post(f, token, token ? 'retry:' + codes : 'rejected:' + codes);
         if (r.status === 403 && r.j.error === 'turnstile' && token) r = await post(f, '', 'rejected:' + ((r.j.codes || []).join(',') || codes));
-      } else if (r.status === 0 || r.status >= 500) {   // 通信断・一時的な失敗: 1 回だけ再試行
-        await sleep(1500); r = await post(f, token, token ? 'ok' : tsState());
       }
       if (r.status === 200 && r.j.ok) {
         try { history.replaceState({ step: 'done' }, '', '#sent'); } catch (err) {}
@@ -781,8 +814,11 @@
       }
       try { console.warn('contact form: ' + (r.j.error || ('HTTP ' + r.status)) + ' ' + (r.j.stage || '') + ' ' + (r.j.detail || (r.j.codes || []).join(','))); } catch (e2) {}   // 原因調査用（本文・個人情報は含まない）
       if (r.j.error === 'validation') { sendStatus.textContent = '入力内容に確認が必要な項目があります。「修正する」から見直してください。'; sendBtn.disabled = false; return; }
-      fallback(r.j.error === 'rate_limited' ? '短時間に多くの送信がありました。しばらく待ってから再度お試しいただくか、下の文面をメールでお送りください。'
+      fallback(r.status === 0 || r.status >= 500 || (r.status === 200 && !r.j.ok)
+        ? '送信結果を確認できませんでした。内容はすでに届いている可能性があります。入力は残しています。確認メールをご確認いただき、届かない場合は時間をおいて再度お試しいただくか、下の文面でお問い合わせください。'
+        : r.j.error === 'rate_limited' ? '短時間に多くの送信がありました。しばらく待ってから再度お試しいただくか、下の文面をメールでお送りください。'
         : '送信できませんでした。お手数ですが、下の文面をコピーするか「メールアプリで送る」からお送りください。', body);
+      } finally { lockSending(false); }
     });
   }
 })();

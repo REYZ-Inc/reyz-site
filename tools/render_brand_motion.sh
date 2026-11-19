@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Original REYZ 3D loop, rendered from the same authored infinity geometry as
-# infinity-ribbon.webp. This creates a new motion asset; it never replaces the still.
+# Historical brand study. Write archival renders to the frame directory.
 # Usage: bash tools/render_brand_motion.sh /tmp/reyz-brand-motion
 # To encode an already completed 0..119 sequence: add --encode-only.
 set -euo pipefail
@@ -8,8 +7,8 @@ cd "$(dirname "$0")/.."
 
 reyz_frames="${1:?Pass a directory for the 120 rendered PNG frames}"
 reyz_mode="${2:-render}"
-reyz_video_tmp="site/assets/brand/infinity-motion.partial.mp4"
-reyz_poster_tmp="site/assets/brand/infinity-motion.partial.webp"
+reyz_video_tmp="$reyz_frames/infinity-motion.partial.mp4"
+reyz_poster_tmp="$reyz_frames/infinity-motion.partial.webp"
 trap 'rm -f "$reyz_video_tmp" "$reyz_poster_tmp"' EXIT
 if [[ "$reyz_mode" != "render" && "$reyz_mode" != "--encode-only" ]]; then
   echo "Expected no second argument, or --encode-only" >&2
@@ -60,8 +59,8 @@ import sys
 video, poster = map(Path, sys.argv[1:])
 if video.stat().st_size > 2_000_000:
     raise SystemExit('Video exceeds the 2 MB delivery budget; inspect before publishing')
-video = video.replace('site/assets/brand/infinity-motion.mp4')
-poster = poster.replace('site/assets/brand/infinity-motion.webp')
+video = video.replace(video.with_name('infinity-motion.mp4'))
+poster = poster.replace(poster.with_name('infinity-motion.webp'))
 for path in [video, poster]:
     print(json.dumps({'path': str(path), 'bytes': path.stat().st_size,
                       'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}))

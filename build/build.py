@@ -300,7 +300,7 @@ def mapper():
         qs.append(f'            <div class="mq" role="group" aria-labelledby="{qid}" data-q="{q}" data-for="{aud}"{"" if aud == "all" else " hidden"}><p class="q" id="{qid}">{prompt}</p><div class="opts">{btns}</div></div>')
     return ('          <div class="mapper reveal" id="mapper">\n' + '\n'.join(qs) + '\n'
             '            <div class="map-card" id="mapCard" hidden>\n'
-            '              <div class="sheet-head"><p class="eyebrow">Your map · 設計上の見本（例）</p></div>\n'
+            '              <div class="sheet-head"><p class="eyebrow">Your map · 進め方の見本</p></div>\n'
             # 地図そのもの: 3 つの点（今いる場所 → 最初の一歩 → 目的）を 1 本の線が結ぶ。線は site.js が点の位置から引く（正本 §10・§13「3 つの点が線で結ばれる軌道」）
             '              <div class="route" id="mapRoute">\n'
             '                <svg class="route-svg" aria-hidden="true" focusable="false"><path id="routePath" class="route-line" d="M0 0"/><circle class="route-pulse" r="3"><animateMotion dur="6s" repeatCount="indefinite" calcMode="linear"><mpath href="#routePath"/></animateMotion></circle></svg>\n'
@@ -369,7 +369,7 @@ STRUCTURE = structure()
 # 初画面の一言: 事業内容 3 本柱（既決）を、クリエイター／企業／AI の順に同じ形で 1 行ずつ（2026-10-27 CEO「同じ形・同じ分量」「決定した事業構造を把握した上で」）
 home = f'''    <section class="chapter" id="infinity">
       <div class="wrap chapter-stack">
-        <div class="brand-film" data-brand-film><video id="brandFilm" data-brand-video data-src="assets/brand/infinity-motion.mp4" poster="assets/brand/infinity-motion.webp" width="1280" height="720" muted loop playsinline preload="none" aria-hidden="true"></video><button class="video-toggle" data-brand-toggle aria-controls="brandFilm" aria-pressed="false" hidden type="button">映像を再生</button></div>
+        <div class="brand-film" data-brand-film><video id="brandFilm" data-brand-video data-src="assets/brand/brand-contour-v1.mp4" poster="assets/brand/brand-contour-v1.webp" width="1280" height="720" muted loop playsinline preload="none" aria-hidden="true"></video><button class="video-toggle" data-brand-toggle aria-controls="brandFilm" aria-pressed="false" hidden type="button">映像を再生</button></div>
         <div class="head copy">
           <h1><span>無限の可能性を</span><span>かたちに</span></h1>
           <p class="hero-sub">From Japan, <em>beyond.</em></p>
@@ -417,14 +417,17 @@ def editorial_film(kind, headline, line):
     """One actual film, with its editorial copy and visible source beside it."""
     is_creator = kind == 'creator'
     prefix = 'creator' if is_creator else 'production'
+    asset = 'creator-film' if is_creator else 'creative-study-v1'
+    disclosure = 'イメージ映像' if is_creator else '構図と光のイメージ映像（CG）'
+    credit = 'Footage: cottonbro studio / Pexels' if is_creator else 'REYZ / Motion study'
     label = 'CREATOR / YOUR OWN WAY' if is_creator else 'CREATIVE / FROM INTENT TO IMPACT'
     return f'''<figure class="editorial-visual is-{prefix} reveal" data-editorial>
       <div class="editorial-film">
-        <video id="{prefix}Film" data-editorial-video data-src="assets/editorial/{prefix}-film.mp4" poster="assets/editorial/{prefix}-film.webp" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video>
+        <video id="{prefix}Film" data-editorial-video data-src="assets/editorial/{asset}.mp4" poster="assets/editorial/{asset}.webp" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video>
         <button class="video-toggle" type="button" data-editorial-toggle aria-controls="{prefix}Film" aria-pressed="false" hidden>映像を再生</button>
       </div>
       <div class="editorial-film-copy"><span class="tag">{label}</span><h3>{headline}</h3><p>{line}</p></div>
-      <figcaption id="{prefix}Caption" class="editorial-caption"><span>イメージ映像</span><span>Footage: cottonbro studio / Pexels</span></figcaption>
+      <figcaption id="{prefix}Caption" class="editorial-caption"><span>{disclosure}</span><span>{credit}</span></figcaption>
     </figure>'''
 
 # 本文の改行は本人指定（2026-09-27）。'|' は画面幅が足りない時だけ使う折返し点。TT_P1・TT_P2・TT_NOTE は HOME の前で定義
@@ -474,7 +477,7 @@ def demo_map(prefix, place, step, goal, nxt, label, cap=''):
             f'                  <a class="pane-link" id="{prefix}Home" href="index.html#map">ホームで、あなたの地図をつくる →</a>\n'
             f'                  <button class="go-btn" type="button" data-next="{nxt}">{label}</button>\n')
 SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
-    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><p class="echo" aria-hidden="true">地図から、始める。</p></div>\n'
+    '            <div class="sheet-head"><p class="eyebrow">地図・入口・明細</p><p class="echo" aria-hidden="true">地図から、始める。</p></div>\n'
     '            <p class="sample-disclosure">操作の見本です。受注・契約・支払いは行われません。</p>\n'
     '            <div class="demo" id="demoC" data-demo="creator">\n' + demo_tabs('dc', [('map', '地図'), ('gate', '入口'), ('stmt', '明細')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
@@ -652,7 +655,7 @@ page('manual.html', '配信マニュアルをカスタマイズ — REYZ Inc.', 
 # 確認を実際に通す見本（正本 §3-1・§11）: 投稿の例を選ぶ → 提供元の異なる複数の AI が確かめる → 一致しないものは止まる → 直して再確認 → 人が はい／いいえ → 記録に 1 行。
 # 公的ガイドラインと自主基準への照合の例であり、法律の鑑定ではない（正本 §11「今すぐ書いてよい」の添え書き）
 SCREENS_ENT = ('<div class="screens3 reveal">\n'
-    '            <div class="sheet-head"><p class="eyebrow">Three screens · 設計上の見本（例）</p><p class="cap">' + jp('公的なきまりと自主基準への|照合の例。|法律の鑑定ではありません。') + '</p><p class="echo" aria-hidden="true">目的から、逆算。</p></div>\n'
+    '            <div class="sheet-head"><p class="eyebrow">地図・確認・記録</p><p class="cap">' + jp('公的なきまりと自主基準への|照合の例。|法律の鑑定ではありません。') + '</p><p class="echo" aria-hidden="true">目的から、逆算。</p></div>\n'
     '            <p class="sample-disclosure">表現の確認を体験する見本です。実際の複数AIによる審査や、公開・契約・支払いは行いません。</p>\n'
     '            <div class="demo" id="demoE" data-demo="company" data-run="">\n' + demo_tabs('de', [('map', '地図'), ('check', '確認'), ('rec', '記録')]) +
     '              <div class="phone big"><div class="phone-screen"><div class="phone-bar" aria-hidden="true"><i></i><i></i></div>\n' +
@@ -699,12 +702,12 @@ GAIN = ('<div class="gain reveal" data-gain>\n'
     '            </div>\n'
     '            <dl class="gain-out" aria-live="polite">\n'
     '              <div class="now"><dt>いま、確認と管理に</dt><dd id="gainNow">月30時間・150,000円</dd></div>\n'
-    '              <div class="fee"><dt>掲載利用料での試算</dt><dd id="gainFee">月62,500円</dd></div>\n'
+    '              <div class="fee"><dt>この料金条件での月額</dt><dd id="gainFee">月62,500円</dd></div>\n'
     '              <div class="even"><dt>利用料に相当する削減時間</dt><dd id="gainEven">' + jp('1本あたり25分、|短くなったとき') + '</dd></div>\n'
     '            </dl>\n'
     '            <p class="gain-cap">' + jp('月額50,000円で、20本まで。|21本目からは、1本1,250円。\n公開前の確認は、|月30件まで無料です。') + '</p>\n'
-    '            <p class="gain-disclosure">入力した時間・費用と掲載利用料を比べる試算です。実際の削減効果を示すものではありません。</p>\n'
-    '            <details class="terms gain-terms"><summary class="terms-head">料金に含まれる範囲を、確認する</summary><div class="fold-body"><p>公開前の確認は月30件まで無料。継続利用の掲載料金は月額50,000円・20本までです。</p><p>対象素材、無料確認と有料利用の範囲、1本・1件の数え方、修正や再確認、連携先を、契約前の見積もりに明記します。</p><p>制作・出演・広告・導入にかかる費用、税、契約期間・解約条件も、同じ見積もりで確認できます。この試算には、それらの費用とお客様に残る作業の費用を加えていません。</p><a class="go" href="contact.html" data-consult-page>対象と費用を相談する</a></div></details>\n'
+    '            <p class="gain-disclosure">入力した時間・費用と上記の利用料を比べる試算です。実際の削減効果を示すものではありません。</p>\n'
+    '            <details class="terms gain-terms"><summary class="terms-head">料金に含まれる範囲を、確認する</summary><div class="fold-body"><p>公開前の確認は月30件まで無料。継続利用の料金は月額50,000円・20本までです。</p><p>対象素材、無料確認と有料利用の範囲、1本・1件の数え方、修正や再確認、連携先を、契約前の見積もりに明記します。</p><p>制作・出演・広告・導入にかかる費用、税、契約期間・解約条件も、同じ見積もりで確認できます。この試算には、それらの費用とお客様に残る作業の費用を加えていません。</p><a class="go" href="contact.html" data-consult-page>対象と費用を相談する</a></div></details>\n'
     '            <div class="gain-split">\n'
     '              <div class="gs gs-auto"><p class="gs-h">仕組みに任せること</p><ul>' + ''.join(f'<li>{t}</li>' for t in (jp('広告表現のルールへの照合'), jp('複数のAIによる確認'), jp('条件が変わったときの、|承認の取り消し'), jp('利用期限と、|停止の追跡'), jp('決定ごとの記録'), jp('報酬の明細'))) + '</ul></div>\n'
     '              <div class="gs gs-human"><p class="gs-h">人が決めること</p><ul>' + ''.join(f'<li>{t}</li>' for t in (jp('条件への合意'), jp('最後の「はい」か「いいえ」'), jp('支払い'))) + '</ul></div>\n'
@@ -723,11 +726,11 @@ GUARD = """<div class="cycle reveal" data-cycle data-state="brief">
     <button type="button" data-cycle-step="4" aria-pressed="false"><span>05</span>明細</button>
   </div>
   <div class="cycle-body">
-    <div class="cycle-art has-media" aria-hidden="true"><span class="cycle-art-label">FROM A STORY TO A BUSINESS</span><div class="cycle-preview"><img id="cyclePreview" src="assets/editorial/creator-film.webp" alt="" width="1280" height="674" loading="lazy" decoding="async"><span class="cycle-screen-tag">BRAND STORY</span><span class="cycle-screen-state" id="cycleScreenVersion">v1</span></div><span class="cycle-art-caption">素材イメージ / 版と条件が、仕事をつなぐ。</span></div>
+    <div class="cycle-art has-media" aria-hidden="true"><div class="cycle-preview"><img id="cyclePreview" src="assets/editorial/creator-film.webp" alt="" width="1280" height="674" loading="lazy" decoding="async"><span class="cycle-screen-state" id="cycleScreenVersion">v1</span></div><span class="cycle-art-caption" id="cycleMediaCaption">素材イメージ</span></div>
     <div class="cycle-detail" aria-live="polite" aria-atomic="true">
       <p class="cycle-kicker" id="cycleKicker">01 / PLAN</p><h3 class="cycle-title" id="cycleTitle">やることと、決めることを。</h3>
       <p class="cycle-copy" id="cycleCopy">目的、制作物、担当、使う場所。最初の地図で、仕事の全体をそろえます。</p>
-      <dl class="cycle-facts"><div><dt>制作物</dt><dd>ブランドの縦動画 1本</dd></div><div><dt>素材の版</dt><dd id="cycleVersion">v1</dd></div><div><dt>利用条件</dt><dd id="cycleTerms">30日・合意前</dd></div><div><dt>承認</dt><dd id="cycleApproval">未承認</dd></div><div><dt>公開</dt><dd id="cyclePublication">未実行</dd></div><div><dt>結果・明細</dt><dd id="cycleOutcome">未取得・未確定</dd></div></dl>
+      <dl class="cycle-facts"><div><dt>制作物</dt><dd>ブランドの紹介動画 1本</dd></div><div><dt>素材の版</dt><dd id="cycleVersion">v1</dd></div><div><dt>利用条件</dt><dd id="cycleTerms">30日・合意前</dd></div><div><dt>承認</dt><dd id="cycleApproval">未承認</dd></div><div><dt>公開</dt><dd id="cyclePublication">未実行</dd></div><div><dt>結果・明細</dt><dd id="cycleOutcome">未取得・未確定</dd></div></dl>
       <p class="cycle-owner" id="cycleOwner">REYZ：進め方と判断の材料を整理 ／ お客様：目的と条件を決める</p>
       <div class="cycle-actions"><button type="button" class="btn primary" data-cycle-action="next" id="cycleNext">制作・確認へ</button><button type="button" class="btn" data-cycle-action="reset">最初から</button></div>
     </div>
@@ -776,7 +779,7 @@ page('creative.html', 'Creative — REYZ Inc.', 'REYZの企業向けサービス
 # 改名（2026-10-15 CEO 決定 NAMING-001）: Z-PLATFORM→REYZ PLATFORM、Z-DEVELOPER→REYZ DEVELOPER、Cross-AI Flow→REYZ CONSENSUS。ブランド層は全大文字。
 # 表示の規律（2026-10-23 CEO）: 開発中・準備中・順次・先行導入などの進行形の状態語は書かない。稼働・実績・顧客数を示す表現は、根拠を併記できるまで書かない（legal.html「表示に関する方針」）。
 # 2026-11-18: 製品の役割 → 仕事を重ねる価値 → 導入。統制の説明は1か所に集約する。
-ai_products = items_fold([('つなぐ — AI Orchestration', jp('複数のAIエージェントを、|ひとつの統制のもとで運用するための層。\n特定の提供元に依存せず、|モデルの世代交代や価格の変化に合わせて|構成を見直せます。')),
+ai_products = items_fold([('つなぐ — AI Orchestration', jp('複数のAIを、|ひとつの仕事の流れにまとめます。\n提供元を固定せず、|AIの更新や料金の変化に合わせて|組み合わせを見直せます。')),
                           ('つくる — REYZ DEVELOPER', jp('開発経験がなくても、|自分の言葉で伝えることから|始められる開発・運用システム。\n公開して終わりではなく、|その後の運用と改善までを|対象にします。')),
                           ('確かめ、進める — REYZ CONSENSUS', jp('提供元の異なる複数のAIが、|同じ内容を互いに検証し、|合意したものだけを次へ進めます。'), 'consensus.html', 'REYZ CONSENSUSについて')], 3)   # 3 つとも開いたまま（2026-10-27 CEO「限定的すぎる」: 製品群の幅が見えるように）
 AI_REUSE = ('<div class="reuse-ledger reveal">' + ''.join(
@@ -824,9 +827,9 @@ page('consensus.html', 'REYZ CONSENSUS — REYZ Inc.', 'REYZ CONSENSUS — 提�
 # ご用件は事業内容（3事業）と各ページの導線に対応: クリエイターの方（Creator）／企業の方（Creative・AI）／その他
 form = '''<form class="panel reveal" id="contactForm" novalidate>
             <div class="step" id="stepForm">
-              <label>お名前（個人名または会社名）<input id="cName" name="name" type="text" autocomplete="name" required></label>
+              <label>お名前（個人名または会社名）<input id="cName" name="name" type="text" autocomplete="name" maxlength="100" required></label>
               <!-- メールは 1 欄（DEC-20261027-18。@ 以降の選択式は模擬ユーザー 4/4 が指摘） -->
-              <label>メールアドレス<input id="cEmail" name="email" type="email" spellcheck="false" autocomplete="email" inputmode="email" required></label>
+              <label>メールアドレス<input id="cEmail" name="email" type="email" spellcheck="false" autocomplete="email" inputmode="email" maxlength="254" required></label>
               <label>ご用件
                 <select id="cType" name="type" required>
                   <option value="">選択してください</option>
@@ -852,8 +855,8 @@ form = '''<form class="panel reveal" id="contactForm" novalidate>
                 </select>
               </label>
               <!-- ご担当者は企業の用件のときだけ表示（DEC-20261027-18） -->
-              <label id="personLabel" hidden>ご担当者<input id="cPerson" name="person" type="text" autocomplete="off"></label>
-              <label>内容<textarea id="cMsg" name="message" required></textarea></label>
+              <label id="personLabel" hidden>ご担当者<input id="cPerson" name="person" type="text" autocomplete="off" maxlength="100"></label>
+              <label>内容<textarea id="cMsg" name="message" maxlength="5000" required></textarea></label>
               <input id="cWebsite" name="website" type="text" tabindex="-1" autocomplete="off" hidden>
               <div class="ctas tight">
                 <button class="btn primary" type="submit" id="confirmBtn">確認する</button>
@@ -942,7 +945,7 @@ with open(os.path.join(ROOT, 'works.html'), 'w', encoding='utf-8') as f:
 ''')
 
 # ------------------------------------------------------------------ 公開用の付属ファイル
-not_found = title_chapter('loop', 'Not found', 'ページが見つかりません。', jp('URL が変わったか、|存在しないページです。')) + \
+not_found = title_chapter('loop', 'Not found', 'ページが<br>見つかりません。', jp('URL が変わったか、|存在しないページです。')) + \
     '    <section class="section" id="back"><div class="wrap"><div class="section-text"><h2 class="sr-only">戻る</h2><p class="more reveal"><a class="go" href="index.html">ホームへ</a></p></div></div></section>\n'
 page('404.html', 'Not found — REYZ Inc.', 'ページが見つかりません。', not_found)
 PAGES.remove('404.html')

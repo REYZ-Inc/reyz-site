@@ -156,9 +156,12 @@
       if (next) { next.href = route.href; next.textContent = route.label; }
       root.dataset.income = choice.dataset.income;
       if (scene) scene.restart();
-      if (notify) root.dispatchEvent(new CustomEvent('reyz:incomechange', { bubbles: true, detail: {
-        id: choice.dataset.income, label: choice.querySelector('b')?.textContent || '', href: route.href,
-      } }));
+      if (notify) {
+        root.dataset.userSelected = 'true';
+        root.dispatchEvent(new CustomEvent('reyz:incomechange', { bubbles: true, detail: {
+          id: choice.dataset.income, label: choice.querySelector('b')?.textContent || '', href: route.href,
+        } }));
+      }
     };
     for (const choice of choices) choice.addEventListener('click', () => select(choice));
     select(choices[active], false);
@@ -185,8 +188,7 @@
     creator: '活動・収益化の相談', creative: '目的の整理と進め方の相談',
     ai: 'AIを仕事に入れる（REYZ PLATFORM）', consensus: '公開前の確認と記録（REYZ CONSENSUS）',
   };
-  for (const link of document.querySelectorAll('[data-consult-page]')) link.addEventListener('click', () => {
-    if (link.matches('a.consult')) return;
+  for (const link of document.querySelectorAll('[data-consult-page], a.consult')) link.addEventListener('click', () => {
     const page = document.body.dataset.page;
     const type = contactTypes[page];
     if (!type) return;
@@ -196,7 +198,19 @@
     } catch (_) { /* An unreadable previous map must not override this page's contact type. */ }
     const who = page === 'creator' ? 'creator' : page === 'creative' ? 'company' : '';
     if (who && map?.who === who && [map.goal, map.place, map.step].every(value => typeof value === 'string' && value.length > 0)) {
-      body = '【あなたの地図（ホームで選んだ内容）】\n目的: ' + map.goal + '\n今いる場所: ' + map.place + '\n最初の一歩: ' + map.step;
+      body = '【あなたの地図（ホームで選んだ内容）】\n目的: ' + map.goal + '\n今いる場所: ' + map.place + '\n最初の一歩: ' + map.step + (typeof map.conversation === 'string' ? map.conversation : '');
+    }
+    if (page === 'creator') {
+      const choices = [], paths = document.querySelector('[data-paths]'), income = document.querySelector('[data-income-experience]');
+      if (paths && (paths.dataset.userSelected === 'true' || link.closest('#path'))) {
+        const goal = paths.querySelector('.path-goal[aria-pressed="true"]');
+        if (goal) choices.push('相談したい目的: ' + goal.textContent.trim());
+      }
+      if (income?.dataset.userSelected === 'true') {
+        const choice = income.querySelector('.income-choice[aria-pressed="true"] b');
+        if (choice) choices.push('関心のある収益経路: ' + choice.textContent.trim());
+      }
+      if (choices.length) body += (body ? '\n\n' : '') + '【このページで選んだ内容】\n' + choices.join('\n');
     }
     try {
       sessionStorage.setItem('reyz.map', JSON.stringify({ type, body }));
@@ -216,7 +230,7 @@
       for (const p of panels) p.classList.toggle('is-on', p.dataset[key] === value);
       if (after) after(panels.find(p => p.dataset[key] === value));
     };
-    for (const b of buttons) b.addEventListener('click', () => show(b.dataset[key]));
+    for (const b of buttons) b.addEventListener('click', () => { root.dataset.userSelected = 'true'; show(b.dataset[key]); });
     const first = buttons.find(b => b.getAttribute('aria-pressed') === 'true') || buttons[0];
     if (first) show(first.dataset[key]);
   };
@@ -256,7 +270,7 @@
       value.textContent = equal ? '全' + minutes + '分／本' : possible ? '約' + even + '分／本' : '利用料に届きません';
       explanation.textContent = equal ? '現在の作業時間をすべて削減すると、利用料と同額です。'
         : possible ? '利用料に相当する削減時間。分単位で切り上げています。'
-        : '現在の作業時間をすべて削減しても、掲載利用料を下回ります。';
+        : '現在の作業時間をすべて削減しても、利用料を下回ります。';
       $('gainEven').classList.toggle('is-unreachable', !possible);
       $('gainEven').replaceChildren(value, explanation);
     };
@@ -328,9 +342,10 @@
       for (const text of state.history) { const li = document.createElement('li'); li.textContent = text; history.append(li); }
       const preview = $('cyclePreview');
       if (preview) {
-        const src = state.asset % 2 ? 'assets/editorial/creator-film.webp' : 'assets/editorial/production-film.webp';
+        const src = state.asset % 2 ? 'assets/editorial/creator-film.webp' : 'assets/editorial/creative-study-v1.webp';
         if (preview.getAttribute('src') !== src) preview.src = src;
       }
+      const caption = $('cycleMediaCaption'); if (caption) caption.textContent = state.asset % 2 ? '素材イメージ' : '構図と光のCG';
       const badge = $('cycleScreenVersion'); if (badge) badge.textContent = 'v' + state.asset;
     }
     function advance() {

@@ -173,7 +173,11 @@ async function creativeContent(page, label) {
   await page.locator('#show').scrollIntoViewIfNeeded();
   const film = page.locator('#show [data-editorial]');
   check(label + ': production shown once without duplicated device mockup', await film.locator('video').count() === 1 && await page.locator('#show .editorial-device, #show [data-cinematic]').count() === 0);
-  check(label + ': footage is identified as illustrative', /イメージ映像/.test(await film.innerText()) && /Pexels/.test(await film.innerText()));
+  const credit = await film.locator('figcaption').innerText();
+  const productionVideo = film.locator('video');
+  check(label + ': original CG study and matching poster are credited', credit.includes('構図と光のイメージ映像（CG）') && credit.includes('REYZ / Motion study')
+    && await productionVideo.getAttribute('data-src') === 'assets/editorial/creative-study-v1.mp4'
+    && await productionVideo.getAttribute('poster') === 'assets/editorial/creative-study-v1.webp');
   await film.screenshot({ path: path.join(OUT, label + '-production-film.png') });
 }
 
@@ -268,6 +272,8 @@ async function motionAndFailure(browser) {
   await open(page, 'index');
   const film = page.locator('[data-brand-film]'), video = film.locator('video'), toggle = film.locator('button');
   check('brand/reduce: one original brand film replaces the former infinity field', await film.count() === 1 && await page.locator('#infinity [data-word]').count() === 0);
+  check('brand/reduce: the new film and its poster are paired', await video.getAttribute('data-src') === 'assets/brand/brand-contour-v1.mp4'
+    && await video.getAttribute('poster') === 'assets/brand/brand-contour-v1.webp');
   const before = await video.evaluate(v => ({ paused: v.paused, time: v.currentTime, source: v.getAttribute('src'), poster: v.poster }));
   await page.waitForTimeout(250);
   const after = await video.evaluate(v => ({ paused: v.paused, time: v.currentTime, source: v.getAttribute('src') }));
@@ -290,7 +296,7 @@ async function motionAndFailure(browser) {
         && routeStates[i].text === expected.text && routeStates[i].path === expected.path), routeStates);
   await click(toggle);
   await page.waitForFunction(() => { const v = document.querySelector('[data-brand-video]'); return !v.paused && v.readyState >= 2 && v.currentTime > 0; });
-  check('brand/reduce: explicit play decodes real 3D video', await video.evaluate(v => v.videoWidth >= 960 && v.videoHeight > 0 && v.muted && v.playsInline));
+  check('brand/reduce: explicit play decodes the brand film', await video.evaluate(v => v.videoWidth >= 960 && v.videoHeight > 0 && v.muted && v.playsInline));
   await click(toggle); const stopped = await video.evaluate(v => ({ paused: v.paused, time: v.currentTime }));
   await page.waitForTimeout(250);
   check('brand/reduce: explicit pause holds native video time', stopped.paused && await video.evaluate((v, time) => v.paused && Math.abs(v.currentTime - time) < 0.04, stopped.time));
@@ -300,7 +306,7 @@ async function motionAndFailure(browser) {
   await context.close();
 
   const fallback = await contextFor(browser, { viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
-  await fallback.route('**/brand/infinity-motion.mp4', route => route.fulfill({ status: 200, contentType: 'video/mp4', body: 'invalid-video-for-decoding-test' }));
+  await fallback.route('**/brand/brand-contour-v1.mp4', route => route.fulfill({ status: 200, contentType: 'video/mp4', body: 'invalid-video-for-decoding-test' }));
   const p = await fallback.newPage(), failures = []; p.on('pageerror', error => failures.push(String(error)));
   await open(p, 'index'); await click(p.locator('[data-brand-toggle]'));
   await p.waitForFunction(() => document.querySelector('[data-brand-video]').error !== null);
