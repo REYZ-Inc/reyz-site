@@ -438,6 +438,19 @@
     let visible = false, manuallyPaused = false, failed = false;
     let wantsPlayback = false, playRequest = 0;
     video.muted = true;
+    // WebKit can dismiss its native poster before the first video frame is painted.
+    const poster = root.querySelector('.editorial-poster');
+    const waitForFirstFrame = () => {
+      if (!poster) return;
+      const showFirstFrame = () => { if (!failed) poster.hidden = true; };
+      if (typeof video.requestVideoFrameCallback === 'function') {
+        video.requestVideoFrameCallback(showFirstFrame);
+      } else {
+        video.addEventListener('timeupdate', () => {
+          if (video.readyState >= 2 && video.currentTime > 0) showFirstFrame();
+        });
+      }
+    };
     const sync = () => {
       button.textContent = failed ? '静止画を表示' : video.paused ? '映像を再生' : '一時停止';
       button.setAttribute('aria-pressed', String(!video.paused));
@@ -457,7 +470,11 @@
       if (failed) return;
       wantsPlayback = true;
       const request = ++playRequest;
-      if (!video.getAttribute('src')) { video.src = video.dataset.src; video.load(); }
+      if (!video.getAttribute('src')) {
+        video.src = video.dataset.src;
+        video.load();
+        waitForFirstFrame();
+      }
       try { await video.play(); } catch (_) {
         // A stale rejected request must not cancel a newer explicit play.
         if (request === playRequest) wantsPlayback = false;
@@ -477,7 +494,11 @@
     });
     video.addEventListener('play', enforceIntent); video.addEventListener('playing', enforceIntent);
     video.addEventListener('pause', sync);
-    video.addEventListener('error', () => { failed = true; pause(); button.disabled = true; sync(); });
+    video.addEventListener('error', () => {
+      failed = true;
+      if (poster) poster.hidden = false;
+      pause(); button.disabled = true; sync();
+    });
     video.addEventListener('timeupdate', () => {
       const progress = Number.isFinite(video.duration) && video.duration > 0 ? video.currentTime / video.duration : 0;
       root.style.setProperty('--film-progress', progress.toFixed(4));

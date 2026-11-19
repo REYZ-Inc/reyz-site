@@ -418,11 +418,13 @@ def editorial_film(kind, headline, line):
     is_creator = kind == 'creator'
     prefix = 'creator' if is_creator else 'production'
     asset = 'creator-film' if is_creator else 'creative-study-v1'
+    poster = f'assets/editorial/{asset}.webp'
     disclosure = 'イメージ映像' if is_creator else '構図と光のイメージ映像（CG）'
     credit = 'Footage: cottonbro studio / Pexels' if is_creator else 'REYZ / Motion study'
     return f'''<figure class="editorial-visual is-{prefix} reveal" data-editorial>
       <div class="editorial-film">
-        <video id="{prefix}Film" data-editorial-video data-src="assets/editorial/{asset}.mp4" poster="assets/editorial/{asset}.webp" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video>
+        <video id="{prefix}Film" data-editorial-video data-src="assets/editorial/{asset}.mp4" poster="{poster}" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video>
+        <img class="editorial-poster" src="{poster}" width="1280" height="674" alt="" loading="lazy" decoding="async">
         <button class="video-toggle" type="button" data-editorial-toggle aria-controls="{prefix}Film" aria-pressed="false" hidden>映像を再生</button>
       </div>
       <div class="editorial-film-copy"><h3>{headline}</h3><p>{line}</p></div>
