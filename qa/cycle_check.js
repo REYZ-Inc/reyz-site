@@ -406,6 +406,61 @@ async function mediaJourney(page, name, label, reducedMotion = false) {
   }
 }
 
+async function editorialPosterJourney(browser) {
+  const context = await contextFor(browser, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const moviePath = '/assets/editorial/creative-study-v1.mp4';
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route(url => url.pathname.endsWith(moviePath), async route => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    if (new URL(route.request().url()).searchParams.has('qa-media-error')) return route.fulfill({ status: 503, body: '' });
+    await gate;
+    return route.fallback();
+  });
+  const posterVisible = visible => page.waitForFunction(expected => {
+    const img = document.querySelector('#show img.editorial-poster'), video = document.querySelector('#show video');
+    if (!img || !img.complete || img.naturalWidth < 640 || img.currentSrc !== video.poster) return false;
+    const style = getComputedStyle(img), r = img.getBoundingClientRect();
+    const shown = style.visibility === 'visible' && Number(style.opacity) > 0 && r.width > 0 && r.height > 0;
+    if (!expected) return !shown;
+    const film = video.getBoundingClientRect();
+    return shown && Math.abs(r.left - film.left) <= 1 && Math.abs(r.top - film.top) <= 1
+      && Math.abs(r.width - film.width) <= 1 && Math.abs(r.height - film.height) <= 1;
+  }, visible, { timeout: 15000 });
+  try {
+    await open(page, 'creative');
+    const video = page.locator('#show video');
+    await Promise.all([
+      page.waitForRequest(r => r.method() === 'GET' && new URL(r.url()).pathname.endsWith(moviePath), { timeout: 15000 }),
+      video.scrollIntoViewIfNeeded(),
+    ]);
+    await posterVisible(true);
+    check('WebKit: matching poster covers the film while the request is pending', await video.evaluate(v => v.readyState < 2));
+    release();
+    await page.waitForFunction(() => {
+      const v = document.querySelector('#show video');
+      return !v.paused && v.videoWidth > 0 && v.currentTime > 0;
+    }, null, { timeout: 15000 });
+    await posterVisible(false);
+    check('WebKit: decoded playback replaces the poster', await video.evaluate(v => v.readyState >= 2));
+    await video.evaluate(v => {
+      const url = new URL(v.currentSrc);
+      url.searchParams.set('qa-media-error', '1');
+      v.src = url.href;
+      v.load();
+    });
+    await page.waitForFunction(() => !!document.querySelector('#show video').error, null, { timeout: 15000 });
+    await posterVisible(true);
+    check('WebKit: a failed media request restores the poster', await page.locator('#show [data-editorial-toggle]').isDisabled());
+  } catch (error) {
+    await recordFailure(page, 'webkit-390', 'editorial-poster', error);
+  } finally {
+    release();
+    await context.close();
+  }
+}
+
 async function slowMediaReplay(browser) {
   // Real Chromium, decoder and user clicks. Only the MP4 transport is delayed.
   // Reduced motion keeps automatic playback out of this rapid-input regression.
@@ -521,6 +576,7 @@ async function recordFailure(page, label, name, error) {
     } catch (error) { report.fails.push('reduced-390: journey interrupted: ' + String(error.stack || error)); }
     finally { await context.close(); }
     await slowMediaReplay(chrome);
+    await editorialPosterJourney(safari);
     check('all sample journeys attempted no external mutation', report.mutationRequests.length === 0, report.mutationRequests);
   } catch (error) { report.fails.push('acceptance did not finish: ' + String(error.stack || error)); }
   finally {

@@ -170,7 +170,18 @@ async function creativeContent(page, label) {
   await click(offers.first().locator('summary'));
   check(label + ': offer details open on request', await offers.first().getAttribute('open') !== null && /法律の鑑定ではありません/.test(await offers.first().innerText()));
   await controlsFit(page, '#services details > summary', label + ' services');
-  await page.locator('#show').scrollIntoViewIfNeeded();
+  const sampleLink = page.locator('#services a[href="#show"]');
+  const sampleOffer = page.locator('#services details').filter({ has: page.locator('a[href="#show"]') });
+  if (await sampleOffer.getAttribute('open') === null) await click(sampleOffer.locator('summary'));
+  await click(sampleLink);
+  await page.waitForFunction(() => {
+    const heading = document.querySelector('#show h2').getBoundingClientRect();
+    const header = document.querySelector('#siteHeader').getBoundingClientRect();
+    return location.hash === '#show' && heading.top >= header.bottom && heading.bottom < innerHeight * .45;
+  });
+  const overviewFile = label + '-production-film.png';
+  await page.screenshot({ path: path.join(OUT, overviewFile) });
+  report.screenshots.push(overviewFile);
   const film = page.locator('#show [data-editorial]');
   check(label + ': production shown once without duplicated device mockup', await film.locator('video').count() === 1 && await page.locator('#show .editorial-device, #show [data-cinematic]').count() === 0);
   const credit = await film.locator('figcaption').innerText();
@@ -178,7 +189,28 @@ async function creativeContent(page, label) {
   check(label + ': original CG study and matching poster are credited', credit.includes('構図と光のイメージ映像（CG）') && credit.includes('REYZ / Motion study')
     && await productionVideo.getAttribute('data-src') === 'assets/editorial/creative-study-v1.mp4'
     && await productionVideo.getAttribute('poster') === 'assets/editorial/creative-study-v1.webp');
-  await film.screenshot({ path: path.join(OUT, label + '-production-film.png') });
+  const notes = page.locator('#show .study-notes');
+  await notes.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  const captions = await notes.locator(':scope > div').evaluateAll(rows => rows.map(row => {
+    const title = row.querySelector('dt'), body = row.querySelector('dd');
+    const rowBounds = row.getBoundingClientRect();
+    const headerBottom = document.querySelector('#siteHeader').getBoundingClientRect().bottom;
+    const fits = [title, body].every(part => {
+      if (!part?.textContent.trim()) return false;
+      const range = document.createRange();
+      range.selectNodeContents(part);
+      const lines = Array.from(range.getClientRects());
+      return lines.length > 0 && lines.every(line => line.width > 0 && line.height > 0
+        && line.left >= Math.max(0, rowBounds.left) - 1 && line.right <= Math.min(innerWidth, rowBounds.right) + 1
+        && line.top >= headerBottom - 1 && line.bottom <= innerHeight + 1);
+    });
+    return { title: title?.textContent.trim(), fits };
+  }));
+  check(label + ': composition, light and motion notes are readable without clipping',
+    captions.map(item => item.title).join('/') === '構図/光/動き' && captions.every(item => item.fits), captions);
+  const notesFile = label + '-production-notes.png';
+  await page.screenshot({ path: path.join(OUT, notesFile) });
+  report.screenshots.push(notesFile);
 }
 
 async function panelDestinations(page, label) {
