@@ -161,10 +161,12 @@ async function creatorChoices(page, label) {
 async function creativeContent(page, label) {
   await open(page, 'creative');
   const sections = await page.locator('main > section[id]').evaluateAll(nodes => nodes.map(node => node.id));
-  check(label + ': offers precede workflow and pricing', sections.indexOf('services') < sections.indexOf('guard') && sections.indexOf('guard') < sections.indexOf('gain'), sections);
+  check(label + ': the case to try precedes the price, and both precede the range of offers', sections.indexOf('guard') < sections.indexOf('gain') && sections.indexOf('gain') < sections.indexOf('services'), sections);
   check(label + ': duplicate pitch sections removed', !sections.includes('pain') && !sections.includes('compare'), sections);
-  await click(page.locator('.hero-action[href="#services"]'));
-  check(label + ': hero reaches actual offers', new URL(page.url()).hash === '#services' && await page.locator('#services .group').count() === 4);
+  // The first screen offers the case to try and the price; the range of offers follows them on the page.
+  await click(page.locator('.hero-action[href="#gain"]'));
+  check(label + ': hero reaches the published price', new URL(page.url()).hash === '#gain' && await page.locator('#gain [data-gain], #gain .gain').count() >= 1);
+  check(label + ': the four bundles of offers remain on the page', await page.locator('#services .group').count() === 4);
   const offers = page.locator('#services details');
   check(label + ': all eleven concrete services remain available', await offers.count() === 11);
   await click(offers.first().locator('summary'));

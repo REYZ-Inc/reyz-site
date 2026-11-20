@@ -223,7 +223,7 @@ def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     """lead2: 既決の導入文（lead）を変えずに、その下へ加える 2 行目（2026-10-26 正本 §10: /creator の冒頭）"""
     actions = {
         'Creator': [('index.html#map', '地図をつくる'), ('manual.html', 'マニュアルをつくる')],
-        'Creative': [('#services', '依頼できること'), ('#guard', '1案件の流れを試す')],
+        'Creative': [('#guard', '1案件の流れを試す'), ('#gain', '料金を見る')],
         'AI': [('#products', '3つの製品を見る'), ('contact.html', '相談する')],
         'Consensus': [('#offer', '提供の形を見る'), ('contact.html', '相談する')],
     }.get(word, [])
@@ -742,9 +742,16 @@ GUARD = """<div class="cycle reveal" data-cycle data-state="brief">
   <p class="cycle-note">対象業務、連携先、REYZとお客様の担当範囲を、導入時に確認します。</p>
 </div>"""
 
+# 2026-11-20 競合比較からの再構成。ページの文法は /creator と同じ 主張 → 確かめる → 条件 → 相談。
+# 主張: 冒頭（任せられる範囲と、複数案件でも承認した素材と条件が分かること）→ 確かめる: 1 案件の操作見本（#guard）
+# → 条件: 料金（#gain。国内の同業 7 社中 6 社は料金を公式サイトに載せていない。docs/site-coherence.md §3.1）→ 提供範囲（#services）→ 映像（#show）→ 任せ方。
+# 各節の中身（4 束 11 項目、操作見本、料金、CG）は変えていない。変えたのは順序と冒頭の 2 つの操作だけ。
 creative = title_chapter('Creative', jp('発信・制作・確認・運用を|任せたい企業の方へ'), '「伝わる」を設計する。',
                          jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。'),
                          lead2=jp('映像・SNS・サイトの制作から、|ブランドの発信、業務の仕組みづくり、|公開後の運用まで支援します。\n複数の案件でも、|どの素材をどの条件で承認したかが分かり、|差し替えた版の確認から再開できます。')) + \
+section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('紹介動画の企画から公開後の明細までをたどる操作見本です。\n「制作・確認」で動画を承認してから、|「動画を差し替える」を押すと、|新しい版で何を確かめ直すかが分かります。'),
+        GUARD + '<details class="workflow-detail" id="decide"><summary>表現確認の補足体験を見る</summary><div class="workflow-detail-body">' + SCREENS_ENT + '</div></details>') + \
+section('gain', 'Cost &amp; scope', jp('確認と管理の費用を、|確かめる。'), jp('依頼する範囲と、|仕事の量から。'), GAIN) + \
 section('services', 'Services', 'REYZがすること', '',
         # 企業正本 §5 の提供パッケージ（EP1 確認して出す／EP5 つくる・入れる／EP2 クリエイターで売る／EP3・EP4 組み込み・自社ブランド）で 11 項目を束ねる。
         # 束の見出しと 1 行が常に見え、項目（既決 8 項目の本文は不変）は押すと開く
@@ -763,8 +770,6 @@ section('services', 'Services', 'REYZがすること', '',
                  [('クリエイターとの販売設計', jp('クリエイターと連動した|販売の設計と運用。|国内からアジアへの越境販売まで。'))]),
                 ('仕組みに組み込む・自社ブランドで', jp('事務所、代理店、制作会社へ。'),
                  [('事務所・代理店の方へ', jp('3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。'), 'consensus.html', 'REYZ CONSENSUSについて')])])) + \
-section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('紹介動画の企画から公開後の明細までをたどる操作見本です。\n「制作・確認」で動画を承認してから、|「動画を差し替える」を押すと、|新しい版で何を確かめ直すかが分かります。'),
-        GUARD + '<details class="workflow-detail" id="decide"><summary>表現確認の補足体験を見る</summary><div class="workflow-detail-body">' + SCREENS_ENT + '</div></details>') + \
 section('show', 'Video × SNS', '映像の設計', '',
         editorial_film('production', '紙と光の習作', jp('折った紙の立体感を、四秒でどう見せるか。|白い扇、黒いアーチ、マゼンタの帯を同じ画面に置き、|輪郭と影で奥行きを描きました。')) +
         '<dl class="study-notes">'
@@ -772,7 +777,6 @@ section('show', 'Video × SNS', '映像の設計', '',
         '<div><dt>光</dt><dd>扇のひだには細い影が並び、アーチには明るさがなだらかに広がります。同じ光でも、折り目と曲面で表情が変わります。</dd></div>'
         '<div><dt>動き</dt><dd>扇の開きに合わせて、カメラをわずかに移動。カットを割らずに、三つの形の重なりを変えています。</dd></div>'
         '</dl>') + \
-section('gain', 'Cost &amp; scope', jp('確認と管理の費用を、|確かめる。'), jp('依頼する範囲と、|仕事の量から。'), GAIN) + \
 section('how', 'How to start', '任せ方', jp('いきなり大きな契約を結ぶ必要はありません。\n合わなければ、そこで終えて構いません。'),
         steps([('01', '相談する', jp('今の状況と、やりたいことを。|言葉になっていなくても、構いません。')),
                ('02', '地図を受け取る', jp('何のために、何をつくり、どこで使うのか。|担当と進め方を地図で確認します。')),
