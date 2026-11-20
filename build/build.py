@@ -222,7 +222,7 @@ def section(id_, eyebrow, h2, lead, body):
 def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     """lead2: 既決の導入文（lead）を変えずに、その下へ加える 2 行目（2026-10-26 正本 §10: /creator の冒頭）"""
     actions = {
-        'Creator': [('index.html#map', '地図をつくる'), ('manual.html', 'マニュアルをつくる')],
+        'Creator': [('#income', '6つの入口を見る'), ('contact.html', '相談する')],
         'Creative': [('#services', '依頼できること'), ('#guard', '差し替え時の確認を試す')],
         'AI': [('#products', '3つの製品を見る'), ('contact.html', '相談する')],
         'Consensus': [('#offer', '提供の形を見る'), ('contact.html', '相談する')],
@@ -540,18 +540,18 @@ PATHS = ('<div class="paths reveal" data-paths>\n'
     '            <p class="path-cap">' + jp('入口は6つ。|ひとつから始めて、重ねていける。') + '</p>\n'
     '          </div>')
 # One choice journey: income routes and the reader's goal, then terms and support.
-# 2026-11-20 目的からの再構成（CEO「目的を認識しているのか」「やれよ」）。目的＝見たクリエイターが「REYZ に任せたい」と確信し、相談に進むこと。
-# 順序は正本 §3-1 と 2026-10-29 の結論（経路の選択は地図の後）に従う: 3 つの画面（製品そのもの）→ 入口の中身（6 つの収益）→ 提供すること（LIVE の文脈に約束と原資）→ はじめ方。
-# 文言・見本・条件の中身（MODEL・SCREENS_CREATOR・INCOMES・PATHS・TT_*・VD_*）は変えていない。変えたのは節の順序と、約束の置き場所だけ。
+# 2026-11-20 目的と競合比較からの再構成（CEO「目的を認識しているのか」「徹底的に検索して比較検証し、競争優位な構造を」）。
+# 目的＝見たクリエイターが「REYZ に任せたい」と確信し、相談に進むこと。ページの文法は 主張 → 確かめる → 条件 → 相談（/creative と同じ）。
+# 主張: 6 つの収益を 1 つの入口で（競合は収益源ごとに別の道具・別の事務所。docs/site-coherence.md §3.1）→ 確かめる: 3 つの画面の見本
+# → 条件: LIVE の文脈に約束と原資の図（2026-10-29 CEO の見解）→ はじめ方。説明の段落は置かない（図と見本で伝える）。
+# MODEL・SCREENS_CREATOR・INCOMES・PATHS・TT_*・VD_* の値は変えていない。
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
                         lead2='あなたの収益の、全部の入口に。') + \
-section('model', 'Your screens', jp('あなたの活動を、|3つの画面で。'),
-        jp('どこで、何を、どの順で。|地図が決まると入口が開き、|入った収入は明細に残ります。'), SCREENS_CREATOR) + \
-section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'),
-        jp('ライブ配信では、視聴者からギフトを受け取る。|作品の直販では、自分で価格を決めてファンに届ける。\n六つの入口から、今の活動に合うものを選べます。'),
+section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'), '',
         INCOMES +
         '<div class="income-path" id="path"><div class="head reveal"><p class="eyebrow">Your path</p><h3>' + jp('目的から、|道を選ぶ。') + '</h3>' +
         more('contact.html', 'この道で、はじめる') + '</div>' + PATHS + '</div>') + \
+section('model', 'Your screens', jp('進め方が決まる。|稼ぐ道が開く。|収入が見える。'), '', SCREENS_CREATOR) + \
 section('services', 'Services', '提供すること', '',
         '<div class="items reveal">\n'
         '            <div class="item">\n'
