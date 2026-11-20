@@ -123,15 +123,46 @@ async function visualSections(browser) {
   }
 }
 
+async function audienceEntries(page, label) {
+  for (const [name, target] of [['creator', '#creator-terms'], ['creative', '#gain']]) {
+    await open(page, name);
+    const entry = page.locator('#top .entry-terms');
+    check(label + '/' + name + ': fee entry points to its own terms', await entry.getAttribute('href') === target);
+    const bounds = await entry.boundingBox();
+    check(label + '/' + name + ': fee entry fits the opening viewport',
+      bounds && bounds.x >= -1 && bounds.x + bounds.width <= page.viewportSize().width + 1
+      && bounds.y >= 0 && bounds.y + bounds.height <= page.viewportSize().height + 1, bounds);
+    const file = label + '-' + name + '-terms-entry.png';
+    await page.screenshot({ path: path.join(OUT, file) });
+    report.screenshots.push(file);
+    await click(entry);
+    check(label + '/' + name + ': opening fee link reaches destination', new URL(page.url()).hash === target);
+    if (name === 'creator') {
+      check(label + ': creator fee is tied to the published conditions',
+        (await page.locator('#creator-terms .vows').innerText()).replace(/\s/g, '').includes('報酬からの手数料ゼロ'));
+    } else {
+      const count = page.locator('#gainN');
+      await count.press('Home');
+      for (let step = 0; step < 3; step++) await count.press('ArrowRight');
+      check(label + ': hero base fee matches the calculator at 20 pieces',
+        await count.inputValue() === '20' && (await page.locator('#gainFee').innerText()).includes('50,000円')
+        && (await entry.innerText()).includes('50,000'));
+      check(label + ': cost inquiry is available with the breakdown closed',
+        await page.locator('.gain-terms').getAttribute('open') === null && await page.locator('[data-consult-cost]').isVisible());
+    }
+  }
+}
+
 async function creatorChoices(page, label) {
   await open(page, 'creator');
   const expected = [
-    ['live', '#services'], ['product', '#model'], ['campaign', '#model'],
-    ['direct', '#model'], ['media', '#model'], ['ip', '#services'],
+    ['live', '#live-support', '配信の支援を見る'], ['product', '#product-offer', '商品紹介の見本へ'],
+    ['campaign', '#campaign-offer', '案件の条件を見る'], ['direct', '#direct-terms', '直販の手数料を見る'],
+    ['media', '#post-support', '投稿の運用支援へ'], ['ip', '#video-support', '映像制作の支援へ'],
   ];
   const canvas = page.locator('.income-canvas'), signatures = [];
   check(label + ': all six income choices remain visible content', await page.locator('.income-choice').count() === 6);
-  for (const [id, destination] of expected) {
+  for (const [id, destination, action] of expected) {
     await click(page.locator('.income-choice[data-income="' + id + '"]'));
     check(label + ': ' + id + ' is the single selected choice',
       await page.locator('.income-choice[aria-pressed="true"]').count() === 1
@@ -142,13 +173,20 @@ async function creatorChoices(page, label) {
     const pixels = await canvasState(canvas); signatures.push(pixels.hash);
     check(label + ': ' + id + ' has a rendered route', pixels.samples > 100 && pixels.range > 50, pixels);
     const next = page.locator('.income-next');
-    check(label + ': ' + id + ' links to the relevant explanation', new URL(await next.getAttribute('href'), page.url()).hash === destination);
+    check(label + ': ' + id + ' names and links its next action', (await next.innerText()).trim() === action
+      && new URL(await next.getAttribute('href'), page.url()).hash === destination
+      && await page.locator('.income-choice[data-income="' + id + '"]').getAttribute('href') === destination);
     await click(next);
     await page.waitForFunction(hash => location.hash === hash, destination);
     check(label + ': ' + id + ' CTA navigates', new URL(page.url()).hash === destination);
     await page.waitForFunction(id => {
-      const r = document.querySelector(id).getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0;
+      const r = document.querySelector(id).getBoundingClientRect(); return r.height > 0 && r.top < innerHeight && r.bottom > 0;
     }, destination);
+    if (id === 'product' || id === 'campaign') {
+      check(label + ': offer is visible without accepting it', await page.locator('#dcT2').getAttribute('aria-selected') === 'true'
+        && await page.locator(destination + ' .take').getAttribute('aria-pressed') === 'false');
+    }
+    if (id === 'campaign') check(label + ': campaign shows usage and payment conditions', await page.locator('#campaign-offer .offer-terms dl').isVisible());
   }
   check(label + ': six selections produce six different rendered routes', new Set(signatures).size === 6, signatures);
   await click(page.locator('.income-choice[data-income="live"]'));
@@ -403,6 +441,7 @@ async function motionAndFailure(browser) {
     ]) {
       const context = await contextFor(browser, options), page = await context.newPage(), errors = [];
       page.on('pageerror', error => errors.push(String(error)));
+      await audienceEntries(page, label);
       await creatorChoices(page, label);
       await publishingEntry(page, label); await panelDestinations(page, label);
       await creativeContent(page, label);

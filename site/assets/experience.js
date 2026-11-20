@@ -100,14 +100,17 @@
     if (!choices.length) continue;
     let active = Math.max(0, choices.findIndex(item => item.getAttribute('aria-pressed') === 'true'));
     const next = root.querySelector('.income-next');
-    const routes = {
-      live: { href: '#services', label: '提供すること' },
-      product: { href: '#model', label: '仕組みを見る' },
-      campaign: { href: '#model', label: '仕組みを見る' },
-      direct: { href: '#model', label: '仕組みを見る' },
-      media: { href: '#model', label: '仕組みを見る' },
-      ip: { href: '#services', label: '提供すること' },
-    };
+    // A route can land inside the offer tab or a closed set of terms.
+    function revealRoute(hash) {
+      if (!choices.some(choice => choice.hash === hash)) return;
+      const target = document.getElementById(hash.slice(1));
+      if (!target) return;
+      const pane = target.closest('.pane');
+      const details = target.closest('details') || target.querySelector('.offer-terms');
+      if (pane?.hidden) document.getElementById(pane.getAttribute('aria-labelledby'))?.click();
+      if (details) details.open = true;
+      target.scrollIntoView({ block: 'start', behavior: 'instant' });
+    }
     const draw = (ctx, width, height, progress) => {
       ground(ctx, width, height);
       const left = width * 0.17, right = width * 0.73, centre = height * 0.48;
@@ -152,19 +155,35 @@
     const select = (choice, notify = true) => {
       active = choices.indexOf(choice);
       for (const item of choices) item.setAttribute('aria-pressed', String(item === choice));
-      const route = routes[choice.dataset.income] || routes.live;
-      if (next) { next.href = route.href; next.textContent = route.label; }
+      if (next) { next.href = choice.hash; next.textContent = choice.dataset.nextLabel; }
       root.dataset.income = choice.dataset.income;
       if (scene) scene.restart();
       if (notify) {
         root.dataset.userSelected = 'true';
         root.dispatchEvent(new CustomEvent('reyz:incomechange', { bubbles: true, detail: {
-          id: choice.dataset.income, label: choice.querySelector('b')?.textContent || '', href: route.href,
+          id: choice.dataset.income, label: choice.querySelector('b')?.textContent || '', href: choice.hash,
         } }));
       }
     };
-    for (const choice of choices) choice.addEventListener('click', () => select(choice));
+    for (const choice of choices) {
+      choice.setAttribute('role', 'button');
+      choice.addEventListener('click', event => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        select(choice);
+      });
+      choice.addEventListener('keydown', event => {
+        if (event.key === ' ') { event.preventDefault(); choice.click(); }
+      });
+    }
+    next?.addEventListener('click', event => {
+      if (location.hash === next.hash && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+        revealRoute(next.hash);
+      }
+    });
+    window.addEventListener('hashchange', () => revealRoute(location.hash));
     select(choices[active], false);
+    revealRoute(location.hash);
     if (scene) root.classList.add('is-ready');
   }
 
