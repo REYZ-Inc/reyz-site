@@ -83,6 +83,30 @@ async function controlsFit(page, selector, label) {
   check(label + ': no horizontal overflow', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
 }
 
+async function compactBrief(browser, label) {
+  const context = await contextFor(browser, { viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  try {
+    for (const [role, action] of [['creator', 'terms'], ['company', 'swap']]) {
+      await page.goto(base + '/brief#' + role, { waitUntil: 'load' });
+      const art = await page.locator('.art-stage').boundingBox();
+      const button = page.locator('[data-action="' + action + '"]');
+      const box = await button.boundingBox();
+      check(label + '/' + role + ': thumbnail and primary action share the short opening screen',
+        art && art.width >= 64 && art.height >= 48 && art.y >= 0
+        && box && box.height >= 44 && box.y > art.y && box.y + box.height <= 569
+        && await page.evaluate(() => scrollY === 0 && document.documentElement.scrollWidth <= innerWidth + 1),
+        { art, box });
+      const file = label + '-320-brief-' + role + '.png';
+      await page.screenshot({ path: path.join(OUT, file) });
+      report.screenshots.push(file);
+      await button.tap();
+      check(label + '/' + role + ': primary action works by touch on the short screen',
+        await page.locator('#' + role).getAttribute('data-state') === (role === 'creator' ? 'terms' : 'review-v2'));
+    }
+  } finally { await context.close(); }
+}
+
 // Layout evidence, separate from the behavioral assertions below. Capture this
 // first so a later failed action does not erase the other pages' visual evidence.
 async function visualSections(browser) {
@@ -438,6 +462,8 @@ async function motionAndFailure(browser) {
     base = base.replace(/\/$/, '');
     const chrome = await chromium.launch(); launched.push(chrome);
     const safari = await webkit.launch(); launched.push(safari);
+    await compactBrief(chrome, 'chromium');
+    await compactBrief(safari, 'webkit');
     await visualSections(chrome);
     for (const [label, browser, options] of [
       ['chromium-1440', chrome, { viewport: { width: 1440, height: 900 } }],

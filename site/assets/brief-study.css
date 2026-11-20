@@ -363,6 +363,23 @@ html[data-study-enhanced] .case-view { scroll-margin-block-start: 100vh; }
   .study-art figcaption { font-size: 10px; padding: 5px 9px; }
 }
 
+/* On short phones the artwork becomes a proof alongside its version label. */
+@media (max-width: 520px) and (max-height: 650px) {
+  .study-header { min-height: 44px; }
+  .study-intro { padding-block: 9px 4px; }
+  .study-intro h1 { margin-block: 2px 5px; font-size: 25px; }
+  .study-kicker, .study-sub { display: none; }
+  .study-workspace { margin-top: 6px; }
+  .study-art { display: grid; grid-template-columns: 94px 1fr; }
+  .art-stage { height: 66px; }
+  .art-mark { font-size: 32px; }
+  .study-art figcaption { flex-wrap: wrap; align-content: center; justify-content: flex-start; gap: 2px 12px; font-size: 11px; }
+  .study-panel { padding-top: 8px; }
+  .study-panel h2 { margin-block: 3px 6px; }
+  .study-status { margin-top: 6px; }
+  .study-actions { margin-top: 7px; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .art-sheet, .art-stripe, .art-mark {
     transition: transform .35s ease, left .35s ease, top .35s ease, width .35s ease, height .35s ease;
