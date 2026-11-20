@@ -223,7 +223,7 @@ def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     """lead2: 既決の導入文（lead）を変えずに、その下へ加える 2 行目（2026-10-26 正本 §10: /creator の冒頭）"""
     actions = {
         'Creator': [('index.html#map', '地図をつくる'), ('manual.html', 'マニュアルをつくる')],
-        'Creative': [('#services', '依頼できること'), ('#guard', '差し替え時の確認を試す')],
+        'Creative': [('#services', '依頼できること'), ('#guard', '1案件の流れを試す')],
         'AI': [('#products', '3つの製品を見る'), ('contact.html', '相談する')],
         'Consensus': [('#offer', '提供の形を見る'), ('contact.html', '相談する')],
     }.get(word, [])
@@ -742,9 +742,9 @@ GUARD = """<div class="cycle reveal" data-cycle data-state="brief">
   <p class="cycle-note">対象業務、連携先、REYZとお客様の担当範囲を、導入時に確認します。</p>
 </div>"""
 
-creative = title_chapter('Creative', jp('複数のクリエイター案件を進める|ブランド・代理店の方へ'), '「伝わる」を設計する。',
+creative = title_chapter('Creative', jp('発信・制作・確認・運用を|任せたい企業の方へ'), '「伝わる」を設計する。',
                          jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。'),
-                         lead2=jp('どの動画を、どの条件で公開できるか。|承認した版と利用条件を案件ごとに記録します。\n差し替えたら以前の承認は失効し、|新しい版の確認から再開できます。')) + \
+                         lead2=jp('映像、SNS、ブランド、サイト、仕事の仕組み。|つくるところから、公開前の確認、公開後の運用まで。\n任せることと、自社で決めることを、|最初に分けてお見せします。')) + \
 section('services', 'Services', 'REYZがすること', '',
         # 企業正本 §5 の提供パッケージ（EP1 確認して出す／EP5 つくる・入れる／EP2 クリエイターで売る／EP3・EP4 組み込み・自社ブランド）で 11 項目を束ねる。
         # 束の見出しと 1 行が常に見え、項目（既決 8 項目の本文は不変）は押すと開く
@@ -778,7 +778,7 @@ section('how', 'How to start', '任せ方', jp('いきなり大きな契約を�
                ('02', '地図を受け取る', jp('何のために、何をつくり、どこで使うのか。|担当と進め方を地図で確認します。')),
                ('03', '「はい」か「いいえ」を決める', jp('提案の根拠とリスクを読み、|その案で進むかを決めます。'))], cls='list') +
         more('contact.html', '相談する'))
-page('creative.html', 'Creative — REYZ Inc.', '複数のクリエイター案件を進めるブランド・代理店へ。映像・SNSの企画と制作から、素材の版と利用条件の確認、公開判断の記録まで。動画を差し替えたときの再確認を、案件の操作見本で試せます。', creative)
+page('creative.html', 'Creative — REYZ Inc.', '発信・制作・確認・運用を任せたい企業へ。映像・SNS・ブランド・サイト・仕事の仕組みづくりから、公開前の確認、公開判断の記録まで。1案件の流れを、操作見本で試せます。', creative)
 
 # ------------------------------------------------------------------ AI (Z)（AIプラットフォーム事業）
 # 事業内容: 複数のAIエージェントをクリエイターエコノミーと統合運用する自社AI基盤「REYZ PLATFORM」の開発・提供。
@@ -787,7 +787,7 @@ page('creative.html', 'Creative — REYZ Inc.', '複数のクリエイター案�
 # 改名（2026-10-15 CEO 決定 NAMING-001）: Z-PLATFORM→REYZ PLATFORM、Z-DEVELOPER→REYZ DEVELOPER、Cross-AI Flow→REYZ CONSENSUS。ブランド層は全大文字。
 # 表示の規律（2026-10-23 CEO）: 開発中・準備中・順次・先行導入などの進行形の状態語は書かない。稼働・実績・顧客数を示す表現は、根拠を併記できるまで書かない（legal.html「表示に関する方針」）。
 # 2026-11-18: 製品の役割 → 仕事を重ねる価値 → 導入。統制の説明は1か所に集約する。
-ai_products = items_fold([('つなぐ — AI Orchestration', jp('複数のAIを、|ひとつの仕事の流れにまとめます。\n提供元を固定せず、|AIの更新や料金の変化に合わせて|組み合わせを見直せます。')),
+ai_products = items_fold([('つなぐ — AIの組み合わせ', jp('複数のAIを、|ひとつの仕事の流れにまとめます。\n提供元を固定せず、|AIの更新や料金の変化に合わせて|組み合わせを見直せます。')),
                           ('つくる — REYZ DEVELOPER', jp('開発経験がなくても、|自分の言葉で伝えることから|始められる開発・運用システム。\n公開して終わりではなく、|その後の運用と改善までを|対象にします。')),
                           ('確かめ、進める — REYZ CONSENSUS', jp('提供元の異なる複数のAIが、|同じ内容を互いに検証し、|合意したものだけを次へ進めます。'), 'consensus.html', 'REYZ CONSENSUSについて')], 3)   # 3 つとも開いたまま（2026-10-27 CEO「限定的すぎる」: 製品群の幅が見えるように）
 AI_REUSE = ('<div class="reuse-ledger reveal">' + ''.join(
@@ -802,14 +802,14 @@ AI_REUSE = ('<div class="reuse-ledger reveal">' + ''.join(
            ('判断をたどれる記録', jp('事実・推論・仮説を分け、|入力・根拠・判定・承認・実行結果を記録します。\n記録は企業のもので、|いつでも持ち出せます。')),
            ('再利用する範囲を、決める', jp('お客様の記録や秘密情報は、|共通の機能・確認手順から分けて扱います。\n他の案件での再利用は、|許諾された範囲に限ります。'))]) +
     '</div></details>')
-ai = title_chapter('AI', 'REYZ PLATFORM · AI Infrastructure', 'AIが支える。',
-                   jp('複数のAIエージェントを統合運用する|AI基盤「REYZ PLATFORM」。')) + \
+ai = title_chapter('AI', 'REYZ PLATFORM', 'AIが支える。',
+                   jp('複数のAIを組み合わせ、確かめ、人が決める。\nAIを安心して仕事に使うための仕組み|「REYZ PLATFORM」。')) + \
 section('products', 'Products', 'REYZ PLATFORM', '', ai_products) + \
 section('enterprise', 'Built to continue', jp('つくった仕組みを、|次の仕事へ。'), jp('公開直前に、紹介動画の差し替えが決まったら。|別の案件にも使える確認手順と、版ごとに必要な承認を見てみましょう。'),
         AI_REUSE + more('creative.html#guard', '動画の差し替えを試す')) + \
 section('enterprise-how', 'How it works', '進め方', '',
         steps([('01', '現状の確認', jp('どの業務で、|AIが何を判断しているか。\n判断の重さと、|現在の確認方法を整理します。')),
-               ('02', '統制の設計と導入', jp('検証の規則、|人が承認する範囲、|記録の形式を決め、\n既存の業務に組み込みます。')),
+               ('02', 'ルールを決めて、組み込む', jp('検証の規則、|人が承認する範囲、|記録の形式を決め、\n既存の業務に組み込みます。')),
                ('03', '運用と報告', jp('AIと共に運用し、|判断の記録を定期的に報告します。\n結果をもとに、|規則を見直します。'))], cls='list') + more('contact.html', '相談する'))
 page('ai.html', 'AI — REYZ Inc.', 'REYZのAI基盤「REYZ PLATFORM」。仕事に合わせた実行機能と、完了を確かめる手順を次の案件へ。複数AIの検証、人の承認、持ち出せる記録を備え、業務の設計から運用までを支えます。', ai)
 
