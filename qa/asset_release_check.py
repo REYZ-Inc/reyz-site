@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the six immutable entry URLs, independently of the builder.
+"""Check immutable entry URLs, independently of the builder.
 
 Usage: python3 qa/asset_release_check.py [site] [--require-tracked]
 The supplied release is read only. Repeat-build, changed-source and corruption
@@ -19,9 +19,10 @@ import tempfile
 from urllib.parse import unquote, urlsplit
 
 
-ENTRIES = ('site.css', 'site.js', 'field-renderer.js', 'experience.js', 'manual.css', 'manual.js')
+ENTRIES = ('site.css', 'site.js', 'field-renderer.js', 'experience.js', 'manual.css', 'manual.js',
+           'brief-study.css', 'brief-study.js')
 COMMON = ('site.css', 'field-renderer.js', 'site.js', 'experience.js')
-PAGES = {'index', 'creator', 'creative', 'ai', 'consensus', 'contact', 'legal', 'manual', '404'}
+PAGES = {'index', 'creator', 'creative', 'ai', 'consensus', 'contact', 'legal', 'manual', '404', 'brief'}
 REPO = Path(__file__).resolve().parents[1]
 
 
@@ -103,7 +104,7 @@ def inspect_release(root, report, label):
             report.check(label + ': entry uses its correct HTML tag ' + ref, tag == ('link' if source.endswith('.css') else 'script'))
             versions[source].add(target.relative_to(root).as_posix())
         if name in PAGES or parsed.has_main:
-            expected = set(COMMON)
+            expected = {'brief-study.css', 'brief-study.js'} if name == 'brief' else set(COMMON)
             if name in ('creator', 'manual'):
                 expected.add('manual.css')
             if name == 'manual':
@@ -214,7 +215,7 @@ def main():
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         report.fails.append(str(error))
     print(json.dumps({'checks': report.checks, 'fails': report.fails, 'entries': versions,
-                      'scope': 'six entry assets; HTML/bytes, repeatability, changed URLs, retained cached-HTML dependencies'},
+                      'scope': 'entry assets; HTML/bytes, repeatability, changed URLs, retained cached-HTML dependencies'},
                      ensure_ascii=False, indent=2))
     return 1 if report.fails else 0
 

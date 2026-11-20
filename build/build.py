@@ -6,13 +6,14 @@ import os, re, html, json, hashlib, tempfile
 ROOT = os.environ.get('SITE_OUT') or os.path.join(os.path.dirname(__file__), '..', 'site')   # SITE_OUT: 検証用の別出力先
 SITE_URL = os.environ.get('SITE_URL', 'https://reyz.inc')   # 公開ドメイン（canonical / og:url / og:image / sitemap）。末尾スラッシュなし
 SOURCE_ASSETS = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'site', 'assets'))
-ENTRY_ASSET_NAMES = ('site.css', 'site.js', 'field-renderer.js', 'experience.js', 'manual.css', 'manual.js')
+ENTRY_ASSET_NAMES = ('site.css', 'site.js', 'field-renderer.js', 'experience.js', 'manual.css', 'manual.js',
+                     'brief-study.css', 'brief-study.js')
 
 def build_entry_assets():
     """Keep editable canonical files; publish exact byte copies at content URLs.
 
     Copies stay in assets/ so CSS URLs, currentScript and relative ES imports keep
-    the same base. This fingerprints the six entries only, not the manual module
+    the same base. This fingerprints the listed entries only, not the manual module
     dependency graph. SITE_OUT still uses repository assets as the source.
     Old fingerprints deliberately remain: cached older HTML must keep working.
     """
@@ -59,7 +60,7 @@ def clean(fname):
     """公開 URL の表記（2026-10-03 CEO 決定）: 拡張子 .html を付けない。index.html は ''（= /）。
     ファイル自体は x.html のまま出力する（GitHub Pages は /x で x.html を返す。旧 URL /x.html も引き続き開ける）。"""
     return '' if fname == 'index.html' else re.sub(r'\.html$', '', fname)
-_PAGE_RE = r'(?:creator|creative|ai|consensus|contact|legal|works|manual)'
+_PAGE_RE = r'(?:creator|creative|ai|consensus|contact|legal|works|manual|brief)'
 def clean_links(doc):
     """ページ内リンクを .html なしの表記へ（index.html → ./ 、x.html → x。#以降は保つ）。本文は x.html で書き、出力時に一括変換する。
     KEEP_HTML_LINKS=1 は検証用（静的ファイルだけを配る試写では x.html のまま）。本番ビルドでは使わない。"""
@@ -227,8 +228,8 @@ def terms_link(href, label, amount, unit, scope, action):
 def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     """lead2: 既決の導入文（lead）を変えずに、その下へ加える 2 行目（2026-10-26 正本 §10: /creator の冒頭）"""
     actions = {
-        'Creator': [('#model', '案件と明細を試す'), ('#income', '6つの収益を見る')],
-        'Creative': [('#services', '依頼できること'), ('#guard', '1案件の流れを試す')],
+        'Creator': [('brief.html#creator', '案件と明細を試す'), ('#income', '6つの収益を見る')],
+        'Creative': [('#services', '依頼できること'), ('brief.html#company', '1案件の流れを試す')],
         'AI': [('#products', '3つの製品を見る'), ('contact.html', '相談する')],
         'Consensus': [('#offer', '提供の形を見る'), ('contact.html', '相談する')],
     }.get(word, [])
@@ -373,7 +374,8 @@ def structure():
             + link
             + node('company', 'creative.html', '企業', '地図 ・ 確認 ・ 記録', jp('制作を任せ、|案件ごとに公開する版と利用条件を決める。'), '依頼の流れを見る')
             + '          </div>\n'
-            '          <p class="structure-cap reveal">' + jp('確認を通った案件と商品だけが、|企業からクリエイターへ届く。') + '</p>')
+            '          <p class="structure-cap reveal">' + jp('確認を通った案件と商品だけが、|企業からクリエイターへ届く。') + '</p>'
+            '          <p class="more reveal"><a class="go" href="brief.html">紹介動画1本を、両方の立場で試す</a></p>')
 STRUCTURE = structure()
 # ------------------------------------------------------------------ HOME
 # 初画面の一言: 事業内容 3 本柱（既決）を、クリエイター／企業／AI の順に同じ形で 1 行ずつ（2026-10-27 CEO「同じ形・同じ分量」「決定した事業構造を把握した上で」）
@@ -555,8 +557,7 @@ PATHS = ('<div class="paths reveal" data-paths>\n'
 # 2026-11-20 目的からの再構成（CEO「目的を認識しているのか」「やれよ」）。目的＝見たクリエイターが「REYZ に任せたい」と確信し、相談に進むこと。
 # 順序は正本 §3-1 と 2026-10-29 の結論（経路の選択は地図の後）に従う: 3 つの画面（製品そのもの）→ 入口の中身（6 つの収益）→ 提供すること（LIVE の文脈に約束と原資）→ はじめ方。
 # 収益の入口からは、その活動に対応する見本・条件・支援内容に直接進める。
-creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
-                        lead2='あなたの収益の、全部の入口に。') + \
+creator = title_chapter('Creator', 'クリエイターの方へ', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。') + \
 section('model', 'Your screens', jp('あなたの活動を、|3つの画面で。'),
         jp('どこで、何を、どの順で。|地図が決まると入口が開き、|入った収入は明細に残ります。'), SCREENS_CREATOR) + \
 section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'),
@@ -761,8 +762,8 @@ GUARD = """<div class="cycle reveal" data-cycle data-state="brief">
 </div>"""
 
 creative = title_chapter('Creative', jp('発信・制作・確認・運用を|任せたい企業の方へ'), '「伝わる」を設計する。',
-                         jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。'),
-                         lead2=jp('映像・SNS・サイトの制作、|ブランドの発信、業務の仕組みづくりから|公開後の運用まで。\n複数の案件でも、|承認した素材と利用条件が分かり、|差し替えた版から確認を再開できます。')) + \
+                         jp('映像・SNS・サイトの制作、|ブランドの発信、業務の仕組みづくり。|企画から公開後の運用まで任せられます。'),
+                         lead2=jp('複数の案件でも、|承認した素材と利用条件はひと目で。|差し替えた版から確認を再開できます。')) + \
 section('services', 'Services', 'REYZがすること', '',
         # 企業正本 §5 の提供パッケージ（EP1 確認して出す／EP5 つくる・入れる／EP2 クリエイターで売る／EP3・EP4 組み込み・自社ブランド）で 11 項目を束ねる。
         # 束の見出しと 1 行が常に見え、項目（既決 8 項目の本文は不変）は押すと開く
@@ -952,6 +953,15 @@ legal = title_chapter('line', 'Privacy &amp; Legal', '法令に基づく表記',
     </section>
 '''
 page('legal.html', 'Privacy & Legal — REYZ Inc.', '株式会社レイズの法令に基づく表記。宅地建物取引業者、古物営業法に基づく表記、表示に関する方針、個人情報の取り扱い。', legal)
+
+# The lightweight case study has its own visual stage and no site-wide film or runtime.
+with open(os.path.join(os.path.dirname(__file__), 'brief-study.html'), encoding='utf-8') as template:
+    brief = template.read()
+for entry in ('brief-study.css', 'brief-study.js'):
+    brief = brief.replace('"assets/' + entry + '"', '"' + asset_url('assets/' + entry) + '"')
+with open(os.path.join(ROOT, 'brief.html'), 'w', encoding='utf-8') as output:
+    output.write(clean_links(brief))
+PAGES.append('brief.html')
 
 # ------------------------------------------------------------------ /works → /creative の静的転送（DEC-20261027-19）
 # 旧 URL を 404 にせず、meta refresh と canonical で /creative へ送る。sitemap には載せない（PAGES に加えない）。検索には noindex

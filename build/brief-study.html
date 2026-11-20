@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101011">
+  <title>一本の紹介動画から — 案件見本 | REYZ Inc.</title>
+  <meta name="description" content="新商品の紹介動画を例に、クリエイターは受注条件と報酬明細を、企業は素材の差し替えと公開判断を試せます。">
+  <link rel="stylesheet" href="assets/brief-study.css">
+  <script src="assets/brief-study.js" defer></script>
+</head>
+<body class="brief-study">
+  <header class="study-header">
+    <a class="study-brand" href="index.html" aria-label="REYZ Inc. ホーム">REY<span>Z</span> <small>Inc.</small></a>
+    <span class="study-edition">案件見本</span>
+  </header>
+  <main class="study-main">
+    <div class="study-intro">
+      <p class="study-kicker">制作案件のシミュレーション</p>
+      <h1>新商品の紹介動画。</h1>
+      <p class="study-sub">つくる人は受ける条件を。依頼する人は公開する版を。</p>
+    </div>
+    <nav class="study-roles" aria-label="案件を見る立場">
+      <a href="#creator" data-role="creator">クリエイターとして見る</a>
+      <a href="#company" data-role="company">企業として見る</a>
+    </nav>
+    <section class="study-workspace" aria-label="新商品の紹介動画 1本の案件見本">
+      <figure class="study-art" data-version="1" aria-label="新商品の紹介動画の架空の素材見本">
+        <div class="art-stage" aria-hidden="true">
+          <div class="art-sheet art-sheet-back"></div>
+          <div class="art-sheet art-sheet-front"><i class="art-stripe"></i><b class="art-mark">R</b></div>
+        </div>
+        <figcaption><span>新商品の紹介動画 <b>1本</b></span><span data-art-version>素材 v1</span></figcaption>
+      </figure>
+      <div class="study-panel">
+        <section class="case-view" id="creator" data-state="offer" aria-labelledby="creator-title">
+          <p class="panel-kicker">クリエイターの視点</p>
+          <h2 id="creator-title">条件を見て、仕事を選ぶ。</h2>
+          <dl class="case-facts" data-creator-offer>
+            <div><dt>制作物</dt><dd>新商品の紹介動画 1本</dd></div>
+            <div data-creator-scope><dt>利用範囲</dt><dd>ブランドの公式サイトで30日間</dd></div>
+            <div data-creator-scope><dt>報酬・支払日</dt><dd>受注前に企業と金額・支払日を決める</dd></div>
+            <div><dt>報酬から引くREYZの手数料</dt><dd><strong>0円</strong></dd></div>
+          </dl>
+          <dl class="case-facts" data-creator-statement hidden>
+            <div><dt>明細の対象</dt><dd>新商品の紹介動画 1本</dd></div>
+            <div><dt>利用範囲</dt><dd>ブランドの公式サイトで30日間</dd></div>
+            <div><dt>報酬・支払日</dt><dd>企業と個別に合意した条件</dd></div>
+            <div><dt>報酬から引くREYZの手数料</dt><dd><strong>0円</strong></dd></div>
+          </dl>
+          <p class="study-status" role="status" aria-atomic="true">この案件を受ける前に、利用範囲と報酬の条件を確認できます。</p>
+          <div class="study-actions">
+            <button type="button" class="study-action" data-action="terms" hidden>案件の条件を開く</button>
+            <button type="button" class="study-action" data-action="accept" hidden>合意して明細を見る（見本）</button>
+            <button type="button" class="study-reset" data-action="reset-creator" hidden>最初に戻す</button>
+          </div>
+          <noscript><p>利用範囲・金額・支払日に双方が合意した案件が明細に載ります。</p></noscript>
+          <a class="study-next" href="creator.html#creator-terms">REYZの手数料と契約条件を見る</a>
+        </section>
+        <section class="case-view" id="company" data-state="approved-v1" aria-labelledby="company-title">
+          <p class="panel-kicker">企業の視点</p>
+          <h2 id="company-title">どの版を、公開できる？</h2>
+          <dl class="case-facts">
+            <div><dt>公開する素材</dt><dd data-company-version>紹介動画 v1</dd></div>
+            <div><dt>利用範囲</dt><dd>ブランドの公式サイトで30日間</dd></div>
+            <div><dt>この版の承認</dt><dd data-company-approval>承認済み</dd></div>
+            <div><dt>公開の判定</dt><dd data-company-result>公開可</dd></div>
+          </dl>
+          <p class="study-status" role="status" aria-atomic="true">v1の公開を承認した例です。素材を差し替えてみてください。</p>
+          <div class="study-actions">
+            <button type="button" class="study-action" data-action="swap" hidden>素材をv2に差し替える</button>
+            <button type="button" class="study-action" data-action="approve" hidden>v2を確認して承認する</button>
+            <button type="button" class="study-action" data-action="proceed" hidden>公開判断を試す</button>
+            <button type="button" class="study-reset" data-action="reset-company" hidden>最初に戻す</button>
+          </div>
+          <noscript><p>v1をv2に差し替えると承認が失効し、公開は保留になります。責任者がv2を確認して再承認すると公開できます。</p></noscript>
+          <a class="study-next" href="creative.html#gain">公開前の確認・管理料を本数で試算する</a>
+          <a class="study-next" href="creative.html#guard">企画から明細まで見る</a>
+        </section>
+      </div>
+    </section>
+    <footer class="study-footer">架空の案件を使った操作見本です。実際の契約・支払い・公開は行われません。</footer>
+  </main>
+</body>
+</html>

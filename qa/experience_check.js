@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const { chromium, webkit } = require('playwright');
+const checkBriefStudy = require('./brief_study_check');
 
 const ROOT = path.resolve(process.argv[2] || 'site');
 const OUT = path.resolve(process.argv[3] || path.join(process.env.QA_OUT || 'qa/out', 'experience'));
@@ -257,7 +258,7 @@ async function publishingEntry(page, label) {
   await page.waitForURL(url => /\/creative(?:\.html)?$/.test(url.pathname), { waitUntil: 'load' });
   // Take the actual first screen, before scrolling either the copy or its link into view.
   await page.waitForTimeout(1600);
-  const pitch = await page.locator('#top p, #top .hero-action[href="#guard"]')
+  const pitch = await page.locator('#top p, #top .hero-action[href="brief#company"]')
     .filter({ hasText: /企業|制作|運用|案件|承認|流れ/ }).evaluateAll(nodes => {
       const headerBottom = document.querySelector('#siteHeader').getBoundingClientRect().bottom;
       return nodes.map(node => {
@@ -286,8 +287,12 @@ async function publishingEntry(page, label) {
 async function panelDestinations(page, label) {
   const detail = page.locator('details.workflow-detail');
   check(label + ': detailed expression review initially optional', await detail.count() === 1 && await detail.getAttribute('open') === null);
-  await click(page.locator('.hero-action[href="#guard"]'));
-  check(label + ': workflow action reaches the complete case', await page.locator('[data-cycle]').isVisible() && new URL(page.url()).hash === '#guard');
+  await click(page.locator('.hero-action[href="brief#company"]'));
+  await page.waitForURL(base + '/brief#company');
+  check(label + ': workflow action opens the company decision', await page.locator('[data-role="company"][aria-current="page"]').isVisible());
+  await click(page.locator('a[href="creative#guard"]:visible').first());
+  await page.waitForURL(base + '/creative#guard');
+  check(label + ': case study leads into the full workflow', await page.locator('[data-cycle]').isVisible());
   await click(detail.locator(':scope > summary'));
   check(label + ': detailed review opens with an actual map', await page.locator('#deP1').isVisible());
   await click(page.locator('#demoE [data-next="check"]').first());
@@ -442,6 +447,7 @@ async function motionAndFailure(browser) {
       const context = await contextFor(browser, options), page = await context.newPage(), errors = [];
       page.on('pageerror', error => errors.push(String(error)));
       await audienceEntries(page, label);
+      report.screenshots.push(...await checkBriefStudy(page, label, base, check, OUT));
       await creatorChoices(page, label);
       await publishingEntry(page, label); await panelDestinations(page, label);
       await creativeContent(page, label);
