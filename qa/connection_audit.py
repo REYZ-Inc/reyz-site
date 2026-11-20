@@ -4,7 +4,8 @@
 Usage: python3 qa/connection_audit.py [site] > report.json
 For each <section id>, reports the in-body links that lead to it, the in-body
 links that leave it and the media it shows. Header and footer links are listed
-separately: they reach pages, not the reason for a section to exist.
+separately. The inbound findings skip each page's first section. The outbound
+findings skip the contact, manual and legal pages. Per-section data includes both.
 Only static in-body links are counted: header and footer navigation, external links and
 operations such as playing a film or sending the form are not. A section without them is
 therefore a prompt to look, not a defect. This is an audit, not a gate (docs/site-coherence.md).
