@@ -80,6 +80,8 @@ async function briefStudy(page, label, base, check, out) {
   expect('offer cannot be accepted before inspecting its terms', await action(creator, 'accept').count() === 0
     || await action(creator, 'accept').isDisabled());
   await layout(creator, 'Creator offer');
+  expect('the emphasized value identifies the REYZ deduction at a glance',
+    (await creator.locator('[data-creator-offer] strong').innerText()).replace(/\s/g, '') === 'REYZ手数料0円');
   await checkLayout(page, roles, label + '/brief/role-navigation', check);
   await snapshot('creator');
 
@@ -110,6 +112,11 @@ async function briefStudy(page, label, base, check, out) {
   await roleVisible(company, creator, 'Company');
   expect('Company has a shareable address', new URL(page.url()).hash === '#company');
   await state(company, 'approved-v1', 1);
+  expect('the original approval names the human decision maker', (await company.locator('.study-status').innerText()).includes('企業の公開担当者'));
+  const priceLink = company.locator('a[href$="#gain"]');
+  const priceLinkText = await priceLink.innerText();
+  expect('the link to pricing specifies its scope, volume, and fee',
+    ['公開前の確認・管理', '月20本', '5万円'].every(word => priceLinkText.includes(word)));
   await layout(company, 'Company original');
   await snapshot('enterprise');
   const stage = art.locator('.art-stage');

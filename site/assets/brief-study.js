@@ -124,7 +124,7 @@
     if (version !== 1) return;
     version = 2;
     checkedVersion = null;
-    renderCompany('v1の承認はv2に引き継がれません。v2を確認するまで公開は保留です。');
+    renderCompany('v1の承認は失効しました。企業の公開担当者がv2を確認するまで公開は保留です。');
     approve.focus({ preventScroll: true });
   });
   approve.addEventListener('click', () => {
