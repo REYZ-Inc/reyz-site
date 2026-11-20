@@ -220,7 +220,7 @@ async function publishingEntry(page, label) {
   // Take the actual first screen, before scrolling either the copy or its link into view.
   await page.waitForTimeout(1600);
   const pitch = await page.locator('#top p, #top .hero-action[href="#guard"]')
-    .filter({ hasText: /ブランド|代理店|承認|差し替え/ }).evaluateAll(nodes => {
+    .filter({ hasText: /企業|制作|運用|案件|承認|流れ/ }).evaluateAll(nodes => {
       const headerBottom = document.querySelector('#siteHeader').getBoundingClientRect().bottom;
       return nodes.map(node => {
         const rect = node.getBoundingClientRect();
@@ -232,10 +232,14 @@ async function publishingEntry(page, label) {
       });
     });
   const copy = pitch.filter(item => !item.link && item.fits).map(item => item.text).join('');
-  check(label + ': first enterprise screen identifies the audience and the approval task',
-    ['案件', 'ブランド', '代理店', '承認'].every(word => copy.includes(word)), pitch);
-  check(label + ': first enterprise screen offers the material-change example',
-    pitch.some(item => item.link && item.fits && /差し替え/.test(item.text)), pitch);
+  // PR #64 (both seats agreed): the first screen names the whole enterprise offer,
+  // then one benefit for teams running several projects; details live in #guard.
+  check(label + ': first enterprise screen states the range of work for companies',
+    ['企業', '映像', 'SNS', 'サイト', '仕組み', '運用'].every(word => copy.includes(word)), pitch);
+  check(label + ': first enterprise screen states the multi-project approval and resume benefit',
+    ['複数の案件', '承認', '再開'].every(word => copy.includes(word)), pitch);
+  check(label + ': first enterprise screen offers the complete-case example',
+    pitch.some(item => item.link && item.fits && /流れ/.test(item.text)), pitch);
   const file = label + '-creative-publishing-entry.png';
   await page.screenshot({ path: path.join(OUT, file) });
   report.screenshots.push(file);
