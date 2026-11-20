@@ -213,6 +213,34 @@ async function creativeContent(page, label) {
   report.screenshots.push(notesFile);
 }
 
+async function publishingEntry(page, label) {
+  await open(page, 'index');
+  await click(page.locator('#origin a.company'));
+  await page.waitForURL(url => /\/creative(?:\.html)?$/.test(url.pathname), { waitUntil: 'load' });
+  // Take the actual first screen, before scrolling either the copy or its link into view.
+  await page.waitForTimeout(1600);
+  const pitch = await page.locator('#top p, #top .hero-action[href="#guard"]')
+    .filter({ hasText: /ブランド|代理店|承認|差し替え/ }).evaluateAll(nodes => {
+      const headerBottom = document.querySelector('#siteHeader').getBoundingClientRect().bottom;
+      return nodes.map(node => {
+        const rect = node.getBoundingClientRect();
+        return {
+          text: node.innerText, link: node.matches('a'),
+          fits: rect.width > 0 && rect.height > 0 && rect.left >= -1 && rect.right <= innerWidth + 1
+            && rect.top >= headerBottom - 1 && (innerHeight < 800 || rect.bottom <= innerHeight + 1),
+        };
+      });
+    });
+  const copy = pitch.filter(item => !item.link && item.fits).map(item => item.text).join('');
+  check(label + ': first enterprise screen identifies the audience and the approval task',
+    ['案件', 'ブランド', '代理店', '承認'].every(word => copy.includes(word)), pitch);
+  check(label + ': first enterprise screen offers the material-change example',
+    pitch.some(item => item.link && item.fits && /差し替え/.test(item.text)), pitch);
+  const file = label + '-creative-publishing-entry.png';
+  await page.screenshot({ path: path.join(OUT, file) });
+  report.screenshots.push(file);
+}
+
 async function panelDestinations(page, label) {
   const detail = page.locator('details.workflow-detail');
   check(label + ': detailed expression review initially optional', await detail.count() === 1 && await detail.getAttribute('open') === null);
@@ -371,7 +399,9 @@ async function motionAndFailure(browser) {
     ]) {
       const context = await contextFor(browser, options), page = await context.newPage(), errors = [];
       page.on('pageerror', error => errors.push(String(error)));
-      await creatorChoices(page, label); await creativeContent(page, label); await panelDestinations(page, label);
+      await creatorChoices(page, label);
+      await publishingEntry(page, label); await panelDestinations(page, label);
+      await creativeContent(page, label);
       if (label === 'chromium-1440') await contactJourneys(page);
       check(label + ': no JavaScript errors', errors.length === 0, errors);
       report.browsers.push(label); await context.close();
