@@ -2,7 +2,7 @@
 
 Stock footage sources verified: 2026-11-18 (JST session date).
 
-The first two entries document licensed stock footage used as editorial imagery for the REYZ website. The Creator film remains current; the old Production film is retained for previously cached pages and is replaced in the current build by the new paper study documented below. They are not REYZ client work, affiliated creators, employees, testimonials, or endorsements. Their visible media captions must say `イメージ映像` or equivalent. Do not describe the people as REYZ members or infer their individual identities or nationalities. Original brand graphics are documented separately below.
+The first two entries document licensed stock footage used as editorial imagery for the REYZ website. Since 2026-11-20 neither is shown on the site: the Creator film was removed from `/creator#income` because it did not show a creator's activity and did not help the reader choose an entry. Both files are retained only so that previously cached pages keep working. The old Production film is retained for previously cached pages and is replaced in the current build by the new paper study documented below. They are not REYZ client work, affiliated creators, employees, testimonials, or endorsements. Their visible media captions must say `イメージ映像` or equivalent. Do not describe the people as REYZ members or infer their individual identities or nationalities. Original brand graphics are documented separately below.
 
 ## Stock footage license
 

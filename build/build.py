@@ -413,14 +413,11 @@ home = f'''    <section class="chapter" id="infinity">
 page('index.html', 'REYZ Inc. — 無限の可能性を かたちに', '株式会社レイズ（REYZ Inc.）— Creator Economy × AI。クリエイターの活動と企業の成長を支え、AIを安心して仕事に使える仕組みを提供する会社です。', home, current='index.html')
 
 # ------------------------------------------------------------------ CREATOR
-def editorial_film(kind, headline, line):
-    """One actual film, with its editorial copy and visible source beside it."""
-    is_creator = kind == 'creator'
-    prefix = 'creator' if is_creator else 'production'
-    asset = 'creator-film' if is_creator else 'creative-study-v1'
+def editorial_film(headline, line):
+    """REYZ's own paper study, with its editorial copy and visible source beside it."""
+    prefix, asset = 'production', 'creative-study-v1'
     poster = f'assets/editorial/{asset}.webp'
-    disclosure = 'イメージ映像' if is_creator else '構図と光のイメージ映像（CG）'
-    credit = 'Footage: cottonbro studio / Pexels' if is_creator else 'REYZ / Motion study'
+    disclosure, credit = '構図と光のイメージ映像（CG）', 'REYZ / Motion study'
     return f'''<figure class="editorial-visual is-{prefix} reveal" data-editorial>
       <div class="editorial-film">
         <video id="{prefix}Film" data-editorial-video data-src="assets/editorial/{asset}.mp4" poster="{poster}" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video>
@@ -545,8 +542,11 @@ PATHS = ('<div class="paths reveal" data-paths>\n'
 # One choice journey: income routes and the reader's goal, then terms and support.
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
                         lead2='あなたの収益の、全部の入口に。') + \
-section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'), '',
-        editorial_film('creator', '活動によって、<br>収入の仕組みは変わる。', jp('ライブ配信では、視聴者からギフトを受け取る。|作品の直販では、自分で価格を決めてファンに届ける。\n六つの入口から、今の活動に合うものを選べます。')) + INCOMES +
+section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'),
+        # 2026-11-20: 実写（ストック素材）を外した。映像は「活動が仕事になる場面」を映しておらず、この節で読者が
+        # 判断すること（どの入口から始めるか）を助けていなかった。説明の文は節の導入として残し、6 つの入口へ直接つなぐ。
+        jp('ライブ配信では、視聴者からギフトを受け取る。|作品の直販では、自分で価格を決めてファンに届ける。\n六つの入口から、今の活動に合うものを選べます。'),
+        INCOMES +
         '<div class="income-path" id="path"><div class="head reveal"><p class="eyebrow">Your path</p><h3>' + jp('目的から、|道を選ぶ。') + '</h3>' +
         more('contact.html', 'この道で、はじめる') + '</div>' + PATHS + '</div>') + \
 section('model', 'Terms &amp; screens', '条件を、先に。', '', MODEL + SCREENS_CREATOR) + \
@@ -766,7 +766,7 @@ section('services', 'Services', 'REYZがすること', '',
 section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('紹介動画の企画から公開後の明細までをたどる操作見本です。\n「制作・確認」で動画を承認してから、|「動画を差し替える」を押すと、|新しい版で何を確かめ直すかが分かります。'),
         GUARD + '<details class="workflow-detail" id="decide"><summary>表現確認の補足体験を見る</summary><div class="workflow-detail-body">' + SCREENS_ENT + '</div></details>') + \
 section('show', 'Video × SNS', '映像の設計', '',
-        editorial_film('production', '紙と光の習作', jp('折った紙の立体感を、四秒でどう見せるか。|白い扇、黒いアーチ、マゼンタの帯を同じ画面に置き、|輪郭と影で奥行きを描きました。')) +
+        editorial_film('紙と光の習作', jp('折った紙の立体感を、四秒でどう見せるか。|白い扇、黒いアーチ、マゼンタの帯を同じ画面に置き、|輪郭と影で奥行きを描きました。')) +
         '<dl class="study-notes">'
         '<div><dt>構図</dt><dd>手前を横切る帯は低く、奥の扇は高く。形の高さをずらし、それぞれの輪郭が読めるようにしました。</dd></div>'
         '<div><dt>光</dt><dd>扇のひだには細い影が並び、アーチには明るさがなだらかに広がります。同じ光でも、折り目と曲面で表情が変わります。</dd></div>'
