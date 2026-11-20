@@ -85,8 +85,8 @@ The case preview in `/creative#guard` is cropped to a tall frame on wide screens
 
 | Version in the preview | File | Scene frame | Size | Bytes | SHA-256 |
 | --- | --- | --- | --- | --- | --- |
-| v1, v3, … | `site/assets/editorial/creative-study-still-1.webp` | 1 (fan closed) | 2560 × 1348 | 77,934 | `0aa757071fe21646dd76dbe45c8a2edadb92c7014343c8944ea668f51ffe2776` |
-| v2, v4, … | `site/assets/editorial/creative-study-still-2.webp` | 49 (fan at its widest) | 2560 × 1348 | 60,530 | `6a254461c0fc16ed0130580df29e68898a8989fdd3363c99b5b0c83b326c36ce` |
+| v1, v3, … | `site/assets/editorial/creative-study-still-1.webp` | 1 (fan spread wide) | 2560 × 1348 | 77,934 | `0aa757071fe21646dd76dbe45c8a2edadb92c7014343c8944ea668f51ffe2776` |
+| v2, v4, … | `site/assets/editorial/creative-study-still-2.webp` | 49 (fan drawn together) | 2560 × 1348 | 60,530 | `6a254461c0fc16ed0130580df29e68898a8989fdd3363c99b5b0c83b326c36ce` |
 
 - Rendered with the `bpy` module 5.3.0 (EEVEE, software GL). The script selects `BLENDER_EEVEE_NEXT` where it exists and `BLENDER_EEVEE` otherwise; frame 1 at film size was compared by eye with the published poster before rendering.
 - The stock Creator film is no longer shown on `/creative`. It remains on `/creator#income` with its caption and credit.

@@ -23,7 +23,8 @@ FPS = 24
 WIDTH, HEIGHT = 1280, 674
 OUTPUT = Path(__file__).resolve().parent.parent / 'site/assets/editorial'
 # The case preview is cropped to a tall frame on wide screens, so its two versions are
-# rendered at twice the film size. Frame 1 is the closed fan; frame 49 is the widest opening.
+# rendered at twice the film size. The fan's `Gather` key is lowest at frame 1 (spread wide)
+# and highest at frame 49 (drawn together).
 STILLS = ((1, 'creative-study-still-1.webp'), (49, 'creative-study-still-2.webp'))
 STILL_SCALE = 200
 
