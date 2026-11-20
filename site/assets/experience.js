@@ -364,10 +364,11 @@
       for (const text of state.history) { const li = document.createElement('li'); li.textContent = text; history.append(li); }
       const preview = $('cyclePreview');
       if (preview) {
-        const src = state.asset % 2 ? 'assets/editorial/creator-film.webp' : 'assets/editorial/creative-study-v1.webp';
+        // Both versions are REYZ's own paper study, rendered at twice the film size for the tall crop.
+        const src = 'assets/editorial/creative-study-still-' + (state.asset % 2 ? '1' : '2') + '.webp';
         if (preview.getAttribute('src') !== src) preview.src = src;
       }
-      const caption = $('cycleMediaCaption'); if (caption) caption.textContent = state.asset % 2 ? '素材イメージ' : '構図と光のCG';
+      const caption = $('cycleMediaCaption'); if (caption) caption.textContent = '構図と光のCG';
       const badge = $('cycleScreenVersion'); if (badge) badge.textContent = 'v' + state.asset;
     }
     function advance() {

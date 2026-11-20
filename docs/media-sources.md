@@ -79,7 +79,34 @@ For the same revision, the Blender scene in `tools/render_creative_study.py` bui
 - Visible caption: `構図と光のイメージ映像（CG）`. Credit: `REYZ / Motion study`.
 - The HeyGen clip proposed earlier in PR #61 and its still have been removed from the deliverable.
 
-## Original social-sharing brand cover
+### Case-preview stills (2026-11-20)
+
+The case preview in `/creative#guard` is cropped to a tall frame on wide screens (measured 390 × 573 CSS px; 780 × 1146 device px at 2×), so a 1280 × 674 source was enlarged about 1.7×. Its first version was also the stock Creator poster. Both versions are now stills from this same scene, rendered at twice the film size by `tools/render_creative_study.py -- --stills`.
+
+| Version in the preview | File | Scene frame | Size | Bytes | SHA-256 |
+| --- | --- | --- | --- | --- | --- |
+| v1, v3, … | `site/assets/editorial/creative-study-still-1.webp` | 1 (fan closed) | 2560 × 1348 | 77,934 | `0aa757071fe21646dd76dbe45c8a2edadb92c7014343c8944ea668f51ffe2776` |
+| v2, v4, … | `site/assets/editorial/creative-study-still-2.webp` | 49 (fan at its widest) | 2560 × 1348 | 60,530 | `6a254461c0fc16ed0130580df29e68898a8989fdd3363c99b5b0c83b326c36ce` |
+
+- Rendered with the `bpy` module 5.3.0 (EEVEE, software GL). The script selects `BLENDER_EEVEE_NEXT` where it exists and `BLENDER_EEVEE` otherwise; frame 1 at film size was compared by eye with the published poster before rendering.
+- The stock Creator film is no longer shown on `/creative`. It remains on `/creator#income` with its caption and credit.
+
+## Social-sharing cover — Contour (current, 2026-11-20)
+
+| Field | Value |
+| --- | --- |
+| Local image | `site/assets/og-contour-v1.png` |
+| Creation | `node tools/render_og_cover.mjs <contour renderer>`: frame 0 of `tools/render_brand_contour.cpp` (the Home poster frame) composed with the site's typefaces in Chromium |
+| Typefaces | Inter and Noto Sans JP, weights 400 and 500. The tool stops if either face is not loaded |
+| Visual | The seven-strip Contour infinity of the Home film on the site's near-black, REYZ logotype, the fixed headline and `CREATOR ECONOMY × AI` |
+| Use | `og:image` on every page |
+| Dimensions | 1200 × 630 |
+| File size | 326,958 bytes |
+| SHA-256 | `c2c9ab9844e949d580e5d5243b04f9376dc26754aca3299f8f629faccc0d749c` |
+
+The previous cover showed a single generated ribbon, a different infinity from the one on the site. This cover uses the site's own sculpture and contains no generated or third-party imagery. For this file the two typefaces were loaded from the `@fontsource/inter` and `@fontsource/noto-sans-jp` packages through the tool's local stylesheet argument, because the rendering environment could not reach Google Fonts.
+
+## Previous social-sharing cover (retained for links already shared)
 
 | Field | Value |
 | --- | --- |

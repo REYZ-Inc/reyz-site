@@ -82,7 +82,7 @@ def head(title, desc, fname='index.html', styles=()):
   <meta property="og:site_name" content="REYZ Inc.">
   <meta property="og:locale" content="ja_JP">
   <meta property="og:url" content="{SITE_URL}/{clean(fname)}">
-  <meta property="og:image" content="{SITE_URL}/assets/og-editorial.png">
+  <meta property="og:image" content="{SITE_URL}/assets/og-contour-v1.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
@@ -727,7 +727,7 @@ GUARD = """<div class="cycle reveal" data-cycle data-state="brief">
     <button type="button" data-cycle-step="4" aria-pressed="false"><span>05</span>明細</button>
   </div>
   <div class="cycle-body">
-    <div class="cycle-art has-media" aria-hidden="true"><div class="cycle-preview"><img id="cyclePreview" src="assets/editorial/creator-film.webp" alt="" width="1280" height="674" loading="lazy" decoding="async"><span class="cycle-screen-state" id="cycleScreenVersion">v1</span></div><span class="cycle-art-caption" id="cycleMediaCaption">素材イメージ</span></div>
+    <div class="cycle-art has-media" aria-hidden="true"><div class="cycle-preview"><img id="cyclePreview" src="assets/editorial/creative-study-still-1.webp" alt="" width="2560" height="1348" loading="lazy" decoding="async"><span class="cycle-screen-state" id="cycleScreenVersion">v1</span></div><span class="cycle-art-caption" id="cycleMediaCaption">構図と光のCG</span></div>
     <div class="cycle-detail" aria-live="polite" aria-atomic="true">
       <p class="cycle-kicker" id="cycleKicker">01 / PLAN</p><h3 class="cycle-title" id="cycleTitle">やることと、決めることを。</h3>
       <p class="cycle-copy" id="cycleCopy">目的、制作物、担当、使う場所。最初の地図で、仕事の全体をそろえます。</p>

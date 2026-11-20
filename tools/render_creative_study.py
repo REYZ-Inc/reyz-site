@@ -4,6 +4,9 @@ Run with Blender 4.3 or later and FFmpeg on PATH:
     blender -b -t 4 -P tools/render_creative_study.py
 Preview an individual frame without creating delivery files:
     blender -b -t 4 -P tools/render_creative_study.py -- --preview /tmp/study.png --frame 1
+Render only the two double-resolution stills used by the Creative case preview:
+    blender -b -t 4 -P tools/render_creative_study.py -- --stills
+The same commands run with the `bpy` Python module (`python3 tools/render_creative_study.py -- --stills`).
 """
 import argparse
 import math
@@ -19,6 +22,10 @@ FRAMES = 96
 FPS = 24
 WIDTH, HEIGHT = 1280, 674
 OUTPUT = Path(__file__).resolve().parent.parent / 'site/assets/editorial'
+# The case preview is cropped to a tall frame on wide screens, so its two versions are
+# rendered at twice the film size. Frame 1 is the closed fan; frame 49 is the widest opening.
+STILLS = ((1, 'creative-study-still-1.webp'), (49, 'creative-study-still-2.webp'))
+STILL_SCALE = 200
 
 
 def paper(name, color, roughness):
@@ -122,7 +129,9 @@ def area(name, location, target, energy, size, color):
 def setup():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
-    scene.render.engine = 'BLENDER_EEVEE_NEXT'
+    # Blender 4.2–4.5 name the engine BLENDER_EEVEE_NEXT; 5.x returned to BLENDER_EEVEE.
+    engines = {item.identifier for item in scene.render.bl_rna.properties['engine'].enum_items}
+    scene.render.engine = 'BLENDER_EEVEE_NEXT' if 'BLENDER_EEVEE_NEXT' in engines else 'BLENDER_EEVEE'
     scene.eevee.taa_render_samples = 8
     scene.render.resolution_x, scene.render.resolution_y = WIDTH, HEIGHT
     scene.render.resolution_percentage = 100
@@ -176,12 +185,21 @@ def main():
     args = argparse.ArgumentParser()
     args.add_argument('--preview',type=Path)
     args.add_argument('--frame',type=int,default=1)
+    args.add_argument('--stills',action='store_true')
     options = args.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
     items = setup()
     if options.preview:
         render(items, options.frame, options.preview)
         return
     OUTPUT.mkdir(parents=True,exist_ok=True)
+    if options.stills:
+        items[0].render.resolution_percentage = STILL_SCALE
+        with tempfile.TemporaryDirectory(prefix='reyz-paper-still-') as tmp:
+            for frame, name in STILLS:
+                source = Path(tmp) / f'{frame:04}.png'
+                render(items, frame, source)
+                subprocess.run(['ffmpeg','-y','-v','error','-i',str(source),'-c:v','libwebp','-quality','88',str(OUTPUT / name)],check=True)
+        return
     with tempfile.TemporaryDirectory(prefix='reyz-paper-study-') as tmp:
         directory = Path(tmp)
         for frame in range(1,FRAMES+1):
