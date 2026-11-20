@@ -413,14 +413,11 @@ home = f'''    <section class="chapter" id="infinity">
 page('index.html', 'REYZ Inc. — 無限の可能性を かたちに', '株式会社レイズ（REYZ Inc.）— Creator Economy × AI。クリエイターの活動と企業の成長を支え、AIを安心して仕事に使える仕組みを提供する会社です。', home, current='index.html')
 
 # ------------------------------------------------------------------ CREATOR
-def editorial_film(kind, headline, line):
-    """One actual film, with its editorial copy and visible source beside it."""
-    is_creator = kind == 'creator'
-    prefix = 'creator' if is_creator else 'production'
-    asset = 'creator-film' if is_creator else 'creative-study-v1'
+def editorial_film(headline, line):
+    """REYZ's own paper study, with its editorial copy and visible source beside it."""
+    prefix, asset = 'production', 'creative-study-v1'
     poster = f'assets/editorial/{asset}.webp'
-    disclosure = 'イメージ映像' if is_creator else '構図と光のイメージ映像（CG）'
-    credit = 'Footage: cottonbro studio / Pexels' if is_creator else 'REYZ / Motion study'
+    disclosure, credit = '構図と光のイメージ映像（CG）', 'REYZ / Motion study'
     return f'''<figure class="editorial-visual is-{prefix} reveal" data-editorial>
       <div class="editorial-film">
         <video id="{prefix}Film" data-editorial-video data-src="assets/editorial/{asset}.mp4" poster="{poster}" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video>
@@ -543,13 +540,18 @@ PATHS = ('<div class="paths reveal" data-paths>\n'
     '            <p class="path-cap">' + jp('入口は6つ。|ひとつから始めて、重ねていける。') + '</p>\n'
     '          </div>')
 # One choice journey: income routes and the reader's goal, then terms and support.
+# 2026-11-20 目的からの再構成（CEO「目的を認識しているのか」「やれよ」）。目的＝見たクリエイターが「REYZ に任せたい」と確信し、相談に進むこと。
+# 順序は正本 §3-1 と 2026-10-29 の結論（経路の選択は地図の後）に従う: 3 つの画面（製品そのもの）→ 入口の中身（6 つの収益）→ 提供すること（LIVE の文脈に約束と原資）→ はじめ方。
+# 文言・見本・条件の中身（MODEL・SCREENS_CREATOR・INCOMES・PATHS・TT_*・VD_*）は変えていない。変えたのは節の順序と、約束の置き場所だけ。
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
                         lead2='あなたの収益の、全部の入口に。') + \
-section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'), '',
-        editorial_film('creator', '活動によって、<br>収入の仕組みは変わる。', jp('ライブ配信では、視聴者からギフトを受け取る。|作品の直販では、自分で価格を決めてファンに届ける。\n六つの入口から、今の活動に合うものを選べます。')) + INCOMES +
+section('model', 'Your screens', jp('あなたの活動を、|3つの画面で。'),
+        jp('どこで、何を、どの順で。|地図が決まると入口が開き、|入った収入は明細に残ります。'), SCREENS_CREATOR) + \
+section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'),
+        jp('ライブ配信では、視聴者からギフトを受け取る。|作品の直販では、自分で価格を決めてファンに届ける。\n六つの入口から、今の活動に合うものを選べます。'),
+        INCOMES +
         '<div class="income-path" id="path"><div class="head reveal"><p class="eyebrow">Your path</p><h3>' + jp('目的から、|道を選ぶ。') + '</h3>' +
         more('contact.html', 'この道で、はじめる') + '</div>' + PATHS + '</div>') + \
-section('model', 'Terms &amp; screens', '条件を、先に。', '', MODEL + SCREENS_CREATOR) + \
 section('services', 'Services', '提供すること', '',
         '<div class="items reveal">\n'
         '            <div class="item">\n'
@@ -562,6 +564,10 @@ section('services', 'Services', '提供すること', '',
         '              <div class="manual-entry-art" aria-hidden="true"><img src="assets/manual/cover.svg" alt="" width="540" height="960" loading="lazy"></div>\n'
         '              <div class="manual-entry-copy"><p class="eyebrow">Your live guide</p><h3 id="manualEntryTitle">配信マニュアル</h3><p>全42ページ。あなたの名前と色で。</p><a class="manual-entry-link" href="manual.html">マニュアルをつくる<span aria-hidden="true"> →</span></a></div>\n'
         '            </aside>\n'
+        '          </div>\n'
+        # 約束と原資の図は、LIVE を検討する人の文脈に置く（2026-10-29 CEO の見解。所属の約束をページの主役にしない）
+        '          ' + MODEL + '\n'
+        '          <div class="items reveal">\n'
         + fold(VD_H3, VD_P) + '\n'
         + fold('SNSアカウントの運用支援', jp('''投稿の計画、制作、分析、改善。
 ライブ配信の企画と継続まで。''')) + '\n'
@@ -766,7 +772,7 @@ section('services', 'Services', 'REYZがすること', '',
 section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('紹介動画の企画から公開後の明細までをたどる操作見本です。\n「制作・確認」で動画を承認してから、|「動画を差し替える」を押すと、|新しい版で何を確かめ直すかが分かります。'),
         GUARD + '<details class="workflow-detail" id="decide"><summary>表現確認の補足体験を見る</summary><div class="workflow-detail-body">' + SCREENS_ENT + '</div></details>') + \
 section('show', 'Video × SNS', '映像の設計', '',
-        editorial_film('production', '紙と光の習作', jp('折った紙の立体感を、四秒でどう見せるか。|白い扇、黒いアーチ、マゼンタの帯を同じ画面に置き、|輪郭と影で奥行きを描きました。')) +
+        editorial_film('紙と光の習作', jp('折った紙の立体感を、四秒でどう見せるか。|白い扇、黒いアーチ、マゼンタの帯を同じ画面に置き、|輪郭と影で奥行きを描きました。')) +
         '<dl class="study-notes">'
         '<div><dt>構図</dt><dd>手前を横切る帯は低く、奥の扇は高く。形の高さをずらし、それぞれの輪郭が読めるようにしました。</dd></div>'
         '<div><dt>光</dt><dd>扇のひだには細い影が並び、アーチには明るさがなだらかに広がります。同じ光でも、折り目と曲面で表情が変わります。</dd></div>'

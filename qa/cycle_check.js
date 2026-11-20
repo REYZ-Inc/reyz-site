@@ -584,7 +584,17 @@ async function recordFailure(page, label, name, error) {
         await run('price', () => priceJourney(page, label));
         await run('layout', () => layoutChecks(page, label));
         await run('enterprise media', () => mediaJourney(page, 'creative', label));
-        await run('creator media', () => mediaJourney(page, 'creator', label));
+        // Creator page order follows the product: three screens, then the six entries inside the entry screen,
+        // then what REYZ provides (the promises and the funding figure sit with the LIVE service). No film.
+        await open(page, 'creator');
+        check(label + ': creator sections follow the product order', await page.locator('main section.section').evaluateAll(
+          nodes => nodes.map(node => node.id).join(',')) === 'model,income,services,how');
+        check(label + ': creator page shows no film', await page.locator('[data-editorial], video').count() === 0);
+        check(label + ': the three screens open the page body', await page.locator('#model .screens3').count() === 1 && await page.locator('#model .model').count() === 0);
+        check(label + ': the six entries follow with their introduction',
+          await page.locator('#income .head .lead').count() === 1 && await page.locator('#income .income-choice').count() === 6);
+        check(label + ': promises and funding sit with the LIVE service', await page.locator('#services .model .vows li').count() === 3
+          && await page.locator('#services .model .fund').count() === 1);
         check(label + ': no JavaScript errors', errors.length === 0, errors);
       } catch (error) { report.fails.push(label + ': journey interrupted: ' + String(error.stack || error)); }
       finally { await context.close(); }
@@ -600,7 +610,6 @@ async function recordFailure(page, label, name, error) {
       await open(page, 'creative');
       await reduced('cycle', () => cycleJourney(page, 'reduced-390'));
       await reduced('enterprise media', () => mediaJourney(page, 'creative', 'reduced-390', true));
-      await reduced('creator media', () => mediaJourney(page, 'creator', 'reduced-390', true));
     } catch (error) { report.fails.push('reduced-390: journey interrupted: ' + String(error.stack || error)); }
     finally { await context.close(); }
     await slowMediaReplay(chrome);
