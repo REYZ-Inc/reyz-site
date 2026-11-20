@@ -152,6 +152,34 @@ async function cycleJourney(page, label) {
   s = await snapshot(page);
   check(label + ': keyboard activates the next stage', s.selected.includes('1') && !approvalValid(s), s);
 
+  for (const action of ['asset', 'terms']) {
+    await click(page, `[data-cycle-action="${action}"]`);
+    const edit = await snapshot(page);
+    check(label + ': ' + action + ' before first approval stays unapproved',
+      edit.approval === '未承認' && edit.selected.includes('1') && /未承認/.test(edit.result)
+      && !/失効|再承認/.test(edit.status + edit.result + edit.history.join('')) && publicRequests(edit) === 0, edit);
+  }
+  await click(page, '[data-cycle-step="2"]');
+  await click(page, '#cycleNext');
+  const gated = await snapshot(page);
+  check(label + ': publication routes an unapproved revision to review',
+    gated.selected.includes('1') && !approvalValid(gated) && publicRequests(gated) === 0, gated);
+  await click(page, '#cycleNext');
+  const revisedApproval = await snapshot(page);
+  check(label + ': first approval binds the edited asset and terms',
+    approvalValid(revisedApproval) && revisedApproval.approval.includes('v2・条件版 2'), revisedApproval);
+  await click(page, '[data-cycle-action="asset"]');
+  const revoked = await snapshot(page);
+  check(label + ': changing the approved draft invalidates it before publication',
+    /失効/.test(revoked.result) && /失効/.test(revoked.approval)
+    && /失効/.test(revoked.history.at(-1)) && publicRequests(revoked) === 0, revoked);
+  await click(page, '[data-cycle-action="terms"]');
+  const subsequent = await snapshot(page);
+  check(label + ': a further change cannot invalidate the same approval twice',
+    !approvalValid(subsequent) && /未承認/.test(subsequent.result) && !/失効/.test(subsequent.result)
+    && /未承認/.test(subsequent.history.at(-1)) && subsequent.history.filter(event => event.includes('失効')).length === 1
+    && publicRequests(subsequent) === 0, subsequent);
+
   const published = await reachPublication(page, label + '/complete');
   await click(page, '#cycleNext');
   s = await snapshot(page);

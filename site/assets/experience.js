@@ -309,15 +309,16 @@
     const next = $('cycleNext');
     let state;
     const key = () => state.asset + ':' + state.terms;
+    const approvedForCurrent = () => !state.expired && state.lastApprovedKey === key();
     const active = () => ['requested', 'unknown', 'confirmed', 'stop-pending'].includes(state.publication);
     const record = text => {
       state.history.push(text);
       state.history = state.history.slice(-14);
     };
     const reset = () => {
-      state = { step: 0, asset: 1, terms: 1, days: 30, approval: null,
+      state = { step: 0, asset: 1, terms: 1, days: 30, lastApprovedKey: null,
         publication: 'none', publishedKey: null, result: false, statement: false,
-        expired: false, changed: false, notice: '工程を選ぶと、その段階で任せることと、決めることが見えます。',
+        expired: false, notice: '工程を選ぶと、その段階で任せることと、決めることが見えます。',
         history: ['企画の整理から開始（見本）'] };
       render();
     };
@@ -329,19 +330,20 @@
       ['05 / RECORD', '仕事の終わりを、次の始まりに。', '条件、承認、実行の記録、結果、費用と報酬の明細。同じ案件として振り返り、次の仕事につなぎます。', 'REYZ：記録と明細を整理 ／ お客様：内容を確認し、支払いを決める'],
     ];
     function render() {
-      const approved = state.approval === key();
+      const approved = approvedForCurrent();
+      const needsReapproval = state.lastApprovedKey !== null && !approved;
       const row = stages[state.step];
       $('cycleKicker').textContent = row[0]; $('cycleTitle').textContent = row[1];
       $('cycleCopy').textContent = row[2]; $('cycleOwner').textContent = row[3];
       $('cycleVersion').textContent = 'v' + state.asset;
       $('cycleTerms').textContent = state.days + '日・条件版 ' + state.terms + (state.expired ? '（期限到来）' : approved ? '（見本で合意）' : '（合意前）');
-      $('cycleApproval').textContent = approved ? 'v' + state.asset + '・条件版 ' + state.terms + ' を承認（見本）' : state.changed ? '以前の承認は失効・再確認待ち' : '未承認';
+      $('cycleApproval').textContent = approved ? 'v' + state.asset + '・条件版 ' + state.terms + ' を承認（見本）' : needsReapproval ? '以前の承認は失効・再確認待ち' : '未承認';
       const publication = { none: '未実行', requested: '公開要求済み・確認待ち', unknown: '公開結果が未確認・再送しない', confirmed: '公開確認済み（見本）', 'stop-pending': '停止未確認・完了にしない', stopped: '停止確認済み（見本）' };
       $('cyclePublication').textContent = publication[state.publication];
       $('cycleOutcome').textContent = state.statement ? '結果の取込・明細の照合済み（見本）' : state.result ? '結果の取込済み・明細の照合待ち（見本）' : '未取得・未確定';
       $('cycleResult').textContent = state.notice;
-      $('cycleStatus').textContent = state.publication === 'stop-pending' ? '停止未確認' : state.publication === 'unknown' ? '結果未確認' : state.expired ? '期限終了・条件更新待ち' : state.statement ? '明細まで確認（見本）' : state.changed && !approved ? '再承認待ち' : ['企画を整理', '素材と条件を確認', '公開の確認', '結果を確認', '明細を確認'][state.step];
-      root.dataset.state = state.publication === 'stop-pending' || state.publication === 'unknown' ? 'pending' : state.expired ? 'changed' : state.statement ? 'complete' : state.changed && !approved ? 'changed' : 'brief';
+      $('cycleStatus').textContent = state.publication === 'stop-pending' ? '停止未確認' : state.publication === 'unknown' ? '結果未確認' : state.expired ? '期限終了・条件更新待ち' : state.statement ? '明細まで確認（見本）' : needsReapproval ? '再承認待ち' : ['企画を整理', '素材と条件を確認', '公開の確認', '結果を確認', '明細を確認'][state.step];
+      root.dataset.state = state.publication === 'stop-pending' || state.publication === 'unknown' ? 'pending' : state.expired ? 'changed' : state.statement ? 'complete' : needsReapproval ? 'changed' : 'brief';
       root.dataset.step = String(state.step);
       for (const b of steps) b.setAttribute('aria-pressed', String(Number(b.dataset.cycleStep) === state.step));
       next.disabled = false;
@@ -378,11 +380,11 @@
       } else if (state.expired) return;
       else if (state.step === 0) { state.step = 1; state.notice = '同じ案件の素材と条件を確認します。まだ公開は行いません。'; }
       else if (state.step === 1) {
-        state.approval = key(); state.step = 2;
+        state.lastApprovedKey = key(); state.step = 2;
         state.notice = 'v' + state.asset + ' と条件版 ' + state.terms + ' への承認を記録しました。公開の要求とは別です。';
         record('v' + state.asset + '・条件版 ' + state.terms + ' を承認（見本）');
       } else if (state.step === 2) {
-        if (state.approval !== key()) { state.step = 1; state.notice = 'この版・条件への承認が必要です。以前の承認は使いません。'; }
+        if (!approvedForCurrent()) { state.step = 1; state.notice = 'この素材と利用条件を確認し、承認してから公開に進みます。'; }
         else if (['requested', 'unknown'].includes(state.publication)) {
           state.publication = 'confirmed'; state.publishedKey = key(); state.step = 3;
           state.notice = '公開の確認を記録しました。次は、この素材に対応する結果を確認します。'; record('公開の確認を記録（見本）');
@@ -404,17 +406,19 @@
       if (action === 'reset') { reset(); return; }
       if (action === 'next') { advance(); return; }
       if (action === 'asset' || action === 'terms') {
+        const invalidatesApproval = approvedForCurrent();
         if (action === 'asset') state.asset++;
         else { state.terms++; state.days = state.days === 30 ? 60 : 30; state.expired = false; }
         const wasActive = active();
-        state.approval = null; state.result = false; state.statement = false; state.changed = true; state.step = 1;
+        state.result = false; state.statement = false; state.step = 1;
         if (wasActive) state.publication = 'stop-pending';
-        state.notice = (action === 'asset' ? '素材が変わったため、以前の版への承認は失効しました。' : '利用条件が変わったため、以前の条件への承認は失効しました。') + (state.expired
-          ? '利用期限も終了しています。停止を確認後、「利用条件を変える」で条件を更新してください。'
-          : wasActive ? 'まず旧条件の停止を確認し、新しい承認を取り直します。' : '必要な確認から続け、承認を取り直します。');
-        record((action === 'asset' ? '素材を v' + state.asset + ' に差し替え' : '条件版 ' + state.terms + ' に変更') + '・承認失効（見本）');
+        state.notice = invalidatesApproval ? '変更前の版と条件に対する承認は失効しました。' : 'この版と条件は未承認です。';
+        if (wasActive) state.notice += 'まず、以前の公開の停止を確認します。';
+        state.notice += state.expired ? '利用期限が終了しています。再開する場合は利用条件を更新してください。' : '新しい版と条件を確認し、公開前に承認してください。';
+        record((action === 'asset' ? '素材を v' + state.asset + ' に差し替え' : '条件版 ' + state.terms + ' に変更')
+          + (invalidatesApproval ? '・承認失効（見本）' : '・未承認（見本）'));
       } else if (action === 'expire') {
-        state.expired = true; state.approval = null; state.publication = 'stop-pending'; state.step = 2;
+        state.expired = true; state.publication = 'stop-pending'; state.step = 2;
         state.notice = '利用期限に達しました。停止要求を出しただけでは完了にせず、停止が確認できるまで追います。'; record('期限到来・停止未確認（見本）');
       } else if (action === 'network') {
         state.publication = 'unknown'; state.step = 2;

@@ -223,7 +223,7 @@ def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     """lead2: 既決の導入文（lead）を変えずに、その下へ加える 2 行目（2026-10-26 正本 §10: /creator の冒頭）"""
     actions = {
         'Creator': [('index.html#map', '地図をつくる'), ('manual.html', 'マニュアルをつくる')],
-        'Creative': [('#services', '依頼できること'), ('#guard', '仕事の流れを見る')],
+        'Creative': [('#services', '依頼できること'), ('#guard', '差し替え時の確認を試す')],
         'AI': [('#products', '3つの製品を見る'), ('contact.html', '相談する')],
         'Consensus': [('#offer', '提供の形を見る'), ('contact.html', '相談する')],
     }.get(word, [])
@@ -361,7 +361,7 @@ def structure():
             + link
             + node('reyz', 'ai.html', 'REYZ PLATFORM', 'AI ・ 人が決める ・ 記録', jp('複数のAIが確かめ、|人が決め、記録が残る。'), 'AIについて')
             + link
-            + node('company', 'creative.html', '企業', '地図 ・ 確認 ・ 記録', jp('公開する表現と利用条件を確かめ、|判断の根拠を残す。'), '企業の方へ')
+            + node('company', 'creative.html', '企業', '地図 ・ 確認 ・ 記録', jp('複数の制作案件で、|公開してよい素材と利用条件を確かめる。'), '企業の方へ')
             + '          </div>\n'
             '          <p class="structure-cap reveal">' + jp('確認を通った案件と商品だけが、|企業からクリエイターへ届く。') + '</p>')
 STRUCTURE = structure()
@@ -742,8 +742,9 @@ GUARD = """<div class="cycle reveal" data-cycle data-state="brief">
   <p class="cycle-note">対象業務、連携先、REYZとお客様の担当範囲を、導入時に確認します。</p>
 </div>"""
 
-creative = title_chapter('Creative', 'For Enterprise', '「伝わる」を設計する。',
-                         jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。')) + \
+creative = title_chapter('Creative', jp('複数のクリエイター案件を進める|ブランド・代理店の方へ'), '「伝わる」を設計する。',
+                         jp('何をつくるか。その前に、誰に、何を届けるか。\n事業の目的から、一緒に考えます。'),
+                         lead2=jp('どの動画を、どの条件で公開できるか。|承認した版と利用条件を案件ごとに記録します。\n差し替えたら以前の承認は失効し、|新しい版の確認から再開できます。')) + \
 section('services', 'Services', 'REYZがすること', '',
         # 企業正本 §5 の提供パッケージ（EP1 確認して出す／EP5 つくる・入れる／EP2 クリエイターで売る／EP3・EP4 組み込み・自社ブランド）で 11 項目を束ねる。
         # 束の見出しと 1 行が常に見え、項目（既決 8 項目の本文は不変）は押すと開く
@@ -762,7 +763,7 @@ section('services', 'Services', 'REYZがすること', '',
                  [('クリエイターとの販売設計', jp('クリエイターと連動した|販売の設計と運用。|国内からアジアへの越境販売まで。'))]),
                 ('仕組みに組み込む・自社ブランドで', jp('事務所、代理店、制作会社へ。'),
                  [('事務所・代理店の方へ', jp('3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。'), 'consensus.html', 'REYZ CONSENSUSについて')])])) + \
-section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('ブランドの紹介動画を例に、|企画から公開後の明細までをたどれます。\n素材を差し替えると、|どの承認を取り直すのか試せます。'),
+section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('紹介動画の企画から公開後の明細までをたどる操作見本です。\n「制作・確認」で動画を承認してから、|「動画を差し替える」を押すと、|新しい版で何を確かめ直すかが分かります。'),
         GUARD + '<details class="workflow-detail" id="decide"><summary>表現確認の補足体験を見る</summary><div class="workflow-detail-body">' + SCREENS_ENT + '</div></details>') + \
 section('show', 'Video × SNS', '映像の設計', '',
         editorial_film('production', '紙と光の習作', jp('折った紙の立体感を、四秒でどう見せるか。|白い扇、黒いアーチ、マゼンタの帯を同じ画面に置き、|輪郭と影で奥行きを描きました。')) +
@@ -777,7 +778,7 @@ section('how', 'How to start', '任せ方', jp('いきなり大きな契約を�
                ('02', '地図を受け取る', jp('何のために、何をつくり、どこで使うのか。|担当と進め方を地図で確認します。')),
                ('03', '「はい」か「いいえ」を決める', jp('提案の根拠とリスクを読み、|その案で進むかを決めます。'))], cls='list') +
         more('contact.html', '相談する'))
-page('creative.html', 'Creative — REYZ Inc.', 'REYZの企業向けサービス。目的を言葉にして進め方を決め、動画・映像制作、SNSアカウントの運用支援、最小の人数で最大の利益を生む仕組みづくり、「はい」か「いいえ」で決められる判断の支えまで。目的が変わっても、続きます。', creative)
+page('creative.html', 'Creative — REYZ Inc.', '複数のクリエイター案件を進めるブランド・代理店へ。映像・SNSの企画と制作から、素材の版と利用条件の確認、公開判断の記録まで。動画を差し替えたときの再確認を、案件の操作見本で試せます。', creative)
 
 # ------------------------------------------------------------------ AI (Z)（AIプラットフォーム事業）
 # 事業内容: 複数のAIエージェントをクリエイターエコノミーと統合運用する自社AI基盤「REYZ PLATFORM」の開発・提供。
