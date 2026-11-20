@@ -5,7 +5,9 @@ Usage: python3 qa/connection_audit.py [site] > report.json
 For each <section id>, reports the in-body links that lead to it, the in-body
 links that leave it and the media it shows. Header and footer links are listed
 separately: they reach pages, not the reason for a section to exist.
-This is an audit, not yet a gate (docs/site-coherence.md, stage 1 turns it into one).
+Only static in-body links are counted: header and footer navigation, external links and
+operations such as playing a film or sending the form are not. A section without them is
+therefore a prompt to look, not a defect. This is an audit, not a gate (docs/site-coherence.md).
 """
 import collections
 from html.parser import HTMLParser
@@ -61,7 +63,7 @@ def main():
                 chrome.add(to)
             else:
                 inbound[to] += 1
-    report = {'pages': {}, 'header_footer': sorted(chrome), 'findings': {'no_in_body_inbound': [], 'dead_end': []}}
+    report = {'pages': {}, 'header_footer': sorted(chrome), 'findings': {'no_in_body_inbound': [], 'no_in_body_outbound': []}}
     for page, parser in parsed.items():
         sections = {}
         for section in parser.order:
@@ -73,7 +75,7 @@ def main():
             if not inbound[key] and not first:
                 report['findings']['no_in_body_inbound'].append(key)
             if not out and page not in ('contact', 'manual', 'legal'):
-                report['findings']['dead_end'].append(key)
+                report['findings']['no_in_body_outbound'].append(key)
         report['pages'][page] = {'in_body_inbound': inbound[page], 'sections': sections}
     json.dump(report, sys.stdout, ensure_ascii=False, indent=1)
 
