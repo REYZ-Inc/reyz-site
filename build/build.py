@@ -98,6 +98,9 @@ def head(title, desc, fname='index.html', styles=()):
 {extra_styles}</head>
 '''
 
+# ∞ マーク（A: 交点。2026-11-21 CEO 決定「とりあえず A」「社名は右に置く」）。線は文字色、交点の線だけ #F715AC
+MARK = '''<svg class="brand-mark" viewBox="-276.57 -121.00 553.14 242.00" width="46" height="20" aria-hidden="true" focusable="false"><path d="M-91.29 -76.60 A100 100 0 1 0 -91.29 76.60 M91.29 76.60 A100 100 0 1 0 91.29 -76.60 M-91.29 -76.60 L-24.16 -20.27 M24.16 20.27 L91.29 76.60" stroke="currentColor" fill="none" stroke-width="34" stroke-linecap="butt"/><path d="M-91.29 76.60 L91.29 -76.60" stroke="#F715AC" fill="none" stroke-width="34" stroke-linecap="butt"/></svg>'''
+
 def header(current):
     cur = lambda h: ' aria-current="page"' if h == current else ''
     links = '\n'.join(f'      <a href="{h}"{cur(h)}>{t}</a>' for h, t in NAV)
@@ -105,11 +108,10 @@ def header(current):
     SUB = {'creator.html': 'クリエイターの方へ', 'creative.html': '企業の方へ'}
     sheet = '\n'.join(f'    <a href="{h}"{cur(h)}><span class="l">{t}</span>' + (f'<small class="sub">{SUB[h]}</small>' if h in SUB else '') + '</a>' for h, t in NAV)
     return f'''  <a class="skip" href="#main">本文へ移動</a>
-  <canvas id="field" aria-hidden="true"></canvas>
   <div class="grain" aria-hidden="true"></div>
 
   <header class="site-header" id="siteHeader">
-    <a class="brand" href="index.html" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+    <a class="brand" href="index.html" aria-label="REYZ Inc. ホーム">{MARK}<span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
     <nav class="nav" aria-label="Main">
 {links}
     </nav>
@@ -123,19 +125,17 @@ def header(current):
 FOOTER = f'''  <footer class="site-footer">
     <div class="wrap">
       <div class="foot-top">
-        <a class="brand" href="index.html" aria-label="REYZ Inc. ホーム"><span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
+        <a class="brand" href="index.html" aria-label="REYZ Inc. ホーム">{MARK}<span>REY<span class="z">Z</span></span> <small>Inc.</small></a>
         <nav class="foot-nav" aria-label="Footer">
           <a href="manual.html">配信マニュアル</a>
           <a href="contact.html">Contact</a>
           <a href="legal.html">Privacy &amp; Legal</a>
         </nav>
       </div>
-      <div class="foot-slot" data-word="loop" aria-hidden="true"></div>
       <p class="foot-contact" id="contactLine" hidden></p>
     </div>
   </footer>
 
-  <script src="{asset_url('assets/field-renderer.js')}"></script>
   <script src="{asset_url('assets/site.js')}"></script>
   <script src="{asset_url('assets/experience.js')}"></script>
 </body>
@@ -159,7 +159,7 @@ def page(fname, title, desc, col_text, current=None, styles=(), scripts=(), body
     with open(os.path.join(ROOT, fname), 'w', encoding='utf-8') as f: f.write(clean_links(doc))
 
 def slot(word, halo=False):
-    return f'<div class="slot" data-word="{word}" aria-hidden="true">' + ('<div class="halo"></div>' if halo else '') + '</div>'
+    return ''   # 2026-11-21 CEO: 意味を持たない粒子・映像・動きは置かない
 
 def jp(text):
     """日本語本文の行組み。改行 = 指定どおりの改行（<br>）。各行は「、」「。」の直後と '|'（任意の折返し点）で文節に分け、
@@ -369,7 +369,6 @@ STRUCTURE = structure()
 # 初画面の一言: 事業内容 3 本柱（既決）を、クリエイター／企業／AI の順に同じ形で 1 行ずつ（2026-10-27 CEO「同じ形・同じ分量」「決定した事業構造を把握した上で」）
 home = f'''    <section class="chapter" id="infinity">
       <div class="wrap chapter-stack">
-        <div class="brand-film" data-brand-film><video id="brandFilm" data-brand-video data-src="assets/brand/brand-contour-v1.mp4" poster="assets/brand/brand-contour-v1.webp" width="1280" height="720" muted loop playsinline preload="none" aria-hidden="true"></video><button class="video-toggle" data-brand-toggle aria-controls="brandFilm" aria-pressed="false" hidden type="button">映像を再生</button></div>
         <div class="head copy">
           <h1><span>無限の可能性を</span><span>かたちに</span></h1>
           <p class="hero-sub">From Japan, <em>beyond.</em></p>
@@ -542,11 +541,24 @@ PATHS = ('<div class="paths reveal" data-paths>\n'
         for n, (k, label, steps_, reyz) in enumerate(PATH_GOALS)) + '\n'
     '            <p class="path-cap">' + jp('入口は6つ。|ひとつから始めて、重ねていける。') + '</p>\n'
     '          </div>')
+# ライバーの実績（文は 2026-11-21 CEO 指定のまま。数字は LIVE Backstage 2024-10〜2026-10 のダイヤモンド数からの推定で、注記に換算の前提を書く）
+RESULTS = ('    <section class="section results-section" id="results">\n      <div class="wrap"><div class="section-text"><div class="results reveal">'
+    '<h2 class="results-top"><span class="results-k">スマホ 1 台の配信で、</span><span class="results-n">月収 1,750 万円。</span></h2>'
+    '<p class="results-d">REYZ STUDIO のライバーが、ひと月で獲得した最高収入です。</p>'
+    '<dl class="results-list">'
+    '<div><dt>平均月収</dt><dd><strong>244 万円</strong><span>月に 100 時間以上（1 日 3〜5 時間）配信しているREYZ STUDIOのライバーの平均収入。</span></dd></div>'
+    '<div><dt>最高年収</dt><dd><strong>1 億 1,200 万円</strong><span>1 年間、配信を続けたREYZ STUDIOライバーの記録です。</span></dd></div>'
+    '</dl>'
+    '<p class="results-vow">事務所はライバーの報酬から手数料などを一切引きません。やめるときの制限もありません。</p>'
+    '<p class="results-vow">報酬は TikTok からあなたに直接支払われます。</p>'
+    '<p class="results-note">金額は推定です。1 ダイヤモンド＝0.005 ドル、1 ドル＝159.48 円で換算しました。対象は 2024 年 10 月〜2026 年 10 月。収入を保証するものではありません。</p>'
+    '<div class="more"><a class="go" href="livers.html">REYZ STUDIOのライバーを見る</a></div>'
+    '</div></div></div>\n    </section>\n')
 # One choice journey: income routes and the reader's goal, then terms and support.
 creator = title_chapter('Creator', 'For Creators', '「生き方」を職業に。', 'あなたの活動を収入に変える設計を。',
-                        lead2='あなたの収益の、全部の入口に。') + \
+                        lead2='あなたの収益の、全部の入口に。') + RESULTS + \
 section('income', 'Your income', jp('6つの収益を、|ひとつの入口に。'), '',
-        editorial_film('creator', '活動によって、<br>収入の仕組みは変わる。', jp('ライブ配信では、視聴者からギフトを受け取る。|作品の直販では、自分で価格を決めてファンに届ける。\n六つの入口から、今の活動に合うものを選べます。')) + INCOMES +
+        INCOMES +
         '<div class="income-path" id="path"><div class="head reveal"><p class="eyebrow">Your path</p><h3>' + jp('目的から、|道を選ぶ。') + '</h3>' +
         more('contact.html', 'この道で、はじめる') + '</div>' + PATHS + '</div>') + \
 section('model', 'Terms &amp; screens', '条件を、先に。', '', MODEL + SCREENS_CREATOR) + \
@@ -766,13 +778,6 @@ section('services', 'Services', 'REYZがすること', '',
                  [('事務所・代理店の方へ', jp('3つの画面と、|費用ゼロでやめるのも自由な契約の型、|公開前の確認を、\n自社ブランドで提供したり、|いまの仕組みに組み込んだりできます。'), 'consensus.html', 'REYZ CONSENSUSについて')])])) + \
 section('guard', 'Full cycle', jp('ひとつの依頼を、|最後まで。'), jp('紹介動画の企画から公開後の明細までをたどる操作見本です。\n「制作・確認」で動画を承認してから、|「動画を差し替える」を押すと、|新しい版で何を確かめ直すかが分かります。'),
         GUARD + '<details class="workflow-detail" id="decide"><summary>表現確認の補足体験を見る</summary><div class="workflow-detail-body">' + SCREENS_ENT + '</div></details>') + \
-section('show', 'Video × SNS', '映像の設計', '',
-        editorial_film('production', '紙と光の習作', jp('折った紙の立体感を、四秒でどう見せるか。|白い扇、黒いアーチ、マゼンタの帯を同じ画面に置き、|輪郭と影で奥行きを描きました。')) +
-        '<dl class="study-notes">'
-        '<div><dt>構図</dt><dd>手前を横切る帯は低く、奥の扇は高く。形の高さをずらし、それぞれの輪郭が読めるようにしました。</dd></div>'
-        '<div><dt>光</dt><dd>扇のひだには細い影が並び、アーチには明るさがなだらかに広がります。同じ光でも、折り目と曲面で表情が変わります。</dd></div>'
-        '<div><dt>動き</dt><dd>扇の開きに合わせて、カメラをわずかに移動。カットを割らずに、三つの形の重なりを変えています。</dd></div>'
-        '</dl>') + \
 section('gain', 'Cost &amp; scope', jp('確認と管理の費用を、|確かめる。'), jp('依頼する範囲と、|仕事の量から。'), GAIN) + \
 section('how', 'How to start', '任せ方', jp('いきなり大きな契約を結ぶ必要はありません。\n合わなければ、そこで終えて構いません。'),
         steps([('01', '相談する', jp('今の状況と、やりたいことを。|言葉になっていなくても、構いません。')),
