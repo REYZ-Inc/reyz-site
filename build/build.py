@@ -941,7 +941,7 @@ _lv_note = ('          <div class="livers-note">\n'
             f'            <p>アカウント名とアイコンは、{_LV["captured_on"].replace("-", "/")} 時点の本人のTikTokプロフィールです。</p>\n'
             '          </div>\n')
 livers = (title_chapter('line', 'REY<span class="z">Z</span> STUDIO', _lv_label, f'月に{_LV["threshold_hours"]}時間以上配信したライバー {len(_LV["livers"])}人。獲得ダイヤモンドの多い順です。', lead2='アイコンを押すと、本人のTikTokが開きます。')
-          + '    <section class="section" id="roster">\n      <div class="wrap"><div class="section-text">\n' + _lv_groups + _lv_note
+          + '    <section class="section" id="roster">\n      <div class="wrap"><div class="section-text">\n          <h2 class="sr-only">' + _lv_label + 'のライバー</h2>\n' + _lv_groups + _lv_note
           + '          <p class="more"><a class="go" href="creator.html">クリエイターの方へ</a></p>\n      </div></div>\n    </section>\n')
 page('livers.html', f'REYZ STUDIO {_lv_label} — REYZ Inc.', f'REYZ STUDIOで{_lv_label}に{_LV["threshold_hours"]}時間以上配信したライバー{len(_LV["livers"])}人。獲得ダイヤモンド数と配信時間を、TikTok公式の管理画面の記録から掲載。', livers, current='creator.html')
 
