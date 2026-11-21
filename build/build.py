@@ -59,7 +59,7 @@ def clean(fname):
     """公開 URL の表記（2026-10-03 CEO 決定）: 拡張子 .html を付けない。index.html は ''（= /）。
     ファイル自体は x.html のまま出力する（GitHub Pages は /x で x.html を返す。旧 URL /x.html も引き続き開ける）。"""
     return '' if fname == 'index.html' else re.sub(r'\.html$', '', fname)
-_PAGE_RE = r'(?:creator|creative|ai|consensus|contact|legal|works|manual)'
+_PAGE_RE = r'(?:creator|creative|ai|consensus|contact|legal|works|manual|livers)'
 def clean_links(doc):
     """ページ内リンクを .html なしの表記へ（index.html → ./ 、x.html → x。#以降は保つ）。本文は x.html で書き、出力時に一括変換する。
     KEEP_HTML_LINKS=1 は検証用（静的ファイルだけを配る試写では x.html のまま）。本番ビルドでは使わない。"""
@@ -557,6 +557,7 @@ section('services', 'Services', '提供すること', '',
         f'              <p>{TT_P1}</p>\n'
         f'              <p>{TT_P2}</p>\n'
         f'              <p class="note">{TT_NOTE}</p>\n'
+        '              <p class="more"><a class="go" href="livers.html">REYZ STUDIOのライバーを見る</a></p>\n'
         '            </div>\n'
         '            <aside class="manual-entry" aria-labelledby="manualEntryTitle">\n'
         '              <div class="manual-entry-art" aria-hidden="true"><img src="assets/manual/cover.svg" alt="" width="540" height="960" loading="lazy"></div>\n'
@@ -897,6 +898,53 @@ page('contact.html', 'Contact — REYZ Inc.', 'REYZ Inc. へのお問い合わ�
 
 # ------------------------------------------------------------------ LEGAL
 # LEGAL（作品例ページは 2026-10-27 CEO「作品例を記載しない」により廃止。旧 URL /works は /creative への静的転送）
+# ------------------------------------------------------------------ /livers  REYZ STUDIO のライバー（月次の名簿）
+# 2026-11-21 CEO 指示: 月に 100 時間以上配信したライバーだけを、その月の獲得ダイヤモンドの多い順に載せる。
+# 見出しは「先月」と書かず年月で示す。ダイヤモンド数と配信時間を載せ、法定通貨に換算した金額は載せない。
+# アイコンは 1 位が最大、2 位、3 位と小さくなり、4〜10 位、11〜20 位…と 10 人ごとに一段小さくする。押すと本人の TikTok が開く。
+# 正本は data/livers/YYYY-MM.json（1 か月 1 ファイル）。最新の月だけをページにする。更新手順: docs/livers-monthly-update.md
+import json as _json, glob as _glob
+def _load_livers():
+    files = sorted(_glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'livers', '[0-9][0-9][0-9][0-9]-[0-9][0-9].json')))
+    if not files: raise SystemExit('data/livers/YYYY-MM.json がありません')
+    d = _json.load(open(files[-1], encoding='utf-8')); L = d['livers']; th = d['threshold_hours']
+    # Fail-Closed: 条件に合わない名簿ではページを作らない
+    if os.path.basename(files[-1]) != d['month'] + '.json': raise SystemExit('livers: ファイル名と month が一致しません')
+    if not L: raise SystemExit('livers: 掲載対象が 0 人です')
+    if any(x['hours'] < th for x in L): raise SystemExit(f'livers: 配信 {th} 時間未満の人が含まれています')
+    if [x['diamonds'] for x in L] != sorted((x['diamonds'] for x in L), reverse=True): raise SystemExit('livers: ダイヤモンドの多い順に並んでいません')
+    if len({x['id'] for x in L}) != len(L): raise SystemExit('livers: id が重複しています')
+    for x in L:
+        if not re.fullmatch(r'[A-Za-z0-9._]{2,24}', x['id']): raise SystemExit('livers: id の形式が不正 ' + x['id'])
+        if not os.path.exists(os.path.join(ROOT, 'assets', 'livers', d['month'], x['avatar'])): raise SystemExit('livers: アイコンがありません ' + x['avatar'])
+    return d
+def _man(n):
+    """ダイヤモンド数を「1,645万」の形に（万未満は四捨五入。1 万未満はそのまま）"""
+    return f'{round(n / 10000):,}万' if n >= 10000 else f'{n:,}'
+def _tier(rank):
+    return f't{rank}' if rank <= 3 else 'ta' if rank <= 10 else 'tb' if rank <= 20 else 'tc'
+_GO = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>'
+def _liver(rank, x, month):
+    nm = html.escape(x['name']); cta = '<span class="liver-cta">TikTokで見る</span>' if rank <= 3 else ''
+    return (f'            <li class="liver {_tier(rank)}"><a href="https://www.tiktok.com/@{x["id"]}" rel="noopener" aria-label="{rank}位 {nm} — TikTokで見る">'
+            f'<span class="liver-photo"><img src="assets/livers/{month}/{html.escape(x["avatar"], quote=True)}" alt="" width="300" height="300" loading="lazy" decoding="async">'
+            f'<span class="liver-rank" aria-hidden="true">{rank}</span><span class="liver-go">{_GO}</span></span>'
+            f'<span class="liver-name">{nm}</span><span class="liver-dia"><b>{_man(x["diamonds"])}</b>ダイヤ</span><span class="liver-hours">配信 {round(x["hours"])}時間</span>{cta}</a></li>\n')
+_LV = _load_livers(); _lv_y, _lv_m = _LV['month'].split('-'); _lv_label = f'{int(_lv_y)}年{int(_lv_m)}月'
+def _lv_group(cls, lo, hi, label):
+    rows = [(r, x) for r, x in enumerate(_LV['livers'], 1) if lo <= r <= hi]
+    return (f'          <ol class="livers {cls}" start="{lo}" aria-label="{label}">\n' + ''.join(_liver(r, x, _LV['month']) for r, x in rows) + '          </ol>\n') if rows else ''
+_lv_groups = _lv_group('livers-top', 1, 3, '1位から3位') + ''.join(_lv_group('livers-a' if lo == 4 else 'livers-b' if lo == 11 else 'livers-c', lo, hi, f'{lo}位から{hi}位') for lo, hi in [(4, 10)] + [(n, n + 9) for n in range(11, len(_LV['livers']) + 1, 10)])
+_lv_end = str(int(_LV['period_utc'][1].split('-')[2])) + '日'
+_lv_note = ('          <div class="livers-note">\n'
+            f'            <p>数字は TikTok LIVE Backstage（事務所向けの公式管理画面）の {_lv_label}1日〜{_lv_end}の記録です。ダイヤモンド数は「万」未満を四捨五入しています。</p>\n'
+            f'            <p>アカウント名とアイコンは、{_LV["captured_on"].replace("-", "/")} 時点の本人のTikTokプロフィールです。</p>\n'
+            '          </div>\n')
+livers = (title_chapter('line', 'REY<span class="z">Z</span> STUDIO', _lv_label, f'月に{_LV["threshold_hours"]}時間以上配信したライバー {len(_LV["livers"])}人。獲得ダイヤモンドの多い順です。', lead2='アイコンを押すと、本人のTikTokが開きます。')
+          + '    <section class="section" id="roster">\n      <div class="wrap"><div class="section-text">\n' + _lv_groups + _lv_note
+          + '          <p class="more"><a class="go" href="creator.html">クリエイターの方へ</a></p>\n      </div></div>\n    </section>\n')
+page('livers.html', f'REYZ STUDIO {_lv_label} — REYZ Inc.', f'REYZ STUDIOで{_lv_label}に{_LV["threshold_hours"]}時間以上配信したライバー{len(_LV["livers"])}人。獲得ダイヤモンド数と配信時間を、TikTok公式の管理画面の記録から掲載。', livers, current='creator.html')
+
 legal_grid = f'''<div class="legal-grid reveal">
           <div class="legal-block">
             <h2>宅地建物取引業者</h2>

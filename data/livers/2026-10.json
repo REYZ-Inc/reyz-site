@@ -1,0 +1,126 @@
+{
+ "month": "2026-10",
+ "source": "TikTok LIVE Backstage（クリエイターデータ）",
+ "period_utc": [
+  "2026-10-01",
+  "2026-10-31"
+ ],
+ "captured_on": "2026-11-21",
+ "threshold_hours": 100,
+ "members_listed_in_backstage": 158,
+ "note": "diamonds は Backstage の表示値（上 3〜4 桁に丸められた値）。name と avatar は captured_on 時点の TikTok 公開プロフィール。",
+ "livers": [
+  {
+   "id": "keika_1004",
+   "name": "けけけーか",
+   "diamonds": 16450000,
+   "hours": 158.3,
+   "avatar": "keika_1004.jpg"
+  },
+  {
+   "id": "rararand03",
+   "name": "💙🩵免疫ない奴ゆう🩵💙",
+   "diamonds": 13660000,
+   "hours": 125.8,
+   "avatar": "rararand03.jpg"
+  },
+  {
+   "id": "0728i2",
+   "name": "ほの🕊️🔔",
+   "diamonds": 11600000,
+   "hours": 314.8,
+   "avatar": "0728i2.jpg"
+  },
+  {
+   "id": "mizuki12010306",
+   "name": "12/3🎂Mizuki 🧡",
+   "diamonds": 4710000,
+   "hours": 153.1,
+   "avatar": "mizuki12010306.jpg"
+  },
+  {
+   "id": "mi____kkk",
+   "name": "おもち🐻🥨",
+   "diamonds": 2460000,
+   "hours": 184.6,
+   "avatar": "mi____kkk.jpg"
+  },
+  {
+   "id": "naotini112",
+   "name": "なお🐩💎",
+   "diamonds": 2380000,
+   "hours": 199.7,
+   "avatar": "naotini112.jpg"
+  },
+  {
+   "id": "vera40647",
+   "name": "べらねぇ👿❤️‍🔥",
+   "diamonds": 2160000,
+   "hours": 267.9,
+   "avatar": "vera40647.jpg"
+  },
+  {
+   "id": "m153088",
+   "name": "MIKU。",
+   "diamonds": 1920000,
+   "hours": 156.6,
+   "avatar": "m153088.jpg"
+  },
+  {
+   "id": "tomatocha_n",
+   "name": "とまとちゃん",
+   "diamonds": 1680000,
+   "hours": 128.5,
+   "avatar": "tomatocha_n.jpg"
+  },
+  {
+   "id": "rrr__3121",
+   "name": "りンか👸💖",
+   "diamonds": 1350000,
+   "hours": 120.0,
+   "avatar": "rrr__3121.jpg"
+  },
+  {
+   "id": "99n75",
+   "name": "ワキガファンタジー🙋‍♀️❗️",
+   "diamonds": 1140000,
+   "hours": 144.1,
+   "avatar": "99n75.jpg"
+  },
+  {
+   "id": "aipi.komekome",
+   "name": "あい🍚⛳️",
+   "diamonds": 1120000,
+   "hours": 170.7,
+   "avatar": "aipi.komekome.jpg"
+  },
+  {
+   "id": "mizukimarimari",
+   "name": "Mari🌟🧜🏻‍♀️水城まり",
+   "diamonds": 905660,
+   "hours": 111.4,
+   "avatar": "mizukimarimari.jpg"
+  },
+  {
+   "id": "iam_aoao",
+   "name": "AO🌈",
+   "diamonds": 806770,
+   "hours": 107.4,
+   "avatar": "iam_aoao.jpg"
+  },
+  {
+   "id": "nanariss4007",
+   "name": "Nana☺︎🌺🐿️",
+   "diamonds": 777150,
+   "hours": 128.2,
+   "avatar": "nanariss4007.jpg"
+  },
+  {
+   "id": "_ikurachandayo_",
+   "name": "いくら☃️🧡",
+   "diamonds": 573250,
+   "hours": 120.7,
+   "avatar": "_ikurachandayo_.jpg"
+  }
+ ]
+}

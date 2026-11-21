@@ -1343,3 +1343,46 @@ body[data-page="404"] #back .more { margin-top: 0; }
   }
   body[data-page="contact"] #form, body[data-page="legal"] #notices { padding-top: 2.5rem; }
 }
+
+/* ------------------------------------------------------------------ /livers  REYZ STUDIO のライバー（月次の名簿）
+   1 位が最大、2 位、3 位と小さくなり、4〜10 位、11〜20 位…と 10 人ごとに一段小さくする（2026-11-21 CEO 指示）。 */
+body[data-page="livers"] .page-head .eyebrow .z { color: var(--accent); }
+.livers { list-style: none; margin: 0; padding: 0; display: grid; align-items: start; }
+.livers + .livers { margin-top: clamp(2rem, 5vw, 3.2rem); padding-top: clamp(2rem, 5vw, 3.2rem); border-top: 1px solid var(--line); }
+.livers-top { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(2rem, 5vw, 3rem) clamp(1rem, 3vw, 2rem); }
+.livers-top .t1 { grid-column: 1 / -1; }
+.livers-a { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(1.6rem, 4vw, 2.4rem) clamp(0.8rem, 2.4vw, 1.6rem); }
+.livers-b, .livers-c { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(1.4rem, 3.4vw, 2rem) clamp(0.6rem, 2vw, 1.2rem); }
+@media (min-width: 760px) { .livers-a { grid-template-columns: repeat(4, minmax(0, 1fr)); } .livers-b { grid-template-columns: repeat(5, minmax(0, 1fr)); } .livers-c { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.liver { min-width: 0; }
+.liver a { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; text-align: center; color: var(--text); min-width: 0; }
+.liver a:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 12px; }
+.liver-photo { position: relative; display: block; width: 100%; margin-bottom: 0.55rem; }
+.liver-photo img { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 50%; background: #17171a; border: 1px solid var(--line-2); transition: transform 0.6s var(--ease); }
+.liver a:hover .liver-photo img { transform: scale(1.03); }
+.liver-rank { position: absolute; left: 0; top: -0.2em; font-family: var(--font-en); font-weight: 300; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+.liver-go { position: absolute; right: 2%; bottom: 2%; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: #fff; box-shadow: 0 0 0 3px var(--bg); }
+.liver-go svg { width: 50%; height: 50%; }
+.liver-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; }
+.liver-dia { white-space: nowrap; font-family: var(--font-en), var(--font-jp); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.liver-dia b { font-weight: 300; margin-right: 0.18em; }
+.liver-hours { color: var(--text-2); }
+.liver-cta { margin-top: 0.7rem; display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.15rem; border: 1px solid var(--accent); border-radius: 999px; font-size: 0.82rem; }
+/* 段ごとの大きさ */
+.t1 .liver-photo { width: min(62%, 340px); } .t1 .liver-photo img, .t2 .liver-photo img, .t3 .liver-photo img { border-color: var(--accent); }
+.t1 .liver-photo img { border-width: 2px; }
+.t1 .liver-rank { font-size: clamp(4rem, 15vw, 6rem); left: -8%; color: var(--accent); } .t1 .liver-go { width: 46px; height: 46px; }
+.t1 .liver-name { font-size: 1.12rem; } .t1 .liver-dia { font-size: 0.95rem; } .t1 .liver-dia b { font-size: clamp(2.3rem, 9vw, 2.9rem); } .t1 .liver-hours { font-size: 0.95rem; }
+.t2 .liver-photo { width: min(86%, 250px); } .t2 .liver-rank { font-size: clamp(2.8rem, 10vw, 4rem); left: -4%; color: var(--accent); } .t2 .liver-go { width: 36px; height: 36px; }
+.t2 .liver-name { font-size: 0.95rem; } .t2 .liver-dia { font-size: 0.8rem; } .t2 .liver-dia b { font-size: clamp(1.6rem, 6.4vw, 2rem); } .t2 .liver-hours { font-size: 0.84rem; }
+.t3 { padding-top: clamp(1rem, 4vw, 1.6rem); } .t3 .liver-photo { width: min(70%, 204px); } .t3 .liver-rank { font-size: clamp(2.2rem, 8vw, 3.1rem); left: -6%; color: var(--accent); } .t3 .liver-go { width: 32px; height: 32px; }
+.t3 .liver-name { font-size: 0.9rem; } .t3 .liver-dia { font-size: 0.78rem; } .t3 .liver-dia b { font-size: clamp(1.4rem, 5.6vw, 1.75rem); } .t3 .liver-hours { font-size: 0.84rem; }
+.ta .liver-photo { max-width: 128px; } .ta .liver-rank { font-size: 1.3rem; } .ta .liver-go { width: 26px; height: 26px; }
+.ta .liver-name { font-size: 0.78rem; } .ta .liver-dia { font-size: 0.72rem; } .ta .liver-dia b { font-size: 1.08rem; } .ta .liver-hours { font-size: 0.76rem; }
+.tb .liver-photo { width: 80%; max-width: 88px; } .tb .liver-rank { font-size: 0.95rem; color: var(--text-2); left: -1.1em; top: 0; } .tb .liver-go { width: 22px; height: 22px; box-shadow: 0 0 0 2px var(--bg); }
+.tb .liver-name { font-size: 0.72rem; } .tb .liver-dia { font-size: 0.7rem; } .tb .liver-dia b { font-size: 0.9rem; } .tb .liver-hours { font-size: 0.7rem; }
+.tc .liver-photo { width: 70%; max-width: 68px; } .tc .liver-rank { font-size: 0.82rem; color: var(--text-2); left: -1.1em; top: 0; } .tc .liver-go { width: 20px; height: 20px; box-shadow: 0 0 0 2px var(--bg); }
+.tc .liver-name { font-size: 0.7rem; } .tc .liver-dia { font-size: 0.7rem; } .tc .liver-dia b { font-size: 0.84rem; } .tc .liver-hours { font-size: 0.7rem; }
+.livers-note { margin-top: clamp(2.4rem, 6vw, 3.6rem); padding-top: 1.4rem; border-top: 1px solid var(--line); display: grid; gap: 0.5rem; }
+.livers-note p { color: var(--text-2); font-size: 0.8rem; line-height: 1.85; max-width: 44em; }
+@media (prefers-reduced-motion: reduce) { .liver-photo img { transition: none; } .liver a:hover .liver-photo img { transform: none; } }
