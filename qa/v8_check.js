@@ -25,7 +25,7 @@ const measure = (litFn, idx) => { const fn = eval('(' + litFn + ')'); const bb =
       if (vp.n !== 'l1280x640') await page.screenshot({ path: path.join(OUT, `${pg.replace('.html', '')}_${vp.n}_rest.png`) });
       r.chapters = []; r.end = { loopInSlot: 1 };   // 粒子の章は 2026-11-21 に廃止。基本検査（幅・h1・押せる大きさ・エラー・リンク）だけを残す
       if (vp.n !== 'l1280x640') await page.screenshot({ path: path.join(OUT, `${pg.replace('.html', '')}_${vp.n}_end.png`) });
-      r.frame = await page.evaluate(() => { const t = window.__ft.slice(30); const s = [...t].sort((a, b) => a - b); return { avg: +(t.reduce((a, c) => a + c, 0) / t.length).toFixed(2), p95: +s[Math.floor(s.length * 0.95)].toFixed(2) }; });
+      r.frame = await page.evaluate(() => { const t = window.__ft.slice(30); if (!t.length) return { avg: 0, p95: 0 }; const s = [...t].sort((a, b) => a - b); return { avg: +(t.reduce((a, c) => a + c, 0) / t.length).toFixed(2), p95: +s[Math.floor(s.length * 0.95)].toFixed(2) }; });
       out.pages[pg][vp.n] = r; await ctx.close();
     }
   }
