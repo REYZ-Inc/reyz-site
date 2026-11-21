@@ -364,10 +364,10 @@
       for (const text of state.history) { const li = document.createElement('li'); li.textContent = text; history.append(li); }
       const preview = $('cyclePreview');
       if (preview) {
-        const src = state.asset % 2 ? 'assets/editorial/creator-film.webp' : 'assets/editorial/creative-study-v1.webp';
+        const src = state.asset % 2 ? 'assets/editorial/sample-v1.webp' : 'assets/editorial/sample-v2.webp';
         if (preview.getAttribute('src') !== src) preview.src = src;
       }
-      const caption = $('cycleMediaCaption'); if (caption) caption.textContent = state.asset % 2 ? '素材イメージ' : '構図と光のCG';
+      const caption = $('cycleMediaCaption'); if (caption) caption.textContent = '見本の素材';
       const badge = $('cycleScreenVersion'); if (badge) badge.textContent = 'v' + state.asset;
     }
     function advance() {

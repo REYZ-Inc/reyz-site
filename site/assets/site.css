@@ -1386,3 +1386,31 @@ body[data-page="livers"] .page-head .eyebrow .z { color: var(--accent); }
 .livers-note { margin-top: clamp(2.4rem, 6vw, 3.6rem); padding-top: 1.4rem; border-top: 1px solid var(--line); display: grid; gap: 0.5rem; }
 .livers-note p { color: var(--text-2); font-size: 0.8rem; line-height: 1.85; max-width: 44em; }
 @media (prefers-reduced-motion: reduce) { .liver-photo img { transition: none; } .liver a:hover .liver-photo img { transform: none; } }
+
+/* ==== 2026-11-21 是正: 意味を持たない粒子・映像・動きを外し、文字と実数で見せる ==== */
+.brand { align-items: center; }
+.brand-mark { display: block; flex: none; height: 1.15rem; width: auto; margin-right: 0.35em; color: var(--text); }
+.chapter-stack { min-height: 0; justify-items: start; text-align: left; gap: 1.5rem; }
+.page-head .chapter-stack { min-height: 0; }
+.chapter.page-head, #infinity.chapter { padding-block: clamp(6.5rem, 16vh, 10rem) clamp(2.5rem, 7vh, 5rem); }
+.chapter h1 { align-items: flex-start; font-weight: 500; letter-spacing: 0.02em; line-height: 1.22; }
+.chapter h1 span { text-shadow: none; }
+.chapter .head.copy { justify-items: start; text-align: left; }
+.cue, .halo, .structure .link .pulse { display: none; }
+.results { display: grid; gap: 1.1rem; }
+.results-section { border-top: 1px solid var(--line); }
+.results-top { font-weight: 400; }
+.results-top { display: grid; gap: 0.3rem; margin: 0; }
+.results-k { font-size: clamp(1.05rem, 1.6vw, 1.35rem); color: var(--text-2); }
+.results-n { font-family: var(--font-jp); font-weight: 700; font-size: clamp(2.5rem, 7.2vw, 5.4rem); line-height: 1.12; letter-spacing: 0.01em; color: var(--text); font-feature-settings: "palt"; }
+.results-d { margin: 0; color: var(--text-2); max-width: 34em; }
+.results-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0; margin: 1.2rem 0 0.6rem; border-top: 1px solid var(--line-2); }
+.results-list > div { padding: 1.3rem 0; border-bottom: 1px solid var(--line); }
+.results-list dt { font-size: 0.86rem; color: var(--text-3); margin-bottom: 0.3rem; }
+.results-list dd { margin: 0; display: grid; gap: 0.5rem; }
+.results-list dd strong { font-weight: 700; font-size: clamp(1.7rem, 3.6vw, 2.6rem); line-height: 1.2; font-feature-settings: "palt"; }
+.results-list dd span { font-size: 0.9rem; line-height: 1.8; color: var(--text-2); max-width: 26em; }
+.results-vow { margin: 0; font-size: 1.02rem; line-height: 1.9; color: var(--text); max-width: 34em; }
+.results-note { margin: 0.6rem 0 0; font-size: 0.78rem; line-height: 1.8; color: var(--text-3); max-width: 44em; }
+.item .go, .more .go { min-height: 45px; }
+.results-d, .results-vow, .results-note, .results-list dd span { line-break: strict; word-break: auto-phrase; }

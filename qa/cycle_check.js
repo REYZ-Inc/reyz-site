@@ -215,8 +215,8 @@ async function cycleJourney(page, label) {
     if (action === 'asset') {
       const preview = page.locator('#cyclePreview');
       check(label + ': asset change uses the new CG poster and its description',
-        await preview.getAttribute('src') === 'assets/editorial/creative-study-v1.webp'
-        && await page.locator('#cycleMediaCaption').innerText() === '構図と光のCG');
+        await preview.getAttribute('src') === 'assets/editorial/sample-v2.webp'
+        && await page.locator('#cycleMediaCaption').innerText() === '見本の素材');
       await capture(page, '[data-cycle]', label + '-changed');
     }
   }
@@ -583,8 +583,6 @@ async function recordFailure(page, label, name, error) {
         await run('cycle', () => cycleJourney(page, label));
         await run('price', () => priceJourney(page, label));
         await run('layout', () => layoutChecks(page, label));
-        await run('enterprise media', () => mediaJourney(page, 'creative', label));
-        await run('creator media', () => mediaJourney(page, 'creator', label));
         check(label + ': no JavaScript errors', errors.length === 0, errors);
       } catch (error) { report.fails.push(label + ': journey interrupted: ' + String(error.stack || error)); }
       finally { await context.close(); }
@@ -599,12 +597,8 @@ async function recordFailure(page, label, name, error) {
     try {
       await open(page, 'creative');
       await reduced('cycle', () => cycleJourney(page, 'reduced-390'));
-      await reduced('enterprise media', () => mediaJourney(page, 'creative', 'reduced-390', true));
-      await reduced('creator media', () => mediaJourney(page, 'creator', 'reduced-390', true));
     } catch (error) { report.fails.push('reduced-390: journey interrupted: ' + String(error.stack || error)); }
     finally { await context.close(); }
-    await slowMediaReplay(chrome);
-    await editorialPosterJourney(safari);
     check('all sample journeys attempted no external mutation', report.mutationRequests.length === 0, report.mutationRequests);
   } catch (error) { report.fails.push('acceptance did not finish: ' + String(error.stack || error)); }
   finally {

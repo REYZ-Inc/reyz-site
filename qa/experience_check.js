@@ -170,47 +170,6 @@ async function creativeContent(page, label) {
   await click(offers.first().locator('summary'));
   check(label + ': offer details open on request', await offers.first().getAttribute('open') !== null && /法律の鑑定ではありません/.test(await offers.first().innerText()));
   await controlsFit(page, '#services details > summary', label + ' services');
-  const sampleLink = page.locator('#services a[href="#show"]');
-  const sampleOffer = page.locator('#services details').filter({ has: page.locator('a[href="#show"]') });
-  if (await sampleOffer.getAttribute('open') === null) await click(sampleOffer.locator('summary'));
-  await click(sampleLink);
-  await page.waitForFunction(() => {
-    const heading = document.querySelector('#show h2').getBoundingClientRect();
-    const header = document.querySelector('#siteHeader').getBoundingClientRect();
-    return location.hash === '#show' && heading.top >= header.bottom && heading.bottom < innerHeight * .45;
-  });
-  const overviewFile = label + '-production-film.png';
-  await page.screenshot({ path: path.join(OUT, overviewFile) });
-  report.screenshots.push(overviewFile);
-  const film = page.locator('#show [data-editorial]');
-  check(label + ': production shown once without duplicated device mockup', await film.locator('video').count() === 1 && await page.locator('#show .editorial-device, #show [data-cinematic]').count() === 0);
-  const credit = await film.locator('figcaption').innerText();
-  const productionVideo = film.locator('video');
-  check(label + ': original CG study and matching poster are credited', credit.includes('構図と光のイメージ映像（CG）') && credit.includes('REYZ / Motion study')
-    && await productionVideo.getAttribute('data-src') === 'assets/editorial/creative-study-v1.mp4'
-    && await productionVideo.getAttribute('poster') === 'assets/editorial/creative-study-v1.webp');
-  const notes = page.locator('#show .study-notes');
-  await notes.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
-  const captions = await notes.locator(':scope > div').evaluateAll(rows => rows.map(row => {
-    const title = row.querySelector('dt'), body = row.querySelector('dd');
-    const rowBounds = row.getBoundingClientRect();
-    const headerBottom = document.querySelector('#siteHeader').getBoundingClientRect().bottom;
-    const fits = [title, body].every(part => {
-      if (!part?.textContent.trim()) return false;
-      const range = document.createRange();
-      range.selectNodeContents(part);
-      const lines = Array.from(range.getClientRects());
-      return lines.length > 0 && lines.every(line => line.width > 0 && line.height > 0
-        && line.left >= Math.max(0, rowBounds.left) - 1 && line.right <= Math.min(innerWidth, rowBounds.right) + 1
-        && line.top >= headerBottom - 1 && line.bottom <= innerHeight + 1);
-    });
-    return { title: title?.textContent.trim(), fits };
-  }));
-  check(label + ': composition, light and motion notes are readable without clipping',
-    captions.map(item => item.title).join('/') === '構図/光/動き' && captions.every(item => item.fits), captions);
-  const notesFile = label + '-production-notes.png';
-  await page.screenshot({ path: path.join(OUT, notesFile) });
-  report.screenshots.push(notesFile);
 }
 
 async function publishingEntry(page, label) {
@@ -321,64 +280,21 @@ async function contactJourneys(page) {
 }
 
 async function motionAndFailure(browser) {
-  const context = await contextFor(browser, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
-  const page = await context.newPage(); const errors = []; page.on('pageerror', error => errors.push(String(error)));
-  const mp4Requests = [];
-  page.on('request', request => {
-    if (new URL(request.url()).pathname.toLowerCase().endsWith('.mp4')) {
-      mp4Requests.push({ method: request.method(), url: request.url() });
-    }
-  });
-  await open(page, 'index');
-  const film = page.locator('[data-brand-film]'), video = film.locator('video'), toggle = film.locator('button');
-  check('brand/reduce: one original brand film replaces the former infinity field', await film.count() === 1 && await page.locator('#infinity [data-word]').count() === 0);
-  check('brand/reduce: the new film and its poster are paired', await video.getAttribute('data-src') === 'assets/brand/brand-contour-v1.mp4'
-    && await video.getAttribute('poster') === 'assets/brand/brand-contour-v1.webp');
-  const before = await video.evaluate(v => ({ paused: v.paused, time: v.currentTime, source: v.getAttribute('src'), poster: v.poster }));
-  await page.waitForTimeout(250);
-  const after = await video.evaluate(v => ({ paused: v.paused, time: v.currentTime, source: v.getAttribute('src') }));
-  check('brand/reduce: no automatic media download or playback', before.paused && after.paused && before.time === after.time && !after.source, { before, after });
-  check('brand/reduce: zero MP4 requests before explicit play', mp4Requests.length === 0, mp4Requests.slice());
-  const expectedRoutes = [
-    { path: 'creator', text: 'クリエイターの創造性を、続く収入に。' },
-    { path: 'creative', text: '企業の発信を、設計から確認まで。' },
-    { path: 'ai', text: 'AIを、安心して仕事に使える形に。' },
-  ];
-  const links = page.locator('#infinity .hero-route'), routeStates = [];
-  for (let i = 0; i < await links.count(); i++) {
-    const link = links.nth(i);
-    routeStates.push({ visible: await link.isVisible(), text: (await link.innerText()).replace(/\s+/g, ''),
-      path: new URL(await link.getAttribute('href'), page.url()).pathname.split('/').pop() });
+  // 2026-11-21 CEO: 意味を持たない粒子・映像・動きは置かない。どのページにも装飾の動画と粒子の描画面が無いことを確かめる
+  const context = await contextFor(browser, { viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+  const page = await context.newPage(), mp4Requests = [];
+  page.on('request', request => { if (new URL(request.url()).pathname.toLowerCase().endsWith('.mp4')) mp4Requests.push(request.url()); });
+  for (const name of ['index', 'creator', 'creative', 'ai', 'consensus', 'contact', 'livers']) {
+    await open(page, name);
+    const found = await page.evaluate(() => ({ video: document.querySelectorAll('video').length, field: document.querySelectorAll('#field, [data-word], [data-brand-film], [data-editorial]').length }));
+    check('no decorative film or particle field: ' + name, found.video === 0 && found.field === 0, found);
   }
-  check('brand/reduce: brand and all three business routes remain readable',
-    await page.locator('#infinity h1').isVisible() && routeStates.length === 3
-      && expectedRoutes.every((expected, i) => routeStates[i]?.visible
-        && routeStates[i].text === expected.text && routeStates[i].path === expected.path), routeStates);
-  await click(toggle);
-  await page.waitForFunction(() => { const v = document.querySelector('[data-brand-video]'); return !v.paused && v.readyState >= 2 && v.currentTime > 0; });
-  check('brand/reduce: explicit play decodes the brand film', await video.evaluate(v => v.videoWidth >= 960 && v.videoHeight > 0 && v.muted && v.playsInline));
-  await click(toggle); const stopped = await video.evaluate(v => ({ paused: v.paused, time: v.currentTime }));
-  await page.waitForTimeout(250);
-  check('brand/reduce: explicit pause holds native video time', stopped.paused && await video.evaluate((v, time) => v.paused && Math.abs(v.currentTime - time) < 0.04, stopped.time));
-  await controlsFit(page, '[data-brand-toggle]', 'brand control');
-  await page.screenshot({ path: path.join(OUT, 'brand-reduced-motion.png') });
-  check('brand/reduce: no JavaScript errors', errors.length === 0, errors);
+  check('no MP4 is requested anywhere', mp4Requests.length === 0, mp4Requests);
+  await open(page, 'index');
+  check('home: business navigation works', await page.locator('#infinity .hero-route').first().isVisible());
+  await click(page.locator('#infinity .hero-route').first());
+  check('home: visitor reaches creator offer', /\/creator(?:\.html)?$/.test(new URL(page.url()).pathname));
   await context.close();
-
-  const fallback = await contextFor(browser, { viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
-  await fallback.route('**/brand/brand-contour-v1.mp4', route => route.fulfill({ status: 200, contentType: 'video/mp4', body: 'invalid-video-for-decoding-test' }));
-  const p = await fallback.newPage(), failures = []; p.on('pageerror', error => failures.push(String(error)));
-  await open(p, 'index'); await click(p.locator('[data-brand-toggle]'));
-  await p.waitForFunction(() => document.querySelector('[data-brand-video]').error !== null);
-  check('brand/decode failure: failed playback exposes an honest still state', await p.locator('[data-brand-toggle]').isDisabled() && /静止画/.test(await p.locator('[data-brand-toggle]').innerText()));
-  check('brand/decode failure: poster actually decodes', await p.locator('[data-brand-video]').evaluate(async v => {
-    const image = new Image(); image.src = v.poster; try { await image.decode(); return image.naturalWidth >= 960; } catch { return false; }
-  }));
-  check('brand/decode failure: business navigation still works', await p.locator('#infinity .hero-route').first().isVisible());
-  await click(p.locator('#infinity .hero-route').first());
-  check('brand/decode failure: visitor reaches creator offer', /\/creator(?:\.html)?$/.test(new URL(p.url()).pathname));
-  check('brand/decode failure: no JavaScript errors', failures.length === 0, failures);
-  await fallback.close();
 }
 
 (async () => {

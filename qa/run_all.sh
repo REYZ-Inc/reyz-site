@@ -30,7 +30,6 @@ echo "== 4/8 独自描画 / 経路と構図の操作 / 実原稿の閲覧"
 # Collect independent journeys before failing, so one rendering issue
 # cannot hide another page's layout evidence. Every failed journey still blocks.
 experience_status=0
-node qa/field_check.js "$SITE" "$QA_OUT/field" > "$QA_OUT/field-summary.json" || experience_status=1
 node qa/experience_check.js "$SITE" "$QA_OUT/experience" > "$QA_OUT/experience-summary.json" || experience_status=1
 node qa/manual_experience_check.js "$SITE" "$QA_OUT/manual-experience" > "$QA_OUT/manual-experience-summary.json" || experience_status=1
 node qa/cycle_check.js "$SITE" "$QA_OUT/cycle" > "$QA_OUT/cycle-summary.json" || experience_status=1
