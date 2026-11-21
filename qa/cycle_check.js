@@ -215,8 +215,8 @@ async function cycleJourney(page, label) {
     if (action === 'asset') {
       const preview = page.locator('#cyclePreview');
       check(label + ': asset change uses the new CG poster and its description',
-        await preview.getAttribute('src') === 'assets/editorial/creative-study-v1.webp'
-        && await page.locator('#cycleMediaCaption').innerText() === '構図と光のCG');
+        await preview.getAttribute('src') === 'assets/editorial/sample-v2.webp'
+        && await page.locator('#cycleMediaCaption').innerText() === '見本の素材');
       await capture(page, '[data-cycle]', label + '-changed');
     }
   }

@@ -408,24 +408,6 @@ home = f'''    <section class="chapter" id="infinity">
 page('index.html', 'REYZ Inc. — 無限の可能性を かたちに', '株式会社レイズ（REYZ Inc.）— Creator Economy × AI。クリエイターの活動と企業の成長を支え、AIを安心して仕事に使える仕組みを提供する会社です。', home, current='index.html')
 
 # ------------------------------------------------------------------ CREATOR
-def editorial_film(kind, headline, line):
-    """One actual film, with its editorial copy and visible source beside it."""
-    is_creator = kind == 'creator'
-    prefix = 'creator' if is_creator else 'production'
-    asset = 'creator-film' if is_creator else 'creative-study-v1'
-    poster = f'assets/editorial/{asset}.webp'
-    disclosure = 'イメージ映像' if is_creator else '構図と光のイメージ映像（CG）'
-    credit = 'Footage: cottonbro studio / Pexels' if is_creator else 'REYZ / Motion study'
-    return f'''<figure class="editorial-visual is-{prefix} reveal" data-editorial>
-      <div class="editorial-film">
-        <video id="{prefix}Film" data-editorial-video data-src="assets/editorial/{asset}.mp4" poster="{poster}" width="1280" height="674" muted loop playsinline preload="none" aria-hidden="true"></video>
-        <img class="editorial-poster" src="{poster}" width="1280" height="674" alt="" loading="lazy" decoding="async">
-        <button class="video-toggle" type="button" data-editorial-toggle aria-controls="{prefix}Film" aria-pressed="false" hidden>映像を再生</button>
-      </div>
-      <div class="editorial-film-copy"><h3>{headline}</h3><p>{line}</p></div>
-      <figcaption id="{prefix}Caption" class="editorial-caption"><span>{disclosure}</span><span>{credit}</span></figcaption>
-    </figure>'''
-
 # 本文の改行は本人指定（2026-09-27）。'|' は画面幅が足りない時だけ使う折返し点。TT_P1・TT_P2・TT_NOTE は HOME の前で定義
 VD_H3 = jp('動画・映像制作[（PR・PV・MV・|ドキュメンタリー・ドラマ）]')
 VD_P = jp('''インフルエンス力向上、ブランド化、リブランディングなど、
@@ -736,7 +718,7 @@ GUARD = """<div class="cycle reveal" data-cycle data-state="brief">
     <button type="button" data-cycle-step="4" aria-pressed="false"><span>05</span>明細</button>
   </div>
   <div class="cycle-body">
-    <div class="cycle-art has-media" aria-hidden="true"><div class="cycle-preview"><img id="cyclePreview" src="assets/editorial/creator-film.webp" alt="" width="1280" height="674" loading="lazy" decoding="async"><span class="cycle-screen-state" id="cycleScreenVersion">v1</span></div><span class="cycle-art-caption" id="cycleMediaCaption">素材イメージ</span></div>
+    <div class="cycle-art has-media" aria-hidden="true"><div class="cycle-preview"><img id="cyclePreview" src="assets/editorial/sample-v1.webp" alt="" width="1280" height="674" loading="lazy" decoding="async"><span class="cycle-screen-state" id="cycleScreenVersion">v1</span></div><span class="cycle-art-caption" id="cycleMediaCaption">見本の素材</span></div>
     <div class="cycle-detail" aria-live="polite" aria-atomic="true">
       <p class="cycle-kicker" id="cycleKicker">01 / PLAN</p><h3 class="cycle-title" id="cycleTitle">やることと、決めることを。</h3>
       <p class="cycle-copy" id="cycleCopy">目的、制作物、担当、使う場所。最初の地図で、仕事の全体をそろえます。</p>
