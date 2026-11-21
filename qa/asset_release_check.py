@@ -19,8 +19,8 @@ import tempfile
 from urllib.parse import unquote, urlsplit
 
 
-ENTRIES = ('site.css', 'site.js', 'field-renderer.js', 'experience.js', 'manual.css', 'manual.js')
-COMMON = ('site.css', 'field-renderer.js', 'site.js', 'experience.js')
+ENTRIES = ('site.css', 'site.js', 'experience.js', 'manual.css', 'manual.js')
+COMMON = ('site.css', 'site.js', 'experience.js')
 PAGES = {'index', 'creator', 'creative', 'ai', 'consensus', 'contact', 'legal', 'manual', 'livers', '404'}
 REPO = Path(__file__).resolve().parents[1]
 

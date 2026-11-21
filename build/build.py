@@ -6,7 +6,7 @@ import os, re, html, json, hashlib, tempfile
 ROOT = os.environ.get('SITE_OUT') or os.path.join(os.path.dirname(__file__), '..', 'site')   # SITE_OUT: 検証用の別出力先
 SITE_URL = os.environ.get('SITE_URL', 'https://reyz.inc')   # 公開ドメイン（canonical / og:url / og:image / sitemap）。末尾スラッシュなし
 SOURCE_ASSETS = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'site', 'assets'))
-ENTRY_ASSET_NAMES = ('site.css', 'site.js', 'field-renderer.js', 'experience.js', 'manual.css', 'manual.js')
+ENTRY_ASSET_NAMES = ('site.css', 'site.js', 'experience.js', 'manual.css', 'manual.js')
 
 def build_entry_assets():
     """Keep editable canonical files; publish exact byte copies at content URLs.
@@ -234,7 +234,6 @@ def title_chapter(word, eyebrow, h1, lead, lead_cls='lead', lead2=''):
     ) + '</div>' if actions else ''
     return f'''    <section class="chapter page-head" id="top">
       <div class="wrap chapter-stack">
-        {slot(word, halo=True)}
         <div class="head copy"><p class="eyebrow">{eyebrow}</p><h1 class="page-title">{h1}</h1>{('<p class="' + lead_cls + '">' + lead + '</p>') if lead else ''}{('<p class="lead lead2">' + lead2 + '</p>') if lead2 else ''}{action_html}</div>
       </div>
     </section>
@@ -379,7 +378,6 @@ home = f'''    <section class="chapter" id="infinity">
     </section>
     <section class="chapter" id="origin">
       <div class="wrap chapter-stack">
-        {slot('seed')}
         <div class="copy wide">
           <div class="head"><h2>ひとつの意志から。</h2></div>
 {STRUCTURE}
@@ -388,7 +386,6 @@ home = f'''    <section class="chapter" id="infinity">
     </section>
     <section class="chapter" id="map">
       <div class="wrap chapter-stack">
-        {slot('map')}
         <div class="copy wide">
           <div class="head"><p class="eyebrow">Your map</p><h2>あなたの地図を、<br>ここで。</h2><p class="lead">{jp('今の状況と、やりたいことを選んでください。|目的に向けた最初の一歩を示します。')}</p></div>
 {MAPPER}
@@ -398,7 +395,6 @@ home = f'''    <section class="chapter" id="infinity">
     </section>
     <section class="chapter" id="reyz">
       <div class="wrap chapter-stack">
-        {slot('REYZ')}
         <div class="copy">
           <div class="head">
             <p class="eyebrow">Company</p>
@@ -766,7 +762,7 @@ section('services', 'Services', 'REYZがすること', '',
                   ('判断を、「はい」か「いいえ」で', jp('迷う原因は、材料が整っていないことです。\n目的への効き目、根拠、リスク、案を|地図にまとめて出します。|迷わず決められるところまで持っていきます。')),
                   ('目的を言葉にし、進め方を決める', jp('何のために、いつまでに、何を。|目的を正確に汲み取り、|いつ、何を、どう進めるかを決めて渡します。\n目的が変わったら、|進め方を組み直して続けます。'))]),
                 ('つくる・入れる', jp('映像、SNS、ブランド、サイト、仕組み、AI。'),
-                 [('動画・映像制作', jp('会社、商品、採用、発信。|伝えたいことを、使われる映像に。\n企画から撮影、編集、公開後の運用まで、|自社で行います。'), '#show', '映像のイメージを見る'),
+                 [('動画・映像制作', jp('会社、商品、採用、発信。|伝えたいことを、使われる映像に。\n企画から撮影、編集、公開後の運用まで、|自社で行います。')),
                   ('SNSアカウントの運用支援', jp('立ち上げと見直し、企画と台本、撮影と編集、|毎日の投稿、数字の振り返り。\n感覚ではなく事実で確かめ、|会社の資産になるアカウントを育てます。')),
                   ('ブランドと制作', jp('ブランドの方向づけ、|サイト・映像・SNSの制作と運用。\nこのサイトも、|自社で設計・制作しています。')),
                   ('サイトと業務の仕組みづくり', jp('映像とSNSの受け皿になるサイトから、|社内で使う仕組みまで。\n使う人と仕事の流れから、|必要なものを整理してつくります。')),

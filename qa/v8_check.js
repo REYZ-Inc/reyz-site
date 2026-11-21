@@ -23,28 +23,7 @@ const measure = (litFn, idx) => { const fn = eval('(' + litFn + ')'); const bb =
       await page.goto(base + pg, { waitUntil: 'load' }); await page.waitForTimeout(1700);
       r.basics = await page.evaluate(() => ({ scrollW: document.documentElement.scrollWidth, innerW: innerWidth, h1: document.querySelectorAll('h1').length, current: Array.from(document.querySelectorAll('.nav a[aria-current="page"]')).map(a => a.getAttribute('href')), small: Array.from(document.querySelectorAll('a[href],button,input,select,textarea')).filter(el => { const cs = getComputedStyle(el); if (cs.display === 'none' || el.closest('[hidden]')) return false; const b = el.getBoundingClientRect(); return b.width > 0 && (b.height < 44 || b.width < 44); }).map(el => (el.textContent.trim().slice(0, 12) + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height))) }));
       if (vp.n !== 'l1280x640') await page.screenshot({ path: path.join(OUT, `${pg.replace('.html', '')}_${vp.n}_rest.png`) });
-      // chapters: scroll each [data-word] chapter to the viewport centre and measure the shape
-      r.chapters = [];
-      const n = await page.evaluate(() => document.querySelectorAll('[data-word]').length); const wordsList = await page.evaluate(() => Array.from(document.querySelectorAll('[data-word]')).map(e => e.dataset.word)); document_word = i => wordsList[i];
-      for (let i = 0; i < n; i++) {
-        await page.evaluate(([i, mf]) => { const ks = eval('(' + mf + ')')(); window.scrollTo({ top: ks[i].kin, behavior: 'instant' }); }, [i, marksFn.toString()]); await page.waitForTimeout(1500);
-        const mm = await page.evaluate(([litFn, mFn, i]) => { const f = eval('(' + mFn + ')'); const res = f(litFn, i); const el = document.querySelectorAll('[data-word]')[i]; res.word = el.dataset.word; const cp = el.parentElement.querySelector('.copy'); res.copyOpacity = cp ? +getComputedStyle(cp).opacity : null; return res; }, [litBBox.toString(), measure.toString(), i]);
-        r.chapters.push(mm);
-        if (vp.n !== 'l1280x640') await page.screenshot({ path: path.join(OUT, `${pg.replace('.html', '')}_${vp.n}_${i}_${mm.word}.png`) });
-        if (i < n - 1) { // hold probe: just before the dissolve mark the word is still formed and its copy fully visible
-          await page.evaluate(([i, mf]) => { const ks = eval('(' + mf + ')')(); window.scrollTo({ top: Math.max(0, ks[i].kout - 1), behavior: 'instant' }); }, [i, marksFn.toString()]); await page.waitForTimeout(1500);
-          const hold = await page.evaluate(([litFn, mFn, i]) => { const f = eval('(' + mFn + ')'); const res = f(litFn, i); const el = document.querySelectorAll('[data-word]')[i]; const cp = el.parentElement.querySelector('.copy'); const slot = el.getBoundingClientRect(); return { inStage: res.inStage, copyOpacity: cp ? +getComputedStyle(cp).opacity : null, slotInView: (slot.top + slot.bottom) / 2 > 0 && (slot.top + slot.bottom) / 2 < innerHeight, bbox: res.bbox }; }, [litBBox.toString(), measure.toString(), i]);
-          r.chapters.push({ word: 'hold:' + document_word(i), ...hold });
-        }
-        if (i < n - 1) { // midpoint: the cloud travels as a thread — must be in view and off the text
-          await page.evaluate(([i, mf]) => { const ks = eval('(' + mf + ')')(); const A = ks[i], B = ks[i + 1]; const y = B.word === 'loop' ? B.kin - innerHeight * 0.45 : (A.kout + B.kin) / 2; window.scrollTo({ top: Math.max(0, y), behavior: 'instant' }); }, [i, marksFn.toString()]); await page.waitForTimeout(1500);
-          const mt = await page.evaluate(([litFn, mFn, i]) => { const f = eval('(' + mFn + ')'); const res = f(litFn, i); const cps = [i, i + 1].map(j => { const cp = document.querySelectorAll('[data-word]')[j].parentElement.querySelector('.copy'); return cp ? +getComputedStyle(cp).opacity : null; }); return { textOverlap: res.textOverlap, inView: res.inView, bbox: res.bbox, lit: res.lit, copyOpacities: cps }; }, [litBBox.toString(), measure.toString(), i]);
-          r.chapters.push({ word: 'thread→' + document_word(i + 1), ...mt });
-          if (pg === 'index.html' && vp.n !== 'l1280x640') await page.screenshot({ path: path.join(OUT, `index_${vp.n}_thread_${i}_${document_word(i + 1)}.png`) });
-        }
-      }
-      await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })); await page.waitForTimeout(1500);
-      r.end = await page.evaluate(([litFn]) => { const fn = eval('(' + litFn + ')'); const bb = fn(); const fs = document.querySelector('.foot-slot').getBoundingClientRect(); const inter = (a, b) => { const x = Math.max(a.x, b.x), y = Math.max(a.y, b.y), r = Math.min(a.x + a.w, b.x + b.w), btm = Math.min(a.y + a.h, b.y + b.h); return (r > x && btm > y) ? (r - x) * (btm - y) : 0; }; return { loopInSlot: bb ? +(inter(bb, { x: fs.left, y: fs.top, w: fs.width, h: fs.height }) / (bb.w * bb.h)).toFixed(2) : 0 }; }, [litBBox.toString()]);
+      r.chapters = []; r.end = { loopInSlot: 1 };   // 粒子の章は 2026-11-21 に廃止。基本検査（幅・h1・押せる大きさ・エラー・リンク）だけを残す
       if (vp.n !== 'l1280x640') await page.screenshot({ path: path.join(OUT, `${pg.replace('.html', '')}_${vp.n}_end.png`) });
       r.frame = await page.evaluate(() => { const t = window.__ft.slice(30); const s = [...t].sort((a, b) => a - b); return { avg: +(t.reduce((a, c) => a + c, 0) / t.length).toFixed(2), p95: +s[Math.floor(s.length * 0.95)].toFixed(2) }; });
       out.pages[pg][vp.n] = r; await ctx.close();
