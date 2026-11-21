@@ -21,7 +21,7 @@ from urllib.parse import unquote, urlsplit
 
 ENTRIES = ('site.css', 'site.js', 'field-renderer.js', 'experience.js', 'manual.css', 'manual.js')
 COMMON = ('site.css', 'field-renderer.js', 'site.js', 'experience.js')
-PAGES = {'index', 'creator', 'creative', 'ai', 'consensus', 'contact', 'legal', 'manual', '404'}
+PAGES = {'index', 'creator', 'creative', 'ai', 'consensus', 'contact', 'legal', 'manual', 'livers', '404'}
 REPO = Path(__file__).resolve().parents[1]
 
 
@@ -143,6 +143,7 @@ def isolated_probes(release, report):
     with tempfile.TemporaryDirectory(prefix='reyz-asset-release-') as folder:
         project = Path(folder)
         shutil.copytree(REPO / 'build', project / 'build')
+        shutil.copytree(REPO / 'data', project / 'data')   # /livers の名簿データ（build.py が読む）
         shutil.copytree(release / 'assets', project / 'site' / 'assets')
         site = project / 'site'
         env = dict(os.environ, SITE_OUT=str(site))
