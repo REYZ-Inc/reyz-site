@@ -557,7 +557,7 @@ section('services', 'Services', '提供すること', '',
         f'              <p>{TT_P1}</p>\n'
         f'              <p>{TT_P2}</p>\n'
         f'              <p class="note">{TT_NOTE}</p>\n'
-        '              <p class="more"><a class="go" href="livers.html">REYZ STUDIOのライバーを見る</a></p>\n'
+        '              <div class="more"><a class="go" href="livers.html">REYZ STUDIOのライバーを見る</a></div>\n'   # p にしない: 受け入れ検査（qa/v13_check.js）が固定文を「.item p」の順番で照合する
         '            </div>\n'
         '            <aside class="manual-entry" aria-labelledby="manualEntryTitle">\n'
         '              <div class="manual-entry-art" aria-hidden="true"><img src="assets/manual/cover.svg" alt="" width="540" height="960" loading="lazy"></div>\n'
