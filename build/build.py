@@ -480,8 +480,8 @@ SCREENS_CREATOR = ('<div class="screens3 reveal">\n'
     '          </div>')
 # 入口（正本 §4 の 6 収益源。§8「今すぐ書いてよい」の範囲: 費用ゼロ／報酬から取らない／直販手数料 0%／6 収益源を一つの窓口で）。
 # 「再生数・成果連動の案件」「TikTok Shop パートナー」「100% 還元」は揃ってから（T13・T10・T1）なので書かない
-INCOMES = ('<div class="income-experience reveal" data-income-experience><ol class="incomes">\n' + '\n'.join(
-    f'            <li><button type="button" class="income-choice" data-income="{("live", "product", "campaign", "direct", "media", "ip")[n - 1]}" aria-pressed="{"true" if n == 1 else "false"}"><span class="n">{n:02d}</span><b>{k}</b><span class="v">{v}</span></button></li>'
+INCOMES = ('<ol class="incomes reveal">\n' + '\n'.join(
+    f'            <li><span class="n">{n:02d}</span><b>{k}</b><span class="v">{v}</span></li>'
     for n, (k, v) in enumerate([
         ('ライブ配信', jp('費用ゼロで、立ち上げから。|報酬から引かない。')),
         ('商品の紹介・販売', jp('確認を通ったブランド商品の紹介と、|LIVEでの販売。')),
@@ -489,7 +489,7 @@ INCOMES = ('<div class="income-experience reveal" data-income-experience><ol cla
         ('ファンへの直販', jp('知識、作品、会員権を、あなたの価格で。|手数料は0%。')),
         ('広告・再生の収益', jp('あなたへ直接。|REYZは見える化だけ。')),
         ('映像・共同IP', jp('一緒につくる。|共同でつくったものだけを、共同所有。')),
-    ], 1)) + '\n          </ol><div class="income-stage"><canvas class="income-canvas" aria-hidden="true"></canvas><a class="income-next" href="#services">提供すること<span aria-hidden="true">↗</span></a></div></div>')
+    ], 1)) + '\n          </ol>')
 # ------------------------------------------------------------------ 目的から道を選ぶ（2026-11-18 CEO「様々な収益活動の選択肢があることを認識させ、自分の目的に合わせて迷わずに進んでいける」）
 # 入口の語は DEC-20261027-12 の 6 つのまま。金額・月収・人数は置かない（DEC-20261023-01）。JS なしでは全ての道が縦に並ぶ
 PATH_GOALS = [

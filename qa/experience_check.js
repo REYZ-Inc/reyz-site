@@ -124,38 +124,10 @@ async function visualSections(browser) {
 }
 
 async function creatorChoices(page, label) {
+  // 2026-11-21 CEO: 6 つの収益の横にあった線の図（装飾）を削除。6 項目は文字の一覧として残す
   await open(page, 'creator');
-  const expected = [
-    ['live', '#services'], ['product', '#model'], ['campaign', '#model'],
-    ['direct', '#model'], ['media', '#model'], ['ip', '#services'],
-  ];
-  const canvas = page.locator('.income-canvas'), signatures = [];
-  check(label + ': all six income choices remain visible content', await page.locator('.income-choice').count() === 6);
-  for (const [id, destination] of expected) {
-    await click(page.locator('.income-choice[data-income="' + id + '"]'));
-    check(label + ': ' + id + ' is the single selected choice',
-      await page.locator('.income-choice[aria-pressed="true"]').count() === 1
-      && await page.locator('.income-choice[data-income="' + id + '"]').getAttribute('aria-pressed') === 'true');
-    await canvas.scrollIntoViewIfNeeded();
-    // Compare the completed routes, not incidental positions of travelling dots.
-    await page.waitForTimeout(1550);
-    const pixels = await canvasState(canvas); signatures.push(pixels.hash);
-    check(label + ': ' + id + ' has a rendered route', pixels.samples > 100 && pixels.range > 50, pixels);
-    const next = page.locator('.income-next');
-    check(label + ': ' + id + ' links to the relevant explanation', new URL(await next.getAttribute('href'), page.url()).hash === destination);
-    await click(next);
-    await page.waitForFunction(hash => location.hash === hash, destination);
-    check(label + ': ' + id + ' CTA navigates', new URL(page.url()).hash === destination);
-    await page.waitForFunction(id => {
-      const r = document.querySelector(id).getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0;
-    }, destination);
-  }
-  check(label + ': six selections produce six different rendered routes', new Set(signatures).size === 6, signatures);
-  await click(page.locator('.income-choice[data-income="live"]'));
-  await page.keyboard.press('Tab'); await page.keyboard.press('Space');
-  check(label + ': keyboard can select the next route', await page.locator('.income-choice[data-income="product"]').getAttribute('aria-pressed') === 'true');
-  await controlsFit(page, '.income-choice, .income-next', label + ' creator');
-  await page.locator('[data-income-experience]').screenshot({ path: path.join(OUT, label + '-creator.png') });
+  check(label + ': six incomes remain as plain text', await page.locator('#income .incomes > li').count() === 6);
+  check(label + ': no decorative canvas on creator', await page.locator('#income canvas, .income-stage, .income-choice').count() === 0);
 }
 
 async function creativeContent(page, label) {
