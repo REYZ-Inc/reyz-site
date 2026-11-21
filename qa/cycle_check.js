@@ -404,12 +404,12 @@ async function mediaJourney(page, name, label, reducedMotion = false) {
       await region.getByRole('button', { name: '映像を再生', exact: true }).click();
       await playing();
     } else {
-      await page.waitForFunction(({ index, time }) => {
+      const resumed = await page.waitForFunction(({ index, time }) => {
         const v = document.querySelectorAll('video[data-editorial-video]')[index];
         return !v.paused && v.readyState >= 2 && Math.abs(v.currentTime - time) > 0.02;
       }, { index: i, time: stopped.time }, { timeout: 15000 });
       check(label + '/' + name + ': normal re-entry automatically resumes decoded playback',
-        await video.evaluate((el, time) => !el.paused && Math.abs(el.currentTime - time) > 0.02, stopped.time));
+        await resumed.jsonValue());
     }
     await region.getByRole('button', { name: '一時停止', exact: true }).click();
     await page.waitForFunction(index => document.querySelectorAll('video[data-editorial-video]')[index].paused, i);
